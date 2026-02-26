@@ -14,36 +14,16 @@ Phase 6 runs three parallel recovery paths:
   Path B: Homophonic hypothesis (distributional similarity → merge → SAA)
   Path C: Morphological hypothesis (prefix/suffix + boundary analysis)
 
-Sub-phases:
-  foundation        — Language A extraction + tier split + matrix (always)
-  improved_corpus   — ImprovedLatinCorpus + validation
-  rank_cribs        — Recompute rank-paired cribs
-  nmf_scaffold      — Recompute NMF topics
-  path_a            — FixedSAA + validation
-  path_b_detect     — HomophoneDetector
-  path_b_merge      — HomophoneMerger
-  path_b_saa        — ReducedSAA (if groups found)
-  path_c_morpheme   — MorphemeAnalyzer
-  path_c_boundary   — BoundaryAnalyzer
-
-Usage:
-  python convergence_attack_p6.py                  # Run all paths
-  python convergence_attack_p6.py --path-a          # Path A only
-  python convergence_attack_p6.py --path-b          # Path B only
-  python convergence_attack_p6.py --path-c          # Path C only
-  python convergence_attack_p6.py --quick           # Quick (1K SAA iters)
-
 February 2026  ·  Voynich Convergence Attack  ·  Phase 6
 """
-
-import sys
 import os
 import json
 import time
 from datetime import datetime
 from typing import Dict, List, Optional
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from orchestrators._utils import save_json, ensure_output_dir
+from orchestrators._config import SAA_ITERATIONS_DEFAULT, LATIN_CORPUS_TOKENS_DEFAULT
 
 from modules.phase4.lang_a_extractor import LanguageAExtractor
 from modules.phase5.tier_splitter import TierSplitter
@@ -67,8 +47,8 @@ def run_phase6_attack(
     paths: Optional[List[str]] = None,
     verbose: bool = True,
     output_dir: str = './output/phase6',
-    saa_iterations: int = 100000,
-    latin_corpus_size: int = 30000,
+    saa_iterations: int = SAA_ITERATIONS_DEFAULT,
+    latin_corpus_size: int = LATIN_CORPUS_TOKENS_DEFAULT,
 ) -> Dict:
     """
     Run Phase 6: Three Recovery Paths.
@@ -86,7 +66,7 @@ def run_phase6_attack(
     if paths is None:
         paths = ['path_a', 'path_b', 'path_c']
 
-    os.makedirs(output_dir, exist_ok=True)
+    ensure_output_dir(output_dir)
     t0 = time.time()
 
     results = {
@@ -151,7 +131,7 @@ def run_phase6_attack(
         )
         corpus_results = improved_corpus.run(verbose=verbose)
         results['improved_corpus'] = corpus_results
-        _save_json(os.path.join(output_dir, 'improved_corpus.json'), corpus_results)
+        save_json(os.path.join(output_dir, 'improved_corpus.json'), corpus_results)
 
     # Recompute cribs and NMF if Path A is running
     if 'path_a' in paths and improved_corpus is not None:
@@ -163,7 +143,7 @@ def run_phase6_attack(
         rank_cribs = RankPairedCribs(splitter, improved_corpus)
         crib_results = rank_cribs.run(verbose=verbose)
         results['rank_cribs'] = crib_results
-        _save_json(os.path.join(output_dir, 'improved_corpus_cribs.json'),
+        save_json(os.path.join(output_dir, 'improved_corpus_cribs.json'),
                    crib_results)
 
         if verbose:
@@ -174,7 +154,7 @@ def run_phase6_attack(
         nmf_scaffold = NMFScaffold(extractor, improved_corpus)
         nmf_results = nmf_scaffold.run(verbose=verbose)
         results['nmf_scaffold'] = nmf_results
-        _save_json(os.path.join(output_dir, 'improved_corpus_nmf.json'),
+        save_json(os.path.join(output_dir, 'improved_corpus_nmf.json'),
                    nmf_results)
 
     # ==================================================================
@@ -229,9 +209,9 @@ def run_phase6_attack(
 
         results['path_a'] = saa_results
 
-        _save_json(os.path.join(output_dir, 'path_a_saa_results.json'),
+        save_json(os.path.join(output_dir, 'path_a_saa_results.json'),
                    saa_results)
-        _save_json(os.path.join(output_dir, 'path_a_mapping.json'),
+        save_json(os.path.join(output_dir, 'path_a_mapping.json'),
                    tier1_mapping)
 
         if verbose:
@@ -265,7 +245,7 @@ def run_phase6_attack(
         detector = HomophoneDetector(matrix_builder, splitter)
         detect_results = detector.run(verbose=verbose)
         results['path_b_detect'] = detect_results
-        _save_json(os.path.join(output_dir, 'path_b_homophones.json'),
+        save_json(os.path.join(output_dir, 'path_b_homophones.json'),
                    detect_results)
 
         # Step 2: Merge and re-measure
@@ -278,7 +258,7 @@ def run_phase6_attack(
             merger = HomophoneMerger(groups, splitter, extractor)
             merge_results = merger.run(verbose=verbose)
             results['path_b_merge'] = merge_results
-            _save_json(os.path.join(output_dir, 'path_b_merged_stats.json'),
+            save_json(os.path.join(output_dir, 'path_b_merged_stats.json'),
                        merge_results)
 
             # Step 3: Reduced SAA (only if significant groups found)
@@ -300,12 +280,12 @@ def run_phase6_attack(
                     verbose=verbose, n_iter=saa_iterations
                 )
                 results['path_b_saa'] = reduced_results
-                _save_json(os.path.join(output_dir, 'path_b_saa_results.json'),
+                save_json(os.path.join(output_dir, 'path_b_saa_results.json'),
                            reduced_results)
 
                 expanded_mapping = reduced.expand_mapping()
                 if expanded_mapping:
-                    _save_json(os.path.join(output_dir, 'path_b_mapping.json'),
+                    save_json(os.path.join(output_dir, 'path_b_mapping.json'),
                                expanded_mapping)
             else:
                 if verbose:
@@ -331,7 +311,7 @@ def run_phase6_attack(
         morpheme = MorphemeAnalyzer(splitter)
         morpheme_results = morpheme.run(verbose=verbose)
         results['path_c_morpheme'] = morpheme_results
-        _save_json(os.path.join(output_dir, 'path_c_morphemes.json'),
+        save_json(os.path.join(output_dir, 'path_c_morphemes.json'),
                    morpheme_results)
 
         # Step 2: Boundary analysis
@@ -341,7 +321,7 @@ def run_phase6_attack(
         boundary = BoundaryAnalyzer(extractor, splitter)
         boundary_results = boundary.run(verbose=verbose)
         results['path_c_boundary'] = boundary_results
-        _save_json(os.path.join(output_dir, 'path_c_boundaries.json'),
+        save_json(os.path.join(output_dir, 'path_c_boundaries.json'),
                    boundary_results)
 
     # ==================================================================
@@ -352,7 +332,7 @@ def run_phase6_attack(
     results['conclusion'] = conclusion
     results['elapsed_seconds'] = elapsed
 
-    _save_json(os.path.join(output_dir, 'phase6_report.json'), results)
+    save_json(os.path.join(output_dir, 'phase6_report.json'), results)
 
     if verbose:
         print('\n' + '=' * 70)
@@ -532,59 +512,3 @@ def _synthesize_phase6(results: Dict) -> Dict:
     conclusion['recommendations'] = recommendations
 
     return conclusion
-
-
-# ============================================================================
-# UTILITIES
-# ============================================================================
-
-def _save_json(filepath: str, data):
-    """Save results to JSON, handling non-serializable types."""
-    def default_handler(obj):
-        if hasattr(obj, 'tolist'):
-            return obj.tolist()
-        if hasattr(obj, '__dict__'):
-            return str(obj)
-        if isinstance(obj, (set, frozenset)):
-            return list(obj)
-        if isinstance(obj, float) and (obj != obj):  # NaN
-            return None
-        if obj == float('inf') or obj == float('-inf'):
-            return str(obj)
-        return str(obj)
-
-    with open(filepath, 'w') as f:
-        json.dump(data, f, indent=2, default=default_handler)
-
-
-# ============================================================================
-# CLI ENTRY POINT
-# ============================================================================
-
-if __name__ == '__main__':
-    paths_to_run = []
-
-    if '--path-a' in sys.argv or '-a' in sys.argv:
-        paths_to_run.append('path_a')
-    if '--path-b' in sys.argv or '-b' in sys.argv:
-        paths_to_run.append('path_b')
-    if '--path-c' in sys.argv or '-c' in sys.argv:
-        paths_to_run.append('path_c')
-
-    if not paths_to_run:
-        paths_to_run = None  # Run all
-
-    # Quick mode
-    saa_iters = 1000 if '--quick' in sys.argv else 100000
-    corpus_size = 10000 if '--quick' in sys.argv else 30000
-
-    verbose = '--quiet' not in sys.argv and '-q' not in sys.argv
-
-    results = run_phase6_attack(
-        paths=paths_to_run,
-        verbose=verbose,
-        saa_iterations=saa_iters,
-        latin_corpus_size=corpus_size,
-    )
-
-    print(f'\nPhase 6 complete. Results in ./output/phase6/')

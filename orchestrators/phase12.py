@@ -15,7 +15,6 @@ Every decoded word traces back to:
 
 February 2026  ·  Voynich Convergence Attack  ·  Phase 12
 """
-import sys
 import os
 import json
 import re
@@ -23,13 +22,11 @@ import time
 from datetime import datetime
 from typing import Dict
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-
-from modules.phase4.lang_a_extractor import LanguageAExtractor
-from modules.phase5.tier_splitter import TierSplitter
-from modules.phase6.improved_latin_corpus import ImprovedLatinCorpus
-from modules.phase6.morpheme_analyzer import MorphemeAnalyzer
-from modules.phase7.voynich_morphemer import VoynichMorphemer
+from orchestrators._utils import ensure_output_dir
+from orchestrators._config import (
+    LATIN_CORPUS_TOKENS_LARGE, FOLIO_LIMIT_DEFAULT, MIN_CONFIDENCE_RATIO,
+)
+from orchestrators._foundation import build_morphological_context
 
 from modules.phase11.phonetic_skeletonizer import LatinPhoneticSkeletonizer
 from modules.phase12.fuzzy_skeletonizer import FuzzySkeletonizer
@@ -56,7 +53,7 @@ def run_phase12_reconstruction(
     phases=None,
     verbose: bool = True,
     output_dir: str = './output/phase12',
-    min_confidence_ratio: float = 3.0,
+    min_confidence_ratio: float = MIN_CONFIDENCE_RATIO,
 ) -> Dict:
     """
     Run the full Phase 12 pipeline.
@@ -70,7 +67,7 @@ def run_phase12_reconstruction(
     Returns:
         Results dict with translations and metrics
     """
-    os.makedirs(output_dir, exist_ok=True)
+    ensure_output_dir(output_dir)
     all_phases = ['load', 'build', 'decode', 'scaffold', 'solve']
     run_phases = set(phases or all_phases)
     t0 = time.time()
@@ -97,17 +94,13 @@ def run_phase12_reconstruction(
         if verbose:
             print('\n[1/5] Loading Extractors, Morphemers & Latin Corpus...')
 
-        extractor = LanguageAExtractor(verbose=False)
-        splitter = TierSplitter(extractor)
-        splitter.split()
-
-        m_analyzer = MorphemeAnalyzer(splitter)
-        p6_morph = m_analyzer.run(verbose=False)
-        v_morph = VoynichMorphemer(splitter, p6_morph)
-        v_morph.process_corpus()
-
-        l_corpus = ImprovedLatinCorpus(target_tokens=50000, verbose=False)
-        l_tokens = l_corpus.get_tokens()
+        ctx = build_morphological_context(
+            verbose=False, latin_corpus_tokens=LATIN_CORPUS_TOKENS_LARGE
+        )
+        extractor = ctx.extractor
+        v_morph = ctx.voynich_morphemer
+        l_tokens = ctx.latin_tokens
+        l_corpus = ctx.latin_corpus
 
         # Build Latin skeleton index (reused from Phase 11)
         latin_skel = LatinPhoneticSkeletonizer(l_tokens)
@@ -158,7 +151,7 @@ def run_phase12_reconstruction(
         total_bracket_count = 0
         total_word_count = 0
 
-        for folio, tokens in list(by_folio.items())[:15]:
+        for folio, tokens in list(by_folio.items())[:FOLIO_LIMIT_DEFAULT]:
             if len(tokens) < 5:
                 continue
             decoded = budgeted_decoder.decode_folio(tokens, folio_id=folio)
@@ -302,7 +295,3 @@ def run_phase12_reconstruction(
         print(f'Unresolved brackets are scientifically honest: [{total_unresolved} words]')
 
     return results
-
-
-if __name__ == '__main__':
-    run_phase12_reconstruction()

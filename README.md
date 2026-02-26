@@ -29,19 +29,16 @@ The core insight: rather than attacking the cipher monolithically, multiple inde
 
 ```
 voynich/
+├── cli.py                             # Unified CLI entry point (recommended)
 ├── convergence_attack.py              # Phase 1: 5-strategy orchestrator
-├── convergence_attack_p2.py           # Phase 2: Super-character model discrimination
-├── convergence_attack_p3.py           # Phase 3: Language A/B split
-├── convergence_attack_p4.py           # Phase 4: Full corpus + nomenclator testing
-├── convergence_attack_p5.py           # Phase 5: Two-tier nomenclator attack
-├── convergence_attack_p6.py           # Phase 6: Three recovery paths
-├── convergence_attack_p7.py           # Phase 7: Morphological sub-word attack
-├── convergence_attack_p8.py           # Phase 8: HMM Viterbi translation
-├── convergence_attack_p9.py           # Phase 9: Syllabic beam search decoder
-├── convergence_attack_p10.py          # Phase 10: Dictionary-guided trigram translation
-├── convergence_attack_p11.py          # Phase 11: Phonetic CSP constraint solving
-├── convergence_attack_p12.py          # Phase 12: Contextual reconstruction
 ├── run_max.py                         # Full-corpus analysis (requires IVTFF data)
+│
+├── orchestrators/                     # Phase execution layer
+│   ├── __init__.py                    # Lazy phase registry
+│   ├── _config.py                     # Centralized constants (SAA iters, corpus size, etc.)
+│   ├── _foundation.py                 # Shared initialization pipeline (phases 7-12)
+│   ├── _utils.py                      # File I/O and output directory helpers
+│   └── phase2..phase12.py             # Individual phase orchestrators
 │
 ├── data/
 │   ├── voynich_corpus.py              # EVA transliterations, scribe mappings, zodiac labels
@@ -361,30 +358,56 @@ uv sync
 
 ### Run Phases
 
-```bash
-# Phase 1: Core 5-strategy convergence attack (sample corpus)
-python convergence_attack.py
+The unified CLI (`cli.py`) is the recommended way to run all phases:
 
-# Phases 2-12: Sequential analysis pipeline
-python convergence_attack_p2.py
-python convergence_attack_p3.py
-python convergence_attack_p4.py
-python convergence_attack_p5.py
-python convergence_attack_p6.py
-python convergence_attack_p7.py
-python convergence_attack_p8.py
-python convergence_attack_p9.py
-python convergence_attack_p10.py
-python convergence_attack_p11.py
-python convergence_attack_p12.py
+```bash
+# Phase 1: Core 5-strategy convergence attack (default)
+uv run cli.py
+
+# Run a specific phase (2-12)
+uv run cli.py --phase 2
+uv run cli.py --phase 7
+
+# Run all 12 phases sequentially
+uv run cli.py --all
+
+# Run phases 1-4 only
+uv run cli.py --phased
+
+# List all available phases
+uv run cli.py --list
+
+# Suppress verbose output
+uv run cli.py --phase 5 --quiet
+
+# Quick mode: reduced SAA iterations and corpus size for faster testing
+uv run cli.py --phase 5 --quick
+
+# Custom output directory (default: ./output)
+uv run cli.py --all --output-dir ./results
+```
+
+A `combined_report.json` is written to the output directory after every run, containing the full results from all phases that were executed. Each phase entry includes a description of what the phase does and its complete output data (conclusions, translations, statistics, mappings, etc.).
+
+Sub-phase flags can target specific steps within a phase:
+
+```bash
+# Phase 2: run only the discrimination sweep
+uv run cli.py --phase 2 --discrimination
+
+# Phase 3: run only the hybrid model step
+uv run cli.py --phase 3 --hybrid
+
+# Phase 6: run recovery paths A and C
+uv run cli.py --phase 6 --path-a --path-c
 ```
 
 ### Run Individual Strategies
 
 ```bash
-python -m modules.strategy1_parameter_search
-python -m modules.strategy2_scribe_seams
-python -m modules.strategy4_positional_grammar
+uv run -m modules.strategy1_parameter_search
+uv run -m modules.strategy2_scribe_seams
+uv run -m modules.strategy4_positional_grammar
 ```
 
 ### Full Corpus Analysis
@@ -394,7 +417,7 @@ Download the IVTFF transliteration and run the full-corpus analyzer:
 ```bash
 mkdir -p data/corpus
 curl https://www.voynich.nu/data/ZL_ivtff_2b.txt -o data/corpus/ZL_ivtff_2b.txt
-python run_max.py
+uv run run_max.py
 ```
 
 ### Use the Naibbe Cipher Standalone

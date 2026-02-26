@@ -589,7 +589,7 @@ if __name__ == '__main__':
     if '--phased' in _sys.argv or '-p' in _sys.argv:
         run_phased_tracks()
     elif '--phase2' in _sys.argv or '-p2' in _sys.argv:
-        from convergence_attack_p2 import run_phase2_attack
+        from orchestrators.phase2 import run_phase2_attack
         run_phase2_attack(verbose=True)
     else:
         run_max()

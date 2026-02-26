@@ -18,23 +18,14 @@ Sub-phases:
   saa            — Successor alphabet attack (transition matrix matching)
   gradient       — Entropy gradient by page position
   multi_lang     — Multi-language source testing
-
-Usage:
-  python convergence_attack_p4.py                  # Run all sub-phases
-  python convergence_attack_p4.py --model-a1       # Codebook test only
-  python convergence_attack_p4.py --saa            # SAA only
-  python convergence_attack_p4.py --botanical      # Botanical attack only
-  python convergence_attack_p4.py --multi-lang     # Multi-language test only
 """
-
-import sys
 import os
 import json
 import time
 from datetime import datetime
 from typing import Dict, List, Optional
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from orchestrators._utils import save_json, ensure_output_dir
 
 from modules.phase4.lang_a_extractor import LanguageAExtractor, LANG_A_FULL_TARGETS
 from modules.phase4.latin_herbal_corpus import LatinHerbalCorpus
@@ -72,7 +63,7 @@ def run_phase4_attack(
         phases = ['extraction', 'latin_corpus', 'model_a1', 'model_a2',
                   'model_a3', 'botanical', 'saa', 'gradient', 'multi_lang']
 
-    os.makedirs(output_dir, exist_ok=True)
+    ensure_output_dir(output_dir)
     t0 = time.time()
 
     results = {
@@ -115,7 +106,7 @@ def run_phase4_attack(
         extraction_results = extractor.run(verbose=verbose)
         results['extraction'] = extraction_results
 
-        _save_json(os.path.join(output_dir, 'lang_a_extraction.json'),
+        save_json(os.path.join(output_dir, 'lang_a_extraction.json'),
                    extraction_results)
 
     # ---- Sub-phase 2: Latin Herbal Corpus ----
@@ -130,7 +121,7 @@ def run_phase4_attack(
         latin_results = latin_corpus.run(verbose=verbose)
         results['latin_corpus'] = latin_results
 
-        _save_json(os.path.join(output_dir, 'latin_herbal_corpus.json'),
+        save_json(os.path.join(output_dir, 'latin_herbal_corpus.json'),
                    latin_results)
 
     # Ensure shared instances exist for downstream phases
@@ -150,7 +141,7 @@ def run_phase4_attack(
         a1_results = codebook.run(verbose=verbose)
         results['model_a1'] = a1_results
 
-        _save_json(os.path.join(output_dir, 'model_a1_codebook_results.json'),
+        save_json(os.path.join(output_dir, 'model_a1_codebook_results.json'),
                    a1_results)
 
     # ---- Sub-phase 4: Model A2 — Nomenclator (HIGH) ----
@@ -164,7 +155,7 @@ def run_phase4_attack(
         a2_results = nomenclator.run(verbose=verbose)
         results['model_a2'] = a2_results
 
-        _save_json(os.path.join(output_dir, 'model_a2_nomenclator_results.json'),
+        save_json(os.path.join(output_dir, 'model_a2_nomenclator_results.json'),
                    a2_results)
 
     # ---- Sub-phase 5: Model A3 — Semantic Compression (MEDIUM) ----
@@ -178,7 +169,7 @@ def run_phase4_attack(
         a3_results = semantic.run(verbose=verbose)
         results['model_a3'] = a3_results
 
-        _save_json(os.path.join(output_dir, 'model_a3_semantic_compression_results.json'),
+        save_json(os.path.join(output_dir, 'model_a3_semantic_compression_results.json'),
                    a3_results)
 
     # ---- Sub-phase 6: Botanical Known-Plaintext Attack ----
@@ -193,7 +184,7 @@ def run_phase4_attack(
         results['botanical'] = botanical_results
         botanical_cribs = botanical_results.get('crib_constraints', [])
 
-        _save_json(os.path.join(output_dir, 'botanical_known_plaintext_results.json'),
+        save_json(os.path.join(output_dir, 'botanical_known_plaintext_results.json'),
                    botanical_results)
 
     # ---- Sub-phase 7: SAA — Successor Alphabet Attack ----
@@ -213,7 +204,7 @@ def run_phase4_attack(
         saa_results = saa.run(verbose=verbose)
         results['saa'] = saa_results
 
-        _save_json(os.path.join(output_dir, 'saa_results.json'),
+        save_json(os.path.join(output_dir, 'saa_results.json'),
                    saa_results)
 
     # ---- Sub-phase 8: Entropy Gradient by Page Position ----
@@ -227,7 +218,7 @@ def run_phase4_attack(
         gradient_results = gradient.run(verbose=verbose)
         results['gradient'] = gradient_results
 
-        _save_json(os.path.join(output_dir, 'entropy_gradient_results.json'),
+        save_json(os.path.join(output_dir, 'entropy_gradient_results.json'),
                    gradient_results)
 
     # ---- Sub-phase 9: Multi-Language Source Testing ----
@@ -241,7 +232,7 @@ def run_phase4_attack(
         multi_results = multi.run(verbose=verbose)
         results['multi_lang'] = multi_results
 
-        _save_json(os.path.join(output_dir, 'multi_language_results.json'),
+        save_json(os.path.join(output_dir, 'multi_language_results.json'),
                    multi_results)
 
     # ---- Synthesis & Conclusion ----
@@ -250,7 +241,7 @@ def run_phase4_attack(
     results['conclusion'] = conclusion
     results['elapsed_seconds'] = elapsed
 
-    _save_json(os.path.join(output_dir, 'phase4_report.json'), results)
+    save_json(os.path.join(output_dir, 'phase4_report.json'), results)
 
     if verbose:
         print('\n' + '=' * 70)
@@ -361,65 +352,3 @@ def _synthesize_phase4(results: Dict) -> Dict:
         )
 
     return conclusion
-
-
-# ============================================================================
-# UTILITIES
-# ============================================================================
-
-def _save_json(filepath: str, data: Dict):
-    """Save results to JSON, handling non-serializable types."""
-    def default_handler(obj):
-        if hasattr(obj, 'tolist'):
-            return obj.tolist()
-        if hasattr(obj, '__dict__'):
-            return str(obj)
-        if isinstance(obj, (set, frozenset)):
-            return list(obj)
-        if isinstance(obj, float) and (obj != obj):  # NaN check
-            return None
-        if obj == float('inf') or obj == float('-inf'):
-            return str(obj)
-        return str(obj)
-
-    with open(filepath, 'w') as f:
-        json.dump(data, f, indent=2, default=default_handler)
-
-
-# ============================================================================
-# CLI ENTRY POINT
-# ============================================================================
-
-if __name__ == '__main__':
-    phases_to_run = []
-
-    if '--extraction' in sys.argv or '-e' in sys.argv:
-        phases_to_run.append('extraction')
-    if '--latin-corpus' in sys.argv or '-l' in sys.argv:
-        phases_to_run.append('latin_corpus')
-    if '--model-a1' in sys.argv or '-1' in sys.argv:
-        phases_to_run.append('model_a1')
-    if '--model-a2' in sys.argv or '-2' in sys.argv:
-        phases_to_run.append('model_a2')
-    if '--model-a3' in sys.argv or '-3' in sys.argv:
-        phases_to_run.append('model_a3')
-    if '--botanical' in sys.argv or '-b' in sys.argv:
-        phases_to_run.append('botanical')
-    if '--saa' in sys.argv or '-s' in sys.argv:
-        phases_to_run.append('saa')
-    if '--gradient' in sys.argv or '-g' in sys.argv:
-        phases_to_run.append('gradient')
-    if '--multi-lang' in sys.argv or '-m' in sys.argv:
-        phases_to_run.append('multi_lang')
-
-    if not phases_to_run:
-        phases_to_run = None  # Run all
-
-    verbose = '--quiet' not in sys.argv and '-q' not in sys.argv
-
-    results = run_phase4_attack(
-        phases=phases_to_run,
-        verbose=verbose,
-    )
-
-    print(f'\nPhase 4 complete. Results in ./output/phase4/')

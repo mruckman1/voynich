@@ -12,22 +12,14 @@ Sub-phases:
   deep            — Full constraint testing of top 2-3 models
   crosscutting    — Language A/B, qo- predictions, info-theoretic FSM
   null            — Null distributions for Phase 2 models
-
-Usage:
-  python convergence_attack_p2.py                    # Run all sub-phases
-  python convergence_attack_p2.py --discrimination   # Quick sweep only
-  python convergence_attack_p2.py --deep             # Deep analysis only
-  python convergence_attack_p2.py --crosscutting     # Cross-cutting only
 """
-
-import sys
 import os
 import json
 import time
 from datetime import datetime
 from typing import Dict, List, Optional
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from orchestrators._utils import save_json, ensure_output_dir
 
 from modules.phase2.phase2_discrimination import run_quick_discrimination, MODEL_REGISTRY
 from modules.phase2.cross_cutting import run_cross_cutting
@@ -67,7 +59,7 @@ def run_phase2_attack(
     if models is None:
         models = list(MODEL_REGISTRY.keys())
 
-    os.makedirs(output_dir, exist_ok=True)
+    ensure_output_dir(output_dir)
     t0 = time.time()
 
     results = {
@@ -104,7 +96,7 @@ def run_phase2_attack(
         results['discrimination'] = discrimination
 
         # Save intermediate results
-        _save_json(os.path.join(output_dir, 'discrimination_results.json'),
+        save_json(os.path.join(output_dir, 'discrimination_results.json'),
                    discrimination)
 
         # Determine which models survive for deep analysis
@@ -144,7 +136,7 @@ def run_phase2_attack(
 
         results['deep_analysis'] = deep_results
 
-        _save_json(os.path.join(output_dir, 'deep_analysis_results.json'),
+        save_json(os.path.join(output_dir, 'deep_analysis_results.json'),
                    deep_results)
 
     # ---- Sub-phase 3: Cross-Cutting Investigations ----
@@ -173,7 +165,7 @@ def run_phase2_attack(
         )
         results['cross_cutting'] = cross_cutting
 
-        _save_json(os.path.join(output_dir, 'cross_cutting_results.json'),
+        save_json(os.path.join(output_dir, 'cross_cutting_results.json'),
                    cross_cutting)
 
     # ---- Sub-phase 4: Null Distributions (optional, slower) ----
@@ -188,7 +180,7 @@ def run_phase2_attack(
         null_results = engine.run_all(models=surviving_models)
         results['null_distributions'] = null_results
 
-        _save_json(os.path.join(output_dir, 'null_distributions_p2.json'),
+        save_json(os.path.join(output_dir, 'null_distributions_p2.json'),
                    null_results)
 
     # ---- Synthesis & Conclusion ----
@@ -198,7 +190,7 @@ def run_phase2_attack(
     results['elapsed_seconds'] = elapsed
 
     # Save full report
-    _save_json(os.path.join(output_dir, 'phase2_report.json'), results)
+    save_json(os.path.join(output_dir, 'phase2_report.json'), results)
 
     if verbose:
         print('\n' + '=' * 70)
@@ -258,7 +250,7 @@ def _run_deep_analysis(model_name: str, verbose: bool = True) -> Dict:
                     cm = ConstraintModel(verbose=False)
                     # Load constraints from Phase 1 output
                     constraint_file = os.path.join(
-                        os.path.dirname(os.path.abspath(__file__)),
+                        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
                         'output', 'constraint_model.json'
                     )
                     if os.path.exists(constraint_file):
@@ -354,52 +346,3 @@ def _synthesize_conclusion(results: Dict, surviving_models: List[str]) -> Dict:
         'surviving_for_deep': surviving_models,
         'next_steps': next_steps,
     }
-
-
-# ============================================================================
-# UTILITIES
-# ============================================================================
-
-def _save_json(filepath: str, data: Dict):
-    """Save results to JSON, handling non-serializable types."""
-    def default_handler(obj):
-        if hasattr(obj, 'tolist'):
-            return obj.tolist()
-        if hasattr(obj, '__dict__'):
-            return str(obj)
-        return str(obj)
-
-    with open(filepath, 'w') as f:
-        json.dump(data, f, indent=2, default=default_handler)
-
-
-# ============================================================================
-# CLI ENTRY POINT
-# ============================================================================
-
-if __name__ == '__main__':
-    import argparse
-
-    phases_to_run = []
-
-    if '--discrimination' in sys.argv or '-d' in sys.argv:
-        phases_to_run.append('discrimination')
-    if '--deep' in sys.argv:
-        phases_to_run.append('deep')
-    if '--crosscutting' in sys.argv or '-x' in sys.argv:
-        phases_to_run.append('crosscutting')
-    if '--null' in sys.argv or '-n' in sys.argv:
-        phases_to_run.append('null')
-
-    if not phases_to_run:
-        # Default: run all except null (slow)
-        phases_to_run = ['discrimination', 'deep', 'crosscutting']
-
-    verbose = '--quiet' not in sys.argv and '-q' not in sys.argv
-
-    results = run_phase2_attack(
-        phases=phases_to_run,
-        verbose=verbose,
-    )
-
-    print(f'\nPhase 2 complete. Results in ./output/phase2/')

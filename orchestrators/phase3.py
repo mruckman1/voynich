@@ -15,25 +15,13 @@ Sub-phases:
   generator    — Markov chain synthetic generator + matrix analysis
   reprofiling  — Language A null framework re-test
   hybrid       — Hybrid model (cipher-A + notation-B) verification
-
-Usage:
-  python convergence_attack_p3.py                  # Run all sub-phases
-  python convergence_attack_p3.py --profiling      # Language B profiling only
-  python convergence_attack_p3.py --two-pattern    # Two-pattern attack only
-  python convergence_attack_p3.py --onset          # Onset decomposition only
-  python convergence_attack_p3.py --generator      # Markov generator only
-  python convergence_attack_p3.py --reprofiling    # Language A re-profiling only
-  python convergence_attack_p3.py --hybrid         # Hybrid model only
 """
-
-import sys
 import os
-import json
 import time
 from datetime import datetime
 from typing import Dict, List, Optional
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from orchestrators._utils import save_json, ensure_output_dir
 
 from modules.phase3.lang_b_profiler import LanguageBProfiler, LANG_B_TARGETS
 from modules.phase3.two_pattern_attack import TwoPatternAttack
@@ -68,7 +56,7 @@ def run_phase3_attack(
         phases = ['profiling', 'two_pattern', 'onset', 'generator',
                   'reprofiling', 'hybrid']
 
-    os.makedirs(output_dir, exist_ok=True)
+    ensure_output_dir(output_dir)
     t0 = time.time()
 
     results = {
@@ -108,7 +96,7 @@ def run_phase3_attack(
         profiling_results = profiler.run(verbose=verbose)
         results['profiling'] = profiling_results
 
-        _save_json(os.path.join(output_dir, 'lang_b_profile.json'),
+        save_json(os.path.join(output_dir, 'lang_b_profile.json'),
                    profiling_results)
 
     # ---- Sub-phase 2: Two-Pattern Attack (HIGHEST priority) ----
@@ -122,7 +110,7 @@ def run_phase3_attack(
         two_pattern_results = attack1.run(verbose=verbose)
         results['two_pattern'] = two_pattern_results
 
-        _save_json(os.path.join(output_dir, 'two_pattern_results.json'),
+        save_json(os.path.join(output_dir, 'two_pattern_results.json'),
                    two_pattern_results)
 
     # ---- Sub-phase 3: Onset Decomposition (HIGH priority) ----
@@ -136,7 +124,7 @@ def run_phase3_attack(
         onset_results = attack2.run(verbose=verbose)
         results['onset'] = onset_results
 
-        _save_json(os.path.join(output_dir, 'onset_decomposition_results.json'),
+        save_json(os.path.join(output_dir, 'onset_decomposition_results.json'),
                    onset_results)
 
     # ---- Sub-phase 4: Markov Generator (HIGH priority) ----
@@ -150,7 +138,7 @@ def run_phase3_attack(
         generator_results = attack3.run(verbose=verbose)
         results['generator'] = generator_results
 
-        _save_json(os.path.join(output_dir, 'lang_b_generator_results.json'),
+        save_json(os.path.join(output_dir, 'lang_b_generator_results.json'),
                    generator_results)
 
     # ---- Sub-phase 5: Language A Re-profiling ----
@@ -164,7 +152,7 @@ def run_phase3_attack(
         reprofiling_results = reprofiler.run(verbose=verbose)
         results['reprofiling'] = reprofiling_results
 
-        _save_json(os.path.join(output_dir, 'lang_a_reprofiling_results.json'),
+        save_json(os.path.join(output_dir, 'lang_a_reprofiling_results.json'),
                    reprofiling_results)
 
     # ---- Sub-phase 6: Hybrid Model ----
@@ -178,7 +166,7 @@ def run_phase3_attack(
         hybrid_results = hybrid.run(verbose=verbose)
         results['hybrid'] = hybrid_results
 
-        _save_json(os.path.join(output_dir, 'hybrid_model_results.json'),
+        save_json(os.path.join(output_dir, 'hybrid_model_results.json'),
                    hybrid_results)
 
     # ---- Synthesis & Conclusion ----
@@ -187,7 +175,7 @@ def run_phase3_attack(
     results['conclusion'] = conclusion
     results['elapsed_seconds'] = elapsed
 
-    _save_json(os.path.join(output_dir, 'phase3_report.json'), results)
+    save_json(os.path.join(output_dir, 'phase3_report.json'), results)
 
     if verbose:
         print('\n' + '=' * 70)
@@ -275,59 +263,3 @@ def _synthesize_phase3(results: Dict) -> Dict:
         )
 
     return conclusion
-
-
-# ============================================================================
-# UTILITIES
-# ============================================================================
-
-def _save_json(filepath: str, data: Dict):
-    """Save results to JSON, handling non-serializable types."""
-    def default_handler(obj):
-        if hasattr(obj, 'tolist'):
-            return obj.tolist()
-        if hasattr(obj, '__dict__'):
-            return str(obj)
-        if isinstance(obj, (set, frozenset)):
-            return list(obj)
-        if isinstance(obj, float) and (obj != obj):  # NaN check
-            return None
-        if obj == float('inf') or obj == float('-inf'):
-            return str(obj)
-        return str(obj)
-
-    with open(filepath, 'w') as f:
-        json.dump(data, f, indent=2, default=default_handler)
-
-
-# ============================================================================
-# CLI ENTRY POINT
-# ============================================================================
-
-if __name__ == '__main__':
-    phases_to_run = []
-
-    if '--profiling' in sys.argv or '-p' in sys.argv:
-        phases_to_run.append('profiling')
-    if '--two-pattern' in sys.argv or '-t' in sys.argv:
-        phases_to_run.append('two_pattern')
-    if '--onset' in sys.argv or '-o' in sys.argv:
-        phases_to_run.append('onset')
-    if '--generator' in sys.argv or '-g' in sys.argv:
-        phases_to_run.append('generator')
-    if '--reprofiling' in sys.argv or '-r' in sys.argv:
-        phases_to_run.append('reprofiling')
-    if '--hybrid' in sys.argv or '-h' in sys.argv:
-        phases_to_run.append('hybrid')
-
-    if not phases_to_run:
-        phases_to_run = None  # Run all
-
-    verbose = '--quiet' not in sys.argv and '-q' not in sys.argv
-
-    results = run_phase3_attack(
-        phases=phases_to_run,
-        verbose=verbose,
-    )
-
-    print(f'\nPhase 3 complete. Results in ./output/phase3/')

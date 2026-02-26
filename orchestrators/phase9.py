@@ -11,14 +11,15 @@ Beam Search to prevent the HMM mode-collapse seen in Phase 8.
 
 February 2026  ·  Voynich Convergence Attack  ·  Phase 9
 """
-import sys
 import os
 import json
 import time
 from datetime import datetime
 from typing import Dict
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from orchestrators._utils import ensure_output_dir
+from orchestrators._config import LATIN_CORPUS_TOKENS_DEFAULT, BEAM_WIDTH_DEFAULT
+
 from modules.phase4.lang_a_extractor import LanguageAExtractor
 from modules.phase5.tier_splitter import TierSplitter
 from modules.phase6.improved_latin_corpus import ImprovedLatinCorpus
@@ -27,8 +28,9 @@ from modules.phase9.latin_syllabifier import LatinSyllabifier
 from modules.phase9.sigla_mapper import SiglaMapper
 from modules.phase9.beam_search_decoder import SyllabicBeamSearch
 
+
 def run_phase9_attack(verbose: bool = True, output_dir: str = './output/phase9') -> Dict:
-    os.makedirs(output_dir, exist_ok=True)
+    ensure_output_dir(output_dir)
     t0 = time.time()
 
     if verbose:
@@ -45,7 +47,7 @@ def run_phase9_attack(verbose: bool = True, output_dir: str = './output/phase9')
 
     v_tokens = splitter.get_tier1_tokens()
 
-    l_corpus = ImprovedLatinCorpus(target_tokens=30000, verbose=False)
+    l_corpus = ImprovedLatinCorpus(target_tokens=LATIN_CORPUS_TOKENS_DEFAULT, verbose=False)
     l_tokens = l_corpus.get_tokens()
 
     # 2. Latin Syllabification
@@ -70,7 +72,7 @@ def run_phase9_attack(verbose: bool = True, output_dir: str = './output/phase9')
         voynich_tokens=v_tokens,
         syllable_transitions=syllable_transitions,
         sigla_constraints=sigla_constraints,
-        beam_width=25
+        beam_width=BEAM_WIDTH_DEFAULT
     )
 
     decoded_text, search_stats = decoder.decode(max_tokens=200)
@@ -100,6 +102,3 @@ def run_phase9_attack(verbose: bool = True, output_dir: str = './output/phase9')
         print("Report saved to output/phase9/phase9_report.json")
 
     return results
-
-if __name__ == '__main__':
-    run_phase9_attack()

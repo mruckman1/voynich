@@ -14,26 +14,25 @@ Phase 7 executes a sub-word attack:
 
 February 2026  ·  Voynich Convergence Attack  ·  Phase 7
 """
-import sys
-import os
-import json
 import time
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Dict
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from orchestrators._utils import save_json, ensure_output_dir
+from orchestrators._config import LATIN_CORPUS_TOKENS_DEFAULT
+
 from modules.phase4.lang_a_extractor import LanguageAExtractor
 from modules.phase5.tier_splitter import TierSplitter
 from modules.phase6.improved_latin_corpus import ImprovedLatinCorpus
 from modules.phase6.morpheme_analyzer import MorphemeAnalyzer
-
 from modules.phase7.voynich_morphemer import VoynichMorphemer
 from modules.phase7.latin_morphology import LatinMorphologyParser
 from modules.phase7.stem_saa import StemSAA
 from modules.phase7.affix_aligner import AffixAligner
 
+
 def run_phase7_attack(verbose: bool = True, output_dir: str = './output/phase7') -> Dict:
-    os.makedirs(output_dir, exist_ok=True)
+    ensure_output_dir(output_dir)
     t0 = time.time()
 
     results = {
@@ -70,7 +69,7 @@ def run_phase7_attack(verbose: bool = True, output_dir: str = './output/phase7')
 
     # 2. Latin Morphology
     if verbose: print('\n[2/4] Parsing Latin Herbal Morphology...')
-    l_corpus = ImprovedLatinCorpus(target_tokens=30000, verbose=False)
+    l_corpus = ImprovedLatinCorpus(target_tokens=LATIN_CORPUS_TOKENS_DEFAULT, verbose=False)
     l_parser = LatinMorphologyParser(l_corpus)
     l_morph_stats = l_parser.process_corpus()
     results['latin_morphology'] = l_morph_stats
@@ -98,13 +97,8 @@ def run_phase7_attack(verbose: bool = True, output_dir: str = './output/phase7')
     elapsed = time.time() - t0
 
     # Save Output
-    def default_handler(obj):
-        if hasattr(obj, 'tolist'): return obj.tolist()
-        if isinstance(obj, set): return list(obj)
-        return str(obj)
-
-    with open(os.path.join(output_dir, 'phase7_report.json'), 'w') as f:
-        json.dump(results, f, indent=2, default=default_handler)
+    import os
+    save_json(os.path.join(output_dir, 'phase7_report.json'), results)
 
     if verbose:
         print('\n' + '=' * 70)
@@ -115,6 +109,3 @@ def run_phase7_attack(verbose: bool = True, output_dir: str = './output/phase7')
         print(f"  Decoded Sample:\n    {affix_results['decoded_sample']}")
 
     return results
-
-if __name__ == '__main__':
-    run_phase7_attack()

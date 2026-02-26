@@ -22,24 +22,16 @@ Sub-phases:
   attack_b         — Cipher tier decryption on Tier 2 (HIGH priority)
   cross_validate   — Full cross-validation (CRITICAL priority)
 
-Usage:
-  python convergence_attack_p5.py                   # Run all sub-phases
-  python convergence_attack_p5.py --attack-a         # Attack A only
-  python convergence_attack_p5.py --attack-b         # Attack B only
-  python convergence_attack_p5.py --cross-validate   # Cross-validation only
-  python convergence_attack_p5.py --quick            # Quick run (1K SAA iterations)
-
 February 2026  ·  Voynich Convergence Attack  ·  Phase 5
 """
-
-import sys
 import os
 import json
 import time
 from datetime import datetime
 from typing import Dict, List, Optional
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from orchestrators._utils import save_json, ensure_output_dir
+from orchestrators._config import SAA_ITERATIONS_DEFAULT, LATIN_CORPUS_TOKENS_DEFAULT
 
 from modules.phase4.lang_a_extractor import LanguageAExtractor
 from modules.phase5.tier_splitter import TierSplitter
@@ -60,8 +52,8 @@ def run_phase5_attack(
     phases: Optional[List[str]] = None,
     verbose: bool = True,
     output_dir: str = './output/phase5',
-    saa_iterations: int = 100000,
-    latin_corpus_size: int = 30000,
+    saa_iterations: int = SAA_ITERATIONS_DEFAULT,
+    latin_corpus_size: int = LATIN_CORPUS_TOKENS_DEFAULT,
 ) -> Dict:
     """
     Run Phase 5: Splitting the Nomenclator — Two-Tier Decryption.
@@ -80,7 +72,7 @@ def run_phase5_attack(
         phases = ['tier_split', 'latin_corpus', 'rank_cribs', 'nmf_scaffold',
                   'attack_a', 'attack_b', 'cross_validate']
 
-    os.makedirs(output_dir, exist_ok=True)
+    ensure_output_dir(output_dir)
     t0 = time.time()
 
     results = {
@@ -135,7 +127,7 @@ def run_phase5_attack(
         tier_results = splitter.run(verbose=verbose)
         results['tier_split'] = tier_results
 
-        _save_json(os.path.join(output_dir, 'tier_split.json'), tier_results)
+        save_json(os.path.join(output_dir, 'tier_split.json'), tier_results)
 
         # Build Tier 1 transition matrix
         if verbose:
@@ -165,7 +157,7 @@ def run_phase5_attack(
         latin_results = latin_corpus.run(verbose=verbose)
         results['latin_corpus'] = latin_results
 
-        _save_json(os.path.join(output_dir, 'latin_corpus_expanded.json'),
+        save_json(os.path.join(output_dir, 'latin_corpus_expanded.json'),
                    latin_results)
 
     if latin_corpus is None:
@@ -184,7 +176,7 @@ def run_phase5_attack(
         crib_results = rank_cribs.run(verbose=verbose)
         results['rank_cribs'] = crib_results
 
-        _save_json(os.path.join(output_dir, 'rank_paired_cribs.json'),
+        save_json(os.path.join(output_dir, 'rank_paired_cribs.json'),
                    crib_results)
 
     if rank_cribs is None:
@@ -201,7 +193,7 @@ def run_phase5_attack(
         nmf_results = nmf_scaffold.run(verbose=verbose)
         results['nmf_scaffold'] = nmf_results
 
-        _save_json(os.path.join(output_dir, 'nmf_scaffold.json'), nmf_results)
+        save_json(os.path.join(output_dir, 'nmf_scaffold.json'), nmf_results)
 
     # ---- Sub-phase 5: Attack A — Constrained SAA on Tier 1 ----
     if 'attack_a' in phases:
@@ -259,9 +251,9 @@ def run_phase5_attack(
 
         results['attack_a'] = saa_results
 
-        _save_json(os.path.join(output_dir, 'attack_a_saa_results.json'),
+        save_json(os.path.join(output_dir, 'attack_a_saa_results.json'),
                    saa_results)
-        _save_json(os.path.join(output_dir, 'attack_a_mapping.json'),
+        save_json(os.path.join(output_dir, 'attack_a_mapping.json'),
                    tier1_mapping)
 
         if verbose:
@@ -310,9 +302,9 @@ def run_phase5_attack(
             if match.get('top') and match.get('n_candidates', 0) == 1:
                 tier2_mapping[match['singleton']] = match['top'][0]
 
-        _save_json(os.path.join(output_dir, 'attack_b_cipher_results.json'),
+        save_json(os.path.join(output_dir, 'attack_b_cipher_results.json'),
                    cipher_results)
-        _save_json(os.path.join(output_dir, 'attack_b_mapping.json'),
+        save_json(os.path.join(output_dir, 'attack_b_mapping.json'),
                    tier2_mapping)
 
     # ---- Sub-phase 7: Cross-Validation ----
@@ -345,7 +337,7 @@ def run_phase5_attack(
         cross_results = validator.run(verbose=verbose)
         results['cross_validation'] = cross_results
 
-        _save_json(os.path.join(output_dir, 'cross_validation.json'),
+        save_json(os.path.join(output_dir, 'cross_validation.json'),
                    cross_results)
 
     # ---- Synthesis & Conclusion ----
@@ -354,7 +346,7 @@ def run_phase5_attack(
     results['conclusion'] = conclusion
     results['elapsed_seconds'] = elapsed
 
-    _save_json(os.path.join(output_dir, 'phase5_report.json'), results)
+    save_json(os.path.join(output_dir, 'phase5_report.json'), results)
 
     if verbose:
         print('\n' + '=' * 70)
@@ -469,67 +461,3 @@ def _synthesize_phase5(results: Dict) -> Dict:
         )
 
     return conclusion
-
-
-# ============================================================================
-# UTILITIES
-# ============================================================================
-
-def _save_json(filepath: str, data):
-    """Save results to JSON, handling non-serializable types."""
-    def default_handler(obj):
-        if hasattr(obj, 'tolist'):
-            return obj.tolist()
-        if hasattr(obj, '__dict__'):
-            return str(obj)
-        if isinstance(obj, (set, frozenset)):
-            return list(obj)
-        if isinstance(obj, float) and (obj != obj):  # NaN
-            return None
-        if obj == float('inf') or obj == float('-inf'):
-            return str(obj)
-        return str(obj)
-
-    with open(filepath, 'w') as f:
-        json.dump(data, f, indent=2, default=default_handler)
-
-
-# ============================================================================
-# CLI ENTRY POINT
-# ============================================================================
-
-if __name__ == '__main__':
-    phases_to_run = []
-
-    if '--tier-split' in sys.argv or '-t' in sys.argv:
-        phases_to_run.append('tier_split')
-    if '--latin-corpus' in sys.argv or '-l' in sys.argv:
-        phases_to_run.append('latin_corpus')
-    if '--rank-cribs' in sys.argv or '-r' in sys.argv:
-        phases_to_run.append('rank_cribs')
-    if '--nmf' in sys.argv or '-n' in sys.argv:
-        phases_to_run.append('nmf_scaffold')
-    if '--attack-a' in sys.argv or '-a' in sys.argv:
-        phases_to_run.append('attack_a')
-    if '--attack-b' in sys.argv or '-b' in sys.argv:
-        phases_to_run.append('attack_b')
-    if '--cross-validate' in sys.argv or '-c' in sys.argv:
-        phases_to_run.append('cross_validate')
-
-    if not phases_to_run:
-        phases_to_run = None  # Run all
-
-    # Quick mode: 1,000 SAA iterations for testing
-    saa_iters = 1000 if '--quick' in sys.argv else 100000
-    corpus_size = 10000 if '--quick' in sys.argv else 30000
-
-    verbose = '--quiet' not in sys.argv and '-q' not in sys.argv
-
-    results = run_phase5_attack(
-        phases=phases_to_run,
-        verbose=verbose,
-        saa_iterations=saa_iters,
-        latin_corpus_size=corpus_size,
-    )
-
-    print(f'\nPhase 5 complete. Results in ./output/phase5/')

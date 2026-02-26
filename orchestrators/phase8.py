@@ -9,30 +9,28 @@ Medieval Latin text.
 
 February 2026  ·  Voynich Convergence Attack  ·  Phase 8
 """
-import sys
-import os
 import json
+import os
 import time
 from typing import Dict, List
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from modules.phase4.lang_a_extractor import LanguageAExtractor
-from modules.phase5.tier_splitter import TierSplitter
-from modules.phase6.improved_latin_corpus import ImprovedLatinCorpus
-from modules.phase6.morpheme_analyzer import MorphemeAnalyzer
-from modules.phase7.voynich_morphemer import VoynichMorphemer
-from modules.phase7.latin_morphology import LatinMorphologyParser
+from orchestrators._utils import ensure_output_dir
+from orchestrators._config import LATIN_CORPUS_TOKENS_DEFAULT
+from orchestrators._foundation import build_morphological_context
 
+from modules.phase7.latin_morphology import LatinMorphologyParser
 from modules.phase8.viterbi_decoder import ViterbiDecoder
 from modules.phase8.morphological_synthesizer import MorphologicalSynthesizer
 from modules.phase8.folio_translator import FolioTranslator
+
 
 def load_phase7_data(filepath: str = './output/phase7/phase7_report.json') -> Dict:
     with open(filepath, 'r') as f:
         return json.load(f)
 
+
 def run_phase8_translation(verbose: bool = True, output_dir: str = './output/phase8') -> Dict:
-    os.makedirs(output_dir, exist_ok=True)
+    ensure_output_dir(output_dir)
     t0 = time.time()
 
     if verbose:
@@ -47,21 +45,16 @@ def run_phase8_translation(verbose: bool = True, output_dir: str = './output/pha
     base_stem_map = p7_data['stem_saa']['best_mapping']
     base_affix_map = p7_data['affix_alignment']['affix_map']
 
-    extractor = LanguageAExtractor(verbose=False)
-    splitter = TierSplitter(extractor)
-    splitter.split()
-    m_analyzer = MorphemeAnalyzer(splitter)
-    p6_morph = m_analyzer.run(verbose=False)
-    v_morph = VoynichMorphemer(splitter, p6_morph)
-    v_morph.process_corpus()
+    ctx = build_morphological_context(
+        verbose=False, latin_corpus_tokens=LATIN_CORPUS_TOKENS_DEFAULT
+    )
 
-    l_corpus = ImprovedLatinCorpus(target_tokens=30000, verbose=False)
-    l_parser = LatinMorphologyParser(l_corpus)
+    l_parser = LatinMorphologyParser(ctx.latin_corpus)
     l_parser.process_corpus()
 
     # 2. Viterbi Contextual Smoothing
     if verbose: print('\n[2/4] Running HMM Viterbi Decoder for Context Correction...')
-    decoder = ViterbiDecoder(base_stem_map, v_morph, l_parser)
+    decoder = ViterbiDecoder(base_stem_map, ctx.voynich_morphemer, l_parser)
     refined_stem_map, viterbi_stats = decoder.run_viterbi_smoothing()
 
     if verbose:
@@ -74,7 +67,7 @@ def run_phase8_translation(verbose: bool = True, output_dir: str = './output/pha
 
     # 4. Folio Translation
     if verbose: print('\n[4/4] Translating Complete Folios...')
-    translator = FolioTranslator(extractor, v_morph, refined_stem_map, synthesizer)
+    translator = FolioTranslator(ctx.extractor, ctx.voynich_morphemer, refined_stem_map, synthesizer)
     folio_translations = translator.translate_all_folios()
 
     elapsed = time.time() - t0
@@ -98,6 +91,3 @@ def run_phase8_translation(verbose: bool = True, output_dir: str = './output/pha
         print("Full translations saved to output/phase8/phase8_translations.json")
 
     return results
-
-if __name__ == '__main__':
-    run_phase8_translation()
