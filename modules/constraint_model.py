@@ -243,8 +243,8 @@ class ConstraintModel:
         Compile all constraints into a formal specification.
         """
         # Deduplicate
-        unique_excluded = list(set(self.excluded_families))
-        unique_languages = list(set(self.candidate_languages))
+        unique_excluded = sorted(set(self.excluded_families))
+        unique_languages = sorted(set(self.candidate_languages))
 
         specification = {
             'n_constraints': len(self.constraints),

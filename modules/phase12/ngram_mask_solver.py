@@ -229,7 +229,7 @@ class NgramMaskSolver:
                 scored.append((score, candidate))
 
             # Sort descending
-            scored.sort(key=lambda x: -x[0])
+            scored.sort(key=lambda x: (-x[0], x[1]))
 
             # 6. Strict thresholding
             if not scored or scored[0][0] == 0.0:

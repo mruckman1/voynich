@@ -123,6 +123,11 @@ def _parse_subphase_flags(phase_num, remaining_args):
 
 
 def main():
+    # Ensure deterministic hash ordering for reproducibility
+    if os.environ.get('PYTHONHASHSEED') != '0':
+        os.environ['PYTHONHASHSEED'] = '0'
+        os.execv(sys.executable, [sys.executable] + sys.argv)
+
     parser = argparse.ArgumentParser(
         description='Voynich Manuscript Convergence Attack',
         formatter_class=argparse.RawDescriptionHelpFormatter,

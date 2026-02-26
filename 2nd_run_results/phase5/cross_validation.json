@@ -1,0 +1,602 @@
+{
+  "humoral_consistency": {
+    "n_tested": 24,
+    "n_correct": 12,
+    "consistency_rate": 0.5,
+    "passes": false,
+    "page_results": [
+      {
+        "folio": "f1v",
+        "plant": "unknown",
+        "humoral": "cold_dry",
+        "has_expected": true,
+        "has_forbidden": false,
+        "consistent": true,
+        "expected_found": [
+          "siccus",
+          "frigida",
+          "frigidus"
+        ],
+        "forbidden_found": []
+      },
+      {
+        "folio": "f2r",
+        "plant": "unknown",
+        "humoral": "hot_dry",
+        "has_expected": true,
+        "has_forbidden": false,
+        "consistent": true,
+        "expected_found": [
+          "calida",
+          "calidus"
+        ],
+        "forbidden_found": []
+      },
+      {
+        "folio": "f2v",
+        "plant": "unknown",
+        "humoral": "hot_dry",
+        "has_expected": true,
+        "has_forbidden": true,
+        "consistent": false,
+        "expected_found": [
+          "calida",
+          "calidus",
+          "siccus"
+        ],
+        "forbidden_found": [
+          "frigidus"
+        ]
+      },
+      {
+        "folio": "f3r",
+        "plant": "unknown",
+        "humoral": "cold_wet",
+        "has_expected": true,
+        "has_forbidden": false,
+        "consistent": true,
+        "expected_found": [
+          "frigida",
+          "humidus",
+          "frigidus"
+        ],
+        "forbidden_found": []
+      },
+      {
+        "folio": "f4r",
+        "plant": "unknown",
+        "humoral": "cold_wet",
+        "has_expected": true,
+        "has_forbidden": false,
+        "consistent": true,
+        "expected_found": [
+          "frigidum",
+          "frigida",
+          "frigidus"
+        ],
+        "forbidden_found": []
+      },
+      {
+        "folio": "f4v",
+        "plant": "unknown",
+        "humoral": "cold_dry",
+        "has_expected": true,
+        "has_forbidden": false,
+        "consistent": true,
+        "expected_found": [
+          "siccus",
+          "frigidum",
+          "frigidus"
+        ],
+        "forbidden_found": []
+      },
+      {
+        "folio": "f5r",
+        "plant": "unknown",
+        "humoral": "hot_wet",
+        "has_expected": true,
+        "has_forbidden": true,
+        "consistent": false,
+        "expected_found": [
+          "calida",
+          "calidus"
+        ],
+        "forbidden_found": [
+          "sicca",
+          "frigidus"
+        ]
+      },
+      {
+        "folio": "f6r",
+        "plant": "unknown",
+        "humoral": "hot_dry",
+        "has_expected": true,
+        "has_forbidden": false,
+        "consistent": true,
+        "expected_found": [
+          "calida",
+          "calidus",
+          "siccus"
+        ],
+        "forbidden_found": []
+      },
+      {
+        "folio": "f6v",
+        "plant": "unknown",
+        "humoral": "hot_dry",
+        "has_expected": true,
+        "has_forbidden": true,
+        "consistent": false,
+        "expected_found": [
+          "calida",
+          "sicca",
+          "calidus",
+          "siccus"
+        ],
+        "forbidden_found": [
+          "humida",
+          "frigidus"
+        ]
+      },
+      {
+        "folio": "f9v",
+        "plant": "unknown",
+        "humoral": "hot_dry",
+        "has_expected": true,
+        "has_forbidden": true,
+        "consistent": false,
+        "expected_found": [
+          "calida",
+          "sicca",
+          "calidus",
+          "siccus"
+        ],
+        "forbidden_found": [
+          "frigida",
+          "frigidus"
+        ]
+      },
+      {
+        "folio": "f13r",
+        "plant": "unknown",
+        "humoral": "hot_dry",
+        "has_expected": true,
+        "has_forbidden": true,
+        "consistent": false,
+        "expected_found": [
+          "calida",
+          "sicca",
+          "calidus"
+        ],
+        "forbidden_found": [
+          "humidus"
+        ]
+      },
+      {
+        "folio": "f15v",
+        "plant": "unknown",
+        "humoral": "cold_dry",
+        "has_expected": true,
+        "has_forbidden": false,
+        "consistent": true,
+        "expected_found": [
+          "siccus",
+          "frigida",
+          "frigidus"
+        ],
+        "forbidden_found": []
+      },
+      {
+        "folio": "f17r",
+        "plant": "unknown",
+        "humoral": "hot_wet",
+        "has_expected": true,
+        "has_forbidden": false,
+        "consistent": true,
+        "expected_found": [
+          "calida",
+          "calidus",
+          "humidus"
+        ],
+        "forbidden_found": []
+      },
+      {
+        "folio": "f22r",
+        "plant": "unknown",
+        "humoral": "hot_dry",
+        "has_expected": true,
+        "has_forbidden": true,
+        "consistent": false,
+        "expected_found": [
+          "calida",
+          "calidus",
+          "siccus"
+        ],
+        "forbidden_found": [
+          "humidus"
+        ]
+      },
+      {
+        "folio": "f25v",
+        "plant": "unknown",
+        "humoral": "cold_dry",
+        "has_expected": true,
+        "has_forbidden": false,
+        "consistent": true,
+        "expected_found": [
+          "frigida"
+        ],
+        "forbidden_found": []
+      },
+      {
+        "folio": "f49v",
+        "plant": "unknown",
+        "humoral": "cold_wet",
+        "has_expected": true,
+        "has_forbidden": true,
+        "consistent": false,
+        "expected_found": [
+          "frigidum",
+          "frigida",
+          "humidus",
+          "frigidus"
+        ],
+        "forbidden_found": [
+          "sicca"
+        ]
+      },
+      {
+        "folio": "f56r",
+        "plant": "unknown",
+        "humoral": "hot_dry",
+        "has_expected": true,
+        "has_forbidden": false,
+        "consistent": true,
+        "expected_found": [
+          "calida",
+          "sicca",
+          "calidus",
+          "siccus"
+        ],
+        "forbidden_found": []
+      },
+      {
+        "folio": "f87r",
+        "plant": "unknown",
+        "humoral": "cold_wet",
+        "has_expected": true,
+        "has_forbidden": true,
+        "consistent": false,
+        "expected_found": [
+          "frigidus"
+        ],
+        "forbidden_found": [
+          "calida",
+          "calidus",
+          "siccus"
+        ]
+      },
+      {
+        "folio": "f89r1",
+        "plant": "unknown",
+        "humoral": "hot_dry",
+        "has_expected": true,
+        "has_forbidden": true,
+        "consistent": false,
+        "expected_found": [
+          "calida",
+          "sicca",
+          "calidus"
+        ],
+        "forbidden_found": [
+          "humidus",
+          "frigidus"
+        ]
+      },
+      {
+        "folio": "f90r1",
+        "plant": "unknown",
+        "humoral": "hot_dry",
+        "has_expected": true,
+        "has_forbidden": false,
+        "consistent": true,
+        "expected_found": [
+          "calida",
+          "calidus"
+        ],
+        "forbidden_found": []
+      }
+    ],
+    "conclusion": "Humoral consistency: 12/24 pages correct (50.0%). FAILS threshold (\u226570%)."
+  },
+  "structural_consistency": {
+    "n_pages": 114,
+    "n_structured": 76,
+    "structure_rate": 0.6666666666666666,
+    "passes": true,
+    "page_results": [
+      {
+        "folio": "f1r",
+        "n_tokens": 203,
+        "elements_found": 4,
+        "has_quality": true,
+        "has_degree": true,
+        "has_virtue": false,
+        "has_indication": true,
+        "has_preparation": true,
+        "has_closing": false,
+        "is_structured": true
+      },
+      {
+        "folio": "f1v",
+        "n_tokens": 81,
+        "elements_found": 5,
+        "has_quality": true,
+        "has_degree": true,
+        "has_virtue": false,
+        "has_indication": true,
+        "has_preparation": true,
+        "has_closing": true,
+        "is_structured": true
+      },
+      {
+        "folio": "f2r",
+        "n_tokens": 99,
+        "elements_found": 3,
+        "has_quality": true,
+        "has_degree": true,
+        "has_virtue": false,
+        "has_indication": false,
+        "has_preparation": true,
+        "has_closing": false,
+        "is_structured": true
+      },
+      {
+        "folio": "f2v",
+        "n_tokens": 54,
+        "elements_found": 4,
+        "has_quality": true,
+        "has_degree": true,
+        "has_virtue": false,
+        "has_indication": true,
+        "has_preparation": false,
+        "has_closing": true,
+        "is_structured": true
+      },
+      {
+        "folio": "f3r",
+        "n_tokens": 109,
+        "elements_found": 4,
+        "has_quality": true,
+        "has_degree": true,
+        "has_virtue": false,
+        "has_indication": true,
+        "has_preparation": false,
+        "has_closing": true,
+        "is_structured": true
+      },
+      {
+        "folio": "f3v",
+        "n_tokens": 81,
+        "elements_found": 2,
+        "has_quality": true,
+        "has_degree": false,
+        "has_virtue": false,
+        "has_indication": true,
+        "has_preparation": false,
+        "has_closing": false,
+        "is_structured": false
+      },
+      {
+        "folio": "f4r",
+        "n_tokens": 60,
+        "elements_found": 2,
+        "has_quality": true,
+        "has_degree": false,
+        "has_virtue": false,
+        "has_indication": true,
+        "has_preparation": false,
+        "has_closing": false,
+        "is_structured": false
+      },
+      {
+        "folio": "f4v",
+        "n_tokens": 75,
+        "elements_found": 2,
+        "has_quality": true,
+        "has_degree": true,
+        "has_virtue": false,
+        "has_indication": false,
+        "has_preparation": false,
+        "has_closing": false,
+        "is_structured": false
+      },
+      {
+        "folio": "f5r",
+        "n_tokens": 49,
+        "elements_found": 2,
+        "has_quality": true,
+        "has_degree": true,
+        "has_virtue": false,
+        "has_indication": false,
+        "has_preparation": false,
+        "has_closing": false,
+        "is_structured": false
+      },
+      {
+        "folio": "f5v",
+        "n_tokens": 42,
+        "elements_found": 2,
+        "has_quality": true,
+        "has_degree": false,
+        "has_virtue": false,
+        "has_indication": true,
+        "has_preparation": false,
+        "has_closing": false,
+        "is_structured": false
+      },
+      {
+        "folio": "f6r",
+        "n_tokens": 83,
+        "elements_found": 2,
+        "has_quality": true,
+        "has_degree": false,
+        "has_virtue": false,
+        "has_indication": true,
+        "has_preparation": false,
+        "has_closing": false,
+        "is_structured": false
+      },
+      {
+        "folio": "f6v",
+        "n_tokens": 107,
+        "elements_found": 4,
+        "has_quality": true,
+        "has_degree": false,
+        "has_virtue": false,
+        "has_indication": true,
+        "has_preparation": true,
+        "has_closing": true,
+        "is_structured": true
+      },
+      {
+        "folio": "f7r",
+        "n_tokens": 63,
+        "elements_found": 3,
+        "has_quality": true,
+        "has_degree": true,
+        "has_virtue": false,
+        "has_indication": true,
+        "has_preparation": false,
+        "has_closing": false,
+        "is_structured": true
+      },
+      {
+        "folio": "f7v",
+        "n_tokens": 68,
+        "elements_found": 3,
+        "has_quality": true,
+        "has_degree": true,
+        "has_virtue": false,
+        "has_indication": false,
+        "has_preparation": false,
+        "has_closing": true,
+        "is_structured": true
+      },
+      {
+        "folio": "f8r",
+        "n_tokens": 144,
+        "elements_found": 3,
+        "has_quality": true,
+        "has_degree": true,
+        "has_virtue": false,
+        "has_indication": true,
+        "has_preparation": false,
+        "has_closing": false,
+        "is_structured": true
+      },
+      {
+        "folio": "f8v",
+        "n_tokens": 117,
+        "elements_found": 4,
+        "has_quality": true,
+        "has_degree": true,
+        "has_virtue": false,
+        "has_indication": true,
+        "has_preparation": true,
+        "has_closing": false,
+        "is_structured": true
+      },
+      {
+        "folio": "f9r",
+        "n_tokens": 78,
+        "elements_found": 3,
+        "has_quality": true,
+        "has_degree": true,
+        "has_virtue": false,
+        "has_indication": true,
+        "has_preparation": false,
+        "has_closing": false,
+        "is_structured": true
+      },
+      {
+        "folio": "f9v",
+        "n_tokens": 83,
+        "elements_found": 2,
+        "has_quality": true,
+        "has_degree": false,
+        "has_virtue": false,
+        "has_indication": true,
+        "has_preparation": false,
+        "has_closing": false,
+        "is_structured": false
+      },
+      {
+        "folio": "f10r",
+        "n_tokens": 86,
+        "elements_found": 3,
+        "has_quality": true,
+        "has_degree": true,
+        "has_virtue": false,
+        "has_indication": true,
+        "has_preparation": false,
+        "has_closing": false,
+        "is_structured": true
+      },
+      {
+        "folio": "f10v",
+        "n_tokens": 50,
+        "elements_found": 2,
+        "has_quality": true,
+        "has_degree": false,
+        "has_virtue": false,
+        "has_indication": true,
+        "has_preparation": false,
+        "has_closing": false,
+        "is_structured": false
+      }
+    ],
+    "conclusion": "Structural consistency: 76/114 pages match herbal formula (66.7%). PASSES threshold (\u226550%)."
+  },
+  "language_b_alignment": {
+    "n_zodiac_pages": 0,
+    "n_aligned": 0,
+    "alignment_rate": 0.0,
+    "zodiac_results": [],
+    "conclusion": "Language B alignment: 0/0 zodiac pages contain medical terms (0.0%)."
+  },
+  "entropy_gradient": {
+    "q1_word_h2": 2.4956991212818647,
+    "q4_word_h2": 2.7905864144981045,
+    "gradient": -0.29488729321623985,
+    "q1_ttr": 0.4033898305084746,
+    "q4_ttr": 0.34915254237288135,
+    "ttr_gradient": 0.05423728813559325,
+    "gradient_preserved": false,
+    "passes": false,
+    "n_q1_tokens": 2655,
+    "n_q4_tokens": 2655,
+    "conclusion": "Entropy gradient: Q1 H2=2.496, Q4 H2=2.791, gradient=-0.295. NOT PRESERVED."
+  },
+  "fachys_test": {
+    "fachys_decoded_to": "[fachys]",
+    "is_plant_name": false,
+    "is_opening_formula": false,
+    "is_unmapped": true,
+    "plausible": false,
+    "conclusion": "\"fachys\" \u2192 \"[fachys]\". Unmapped \u2014 inconclusive."
+  },
+  "overall": {
+    "checks": {
+      "humoral": false,
+      "structural": true,
+      "language_b": false,
+      "gradient": false,
+      "fachys": false
+    },
+    "n_passed": 1,
+    "n_total": 5,
+    "overall_pass": false,
+    "conclusion": "Cross-validation: 1/5 checks passed. OVERALL FAIL."
+  }
+}

@@ -120,7 +120,7 @@ class LabelAnalyzer:
             return []
 
         # Build unique label texts
-        unique_labels = list(set(label['text'] for label in labels))
+        unique_labels = sorted(set(label['text'] for label in labels))
 
         # Compute pairwise Jaccard similarity on character sets
         clusters = []

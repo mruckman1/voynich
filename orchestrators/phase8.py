@@ -41,7 +41,10 @@ def run_phase8_translation(verbose: bool = True, output_dir: str = './output/pha
 
     # 1. Load Phase 7 Dictionaries & Rebuild Corpora
     if verbose: print('\n[1/4] Loading Context and Dictionaries...')
-    p7_data = load_phase7_data()
+    # Derive Phase 7 path from output_dir (sibling directory)
+    parent_dir = os.path.dirname(output_dir)
+    p7_path = os.path.join(parent_dir, 'phase7', 'phase7_report.json')
+    p7_data = load_phase7_data(p7_path)
     base_stem_map = p7_data['stem_saa']['best_mapping']
     base_affix_map = p7_data['affix_alignment']['affix_map']
 
@@ -88,6 +91,6 @@ def run_phase8_translation(verbose: bool = True, output_dir: str = './output/pha
         for folio, text in list(folio_translations.items())[:3]:
             print(f"[{folio}]: {text[:150]}...")
         print(f"\nTotal time: {elapsed:.1f}s")
-        print("Full translations saved to output/phase8/phase8_translations.json")
+        print(f"Full translations saved to {os.path.join(output_dir, 'phase8_translations.json')}")
 
     return results

@@ -1,0 +1,96 @@
+{
+  "timestamp": "2026-02-25T22:06:09.719607",
+  "latin_syllable_stats": {
+    "unique_syllables": 538,
+    "top_syllables": [
+      "et",
+      "a",
+      "co",
+      "est",
+      "in",
+      "re",
+      "ci",
+      "li",
+      "pe",
+      "ca",
+      "e",
+      "si",
+      "ntra",
+      "o",
+      "qu",
+      "va",
+      "gra",
+      "mi",
+      "vi",
+      "du"
+    ]
+  },
+  "sigla_constraints": {
+    "qo": [
+      "con",
+      "qu",
+      "com"
+    ],
+    "ch": [
+      "ca",
+      "ce",
+      "co"
+    ],
+    "sh": [
+      "si",
+      "se",
+      "sa"
+    ],
+    "d": [
+      "de",
+      "di"
+    ],
+    "iin": [
+      "us",
+      "um",
+      "is"
+    ],
+    "dy": [
+      "ae",
+      "ti",
+      "ur"
+    ],
+    "ey": [
+      "es",
+      "em",
+      "et"
+    ],
+    "m": [
+      "rum",
+      "num"
+    ],
+    "r": [
+      "er",
+      "ar",
+      "or"
+    ],
+    "l": [
+      "al",
+      "el",
+      "il"
+    ],
+    "a": [
+      "a"
+    ],
+    "o": [
+      "o"
+    ],
+    "e": [
+      "e"
+    ],
+    "y": [
+      "i"
+    ]
+  },
+  "beam_search_stats": {
+    "tokens_processed": 200,
+    "beam_width_used": 25,
+    "final_log_probability": -1842.0680743952314
+  },
+  "decoded_sample": "ial aar saal sai ye ke saae se ceoi ke saar cesai oar iis sade se se oem ois oar oe caar cececeoar cesaal cese se saae oal cai decaar ke deis se cesaae deoe teye oe ceye sai oo oal oe se deis sai ceke cecesao oe dedeois caal ois cecaae oe ceke deis re caar saem ke caal caal ke caal sao caal ke ke deoar cais sao io teceio saal sae dedear oar caem cai tecese caar caem deceoal deis sais caal saem caa caal decedear saar ke dear saem cecao oe ke sais oal deis cedeis iem oem oi deis oem ke oal deal deo saae ceoem ke caar caal cecai caem deis oal caar iem caar oar oi deo caae sai cedeal deal cao dear denum caae saal dear dear caem tesai cai caal oal deem cai ceqe caal deal ceial deal ial caal ke caal cecaae caal deis saar oal caal dear saal dear oo dear "
+}

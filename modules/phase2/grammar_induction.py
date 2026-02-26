@@ -220,11 +220,11 @@ def _mutate_grammar(grammar: StochasticGrammar, rng: random.Random,
 
     elif mutation_type == 'add_rule' and new_grammar.n_rules < max_rules:
         # Add a new rule
-        lhs_options = list(set(r.lhs for r in new_grammar.rules))
+        lhs_options = sorted(set(r.lhs for r in new_grammar.rules))
         if lhs_options:
             lhs = rng.choice(lhs_options)
             rhs_len = rng.randint(1, 3)
-            all_symbols = list(new_grammar.terminals) + lhs_options
+            all_symbols = sorted(new_grammar.terminals) + lhs_options
             rhs = [rng.choice(all_symbols) for _ in range(rhs_len)]
             new_grammar.add_rule(lhs, rhs, rng.random())
 
@@ -237,7 +237,7 @@ def _mutate_grammar(grammar: StochasticGrammar, rng: random.Random,
         # Change one symbol in a rule's RHS
         rule = rng.choice(new_grammar.rules)
         if rule.rhs:
-            all_symbols = list(new_grammar.terminals) + list(set(r.lhs for r in new_grammar.rules))
+            all_symbols = sorted(new_grammar.terminals) + sorted(set(r.lhs for r in new_grammar.rules))
             idx = rng.randint(0, len(rule.rhs) - 1)
             rule.rhs[idx] = rng.choice(all_symbols)
 

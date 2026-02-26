@@ -27,7 +27,7 @@ class SyllabicBeamSearch:
             # Fallback for unknown configurations, pad with generic vowels
             candidates.append(v_token[0] + "e")
 
-        return list(set(candidates))
+        return sorted(set(candidates))
 
     def decode(self, max_tokens: int = 200):
         # Beam states: (log_probability, current_string, last_syllable)
@@ -49,7 +49,7 @@ class SyllabicBeamSearch:
                     new_beam.append((score, new_text, cand))
 
             # Sort by score and crop to beam width
-            new_beam.sort(key=lambda x: x[0], reverse=True)
+            new_beam.sort(key=lambda x: (-x[0], x[1]))
             beam = new_beam[:self.beam_width]
 
         best_translation = beam[0][1]

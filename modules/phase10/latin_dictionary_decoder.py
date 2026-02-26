@@ -109,7 +109,7 @@ def viterbi_trigram_decode(v_tokens: list, v_morphemer, decoder: LatinDictionary
                 new_beam.append((score, history + [cand]))
 
         # Sort and prune (Beam width 15)
-        new_beam.sort(key=lambda x: x[0], reverse=True)
+        new_beam.sort(key=lambda x: (-x[0], x[1]))
         beam = new_beam[:BEAM_WIDTH_TRIGRAM]
 
     best_sequence = beam[0][1][2:]  # Strip <START> markers

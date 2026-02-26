@@ -1,0 +1,1365 @@
+{
+  "timestamp": "2026-02-25T21:59:48.686778",
+  "phase1_summary": {
+    "all_character_ciphers_excluded": true,
+    "voynich_targets": {
+      "H1": 3.7065,
+      "H2": 1.4058,
+      "H3": 0.8983,
+      "zipf_exponent": 1.2437,
+      "type_token_ratio": 0.1643,
+      "mean_word_length": 4.908,
+      "fsa_states": 56,
+      "nmf_effective_rank": 12
+    },
+    "methodology": "Phase 1 tested 5 cipher families \u00d7 3 languages \u00d7 200 trials. All metrics globally anomalous (p=0)."
+  },
+  "discrimination": {
+    "model_rankings": [
+      {
+        "model": "slot_machine",
+        "distance": 0.41381477350293044,
+        "category": "eliminated"
+      },
+      {
+        "model": "glyph_decomposition",
+        "distance": 0.45206268305282094,
+        "category": "eliminated"
+      },
+      {
+        "model": "grammar_induction",
+        "distance": 1.7114176450566476,
+        "category": "eliminated"
+      },
+      {
+        "model": "verbose_cipher",
+        "distance": 2.1044203790910094,
+        "category": "eliminated"
+      },
+      {
+        "model": "steganographic_carrier",
+        "distance": 3.0000561803048447,
+        "category": "eliminated"
+      },
+      {
+        "model": "syllabary_code",
+        "distance": 3.503602856951803,
+        "category": "eliminated"
+      }
+    ],
+    "triple_matches": [],
+    "partial_matches": [],
+    "eliminated": [
+      "verbose_cipher",
+      "syllabary_code",
+      "slot_machine",
+      "steganographic_carrier",
+      "grammar_induction",
+      "glyph_decomposition"
+    ],
+    "per_model": {
+      "verbose_cipher": {
+        "model": "verbose_cipher",
+        "has_triple_match": false,
+        "n_triple_matches": 0,
+        "partial_match_count": 0,
+        "best_distance": 2.1044203790910094,
+        "best_params": {
+          "vocab_size": 20,
+          "homophones_per_letter": 2,
+          "word_length_min": 3,
+          "word_length_max": 6,
+          "positional_bias": 0.7,
+          "seed": 42
+        },
+        "best_H2": 2.077566653660268,
+        "best_TTR": 0.038,
+        "best_zipf": 0.9683164314976679,
+        "n_tested": 15,
+        "results_by_language": {
+          "latin": {
+            "best_distance": 2.2579384092426054,
+            "n_tested": 5,
+            "best_H2": 2.1475983562481264,
+            "best_TTR": 0.042,
+            "best_zipf": 1.0970085824415525
+          },
+          "italian": {
+            "best_distance": 2.3181558053375224,
+            "n_tested": 5,
+            "best_H2": 2.152759064665715,
+            "best_TTR": 0.04,
+            "best_zipf": 0.9742033491657383
+          },
+          "german": {
+            "best_distance": 2.1044203790910094,
+            "n_tested": 5,
+            "best_H2": 2.077566653660268,
+            "best_TTR": 0.038,
+            "best_zipf": 0.9683164314976679
+          }
+        }
+      },
+      "syllabary_code": {
+        "model": "syllabary_code",
+        "has_triple_match": false,
+        "n_triple_matches": 0,
+        "partial_match_count": 1,
+        "best_distance": 3.503602856951803,
+        "best_params": {
+          "n_syllable_types": 200,
+          "homophones_per_syllable": 1,
+          "onset_coding": true,
+          "positional_bias": 0.3,
+          "seed": 42
+        },
+        "best_H2": 2.567313994134288,
+        "best_TTR": 0.162,
+        "best_zipf": 1.061231514972617,
+        "n_tested": 15,
+        "results_by_language": {
+          "latin": {
+            "best_distance": 3.503602856951803,
+            "n_tested": 5,
+            "best_H2": 2.567313994134288,
+            "best_TTR": 0.162,
+            "best_zipf": 1.061231514972617
+          },
+          "italian": {
+            "best_distance": 3.6099747142544425,
+            "n_tested": 5,
+            "best_H2": 2.5907232262109026,
+            "best_TTR": 0.15,
+            "best_zipf": 0.9295694501365875
+          },
+          "german": {
+            "best_distance": 3.7817298095576994,
+            "n_tested": 5,
+            "best_H2": 2.665074389519109,
+            "best_TTR": 0.186,
+            "best_zipf": 1.1605602086711961
+          }
+        }
+      },
+      "slot_machine": {
+        "model": "slot_machine",
+        "has_triple_match": false,
+        "n_triple_matches": 0,
+        "partial_match_count": 1,
+        "best_distance": 0.41381477350293044,
+        "best_params": {
+          "n_slots": 3,
+          "slot_sizes": [
+            5,
+            8,
+            4
+          ],
+          "slot_names": [
+            "prefix",
+            "root",
+            "suffix"
+          ],
+          "independence_noise": 0.0,
+          "frequency_skew": 1.0,
+          "seed": 42
+        },
+        "best_H2": 1.4090628303664445,
+        "best_TTR": 0.036,
+        "best_zipf": 1.0814476562486077,
+        "n_tested": 15,
+        "results_by_language": {
+          "latin": {
+            "best_distance": 0.41381477350293044,
+            "n_tested": 5,
+            "best_H2": 1.4090628303664445,
+            "best_TTR": 0.036,
+            "best_zipf": 1.0814476562486077
+          },
+          "italian": {
+            "best_distance": 0.5714996544904548,
+            "n_tested": 5,
+            "best_H2": 1.4473593668086604,
+            "best_TTR": 0.036,
+            "best_zipf": 0.9960996837861076
+          },
+          "german": {
+            "best_distance": 0.6697282123407156,
+            "n_tested": 5,
+            "best_H2": 1.5981546461432856,
+            "best_TTR": 0.108,
+            "best_zipf": 1.4040545519847447
+          }
+        }
+      },
+      "steganographic_carrier": {
+        "model": "steganographic_carrier",
+        "has_triple_match": false,
+        "partial_match_count": 0,
+        "best_distance": 3.0000561803048447,
+        "best_params": {
+          "order": 3
+        },
+        "best_H2": 0.8208448753624826,
+        "best_TTR": 0.028,
+        "best_zipf": 2.4526741358304625,
+        "deviation_test": {
+          "passes": true,
+          "description": "Deviation entropy = 1.6012 (48.2% of maximum 3.3219). PASS: structure detected",
+          "details": {
+            "deviation_entropy": 1.6012119680054362,
+            "max_entropy": 3.321928094887362,
+            "entropy_ratio": 0.4820128317857913,
+            "threshold": 0.7,
+            "mean_surprisal": 0.4237280631527067,
+            "std_surprisal": 0.7427983263605644,
+            "n_deviations": 411,
+            "structure_detected": true
+          }
+        },
+        "n_tested": 3
+      },
+      "grammar_induction": {
+        "model": "grammar_induction",
+        "has_triple_match": false,
+        "partial_match_count": 0,
+        "best_distance": 1.7114176450566476,
+        "best_params": {
+          "max_rules": 20,
+          "max_symbols": 50,
+          "generations": 100
+        },
+        "best_H2": 1.5252052248262422,
+        "best_TTR": 0.408,
+        "best_zipf": 0.44321996802403113,
+        "grammar_complexity": {
+          "n_rules": 18,
+          "n_symbols": 23,
+          "max_rules": 20,
+          "max_symbols": 50,
+          "complexity_ok": true,
+          "best_distance": 0.5602315752260809,
+          "distance_ok": true
+        },
+        "induction_result": {
+          "best_distance": 0.5602315752260809,
+          "generations": 100
+        },
+        "n_tested": 1
+      },
+      "glyph_decomposition": {
+        "model": "glyph_decomposition",
+        "has_triple_match": false,
+        "partial_match_count": 0,
+        "best_distance": 0.45206268305282094,
+        "best_params": {
+          "alphabet": "bennett_atoms"
+        },
+        "best_H2": 1.8578626830528209,
+        "best_TTR": 0,
+        "best_zipf": 0,
+        "n_tested": 6,
+        "conclusion": "H2 remains anomalously low under all re-alphabetizations. The encoding unit is genuinely larger than a character.",
+        "all_alphabets": [
+          {
+            "name": "bennett_atoms",
+            "alphabet_info": {
+              "name": "bennett_atoms",
+              "n_mappings": 20,
+              "max_source_length": 1,
+              "unique_targets": 19,
+              "mappings": {
+                "o": "\u2312",
+                "a": "\u2312\u00b7",
+                "i": "|",
+                "n": "|\u00b7",
+                "e": "\u2312\u2312",
+                "d": "\u2191|",
+                "y": "|\u2193",
+                "l": "\u2312|",
+                "r": "\u2312~",
+                "s": "~",
+                "k": "\u2191\u2191",
+                "t": "\u2191\u2191\u00b7",
+                "c": "\u2312",
+                "h": "\u2312|\u00b7",
+                "p": "\u2191\u2191\u2193",
+                "f": "\u2191\u2191\u00b7\u2193",
+                "q": "\u2191\u2193",
+                "m": "|\u00b7|",
+                "g": "|\u2191",
+                "x": "\u00d7"
+              }
+            },
+            "H2": 1.8578626830528209,
+            "H1": 2.3148328526454853,
+            "H3": 1.1990191650002302,
+            "H2_delta": 0.45206268305282094,
+            "in_cipher_range": false,
+            "TTR": 0.1642512077294686,
+            "zipf_exponent": 1.2437128494297245,
+            "vocab_size": 68
+          },
+          {
+            "name": "ligature_merged",
+            "alphabet_info": {
+              "name": "ligature_merged",
+              "n_mappings": 20,
+              "max_source_length": 4,
+              "unique_targets": 20,
+              "mappings": {
+                "sh": "\u0160",
+                "ch": "\u010c",
+                "cth": "\u0166",
+                "ckh": "\u01e8",
+                "cph": "\ua750",
+                "cfh": "\ua77b",
+                "iin": "\u0197",
+                "iiin": "\u019d",
+                "aiin": "\u01e0",
+                "qo": "\ua756",
+                "dy": "\u0110",
+                "ey": "\u0190",
+                "ol": "\u00d8",
+                "or": "\u019f",
+                "al": "\u01fa",
+                "ar": "\u2c6d",
+                "in": "\u0196",
+                "an": "\u00c3",
+                "ai": "\u00c6",
+                "ee": "\u018f"
+              }
+            },
+            "H2": 1.5678240595498196,
+            "H1": 3.9458071269417676,
+            "H3": 1.1071637264172907,
+            "H2_delta": 0.1620240595498197,
+            "in_cipher_range": false,
+            "TTR": 0.1642512077294686,
+            "zipf_exponent": 1.2437128494297245,
+            "vocab_size": 68
+          },
+          {
+            "name": "currier",
+            "alphabet_info": {
+              "name": "currier",
+              "n_mappings": 10,
+              "max_source_length": 3,
+              "unique_targets": 10,
+              "mappings": {
+                "sh": "S",
+                "ch": "C",
+                "cth": "U",
+                "ckh": "V",
+                "cph": "W",
+                "cfh": "X",
+                "ii": "J",
+                "iii": "Z",
+                "qo": "Q",
+                "ee": "E"
+              }
+            },
+            "H2": 1.4628118776098513,
+            "H1": 3.7630074597536147,
+            "H3": 0.9858711546048999,
+            "H2_delta": 0.05701187760985138,
+            "in_cipher_range": false,
+            "TTR": 0.1642512077294686,
+            "zipf_exponent": 1.2437128494297245,
+            "vocab_size": 68
+          },
+          {
+            "name": "eva_standard",
+            "alphabet_info": {
+              "name": "eva_standard",
+              "n_mappings": 20,
+              "max_source_length": 1,
+              "unique_targets": 20,
+              "mappings": {
+                "o": "o",
+                "a": "a",
+                "i": "i",
+                "n": "n",
+                "e": "e",
+                "d": "d",
+                "y": "y",
+                "l": "l",
+                "r": "r",
+                "s": "s",
+                "k": "k",
+                "t": "t",
+                "c": "c",
+                "h": "h",
+                "p": "p",
+                "f": "f",
+                "q": "q",
+                "m": "m",
+                "g": "g",
+                "x": "x"
+              }
+            },
+            "H2": 1.405779589229628,
+            "H1": 3.7064889523436464,
+            "H3": 0.8983474957637183,
+            "H2_delta": -2.041077037184813e-05,
+            "in_cipher_range": false,
+            "TTR": 0.1642512077294686,
+            "zipf_exponent": 1.2437128494297245,
+            "vocab_size": 68
+          },
+          {
+            "name": "gallows_split",
+            "alphabet_info": {
+              "name": "gallows_split",
+              "n_mappings": 4,
+              "max_source_length": 1,
+              "unique_targets": 4,
+              "mappings": {
+                "k": "\u0261\u0302",
+                "t": "\u0261\u0303",
+                "p": "\u0261\u0302\u02b0",
+                "f": "\u0261\u0303\u02b0"
+              }
+            },
+            "H2": 1.326100946930505,
+            "H1": 3.813129783502527,
+            "H3": 0.9235901371030426,
+            "H2_delta": -0.07969905306949499,
+            "in_cipher_range": false,
+            "TTR": 0.1642512077294686,
+            "zipf_exponent": 1.2437128494297245,
+            "vocab_size": 68
+          },
+          {
+            "name": "stolfi_functional",
+            "alphabet_info": {
+              "name": "stolfi_functional",
+              "n_mappings": 13,
+              "max_source_length": 4,
+              "unique_targets": 4,
+              "mappings": {
+                "k": "G",
+                "t": "G",
+                "p": "G",
+                "f": "G",
+                "ch": "B",
+                "sh": "B",
+                "ol": "L",
+                "or": "L",
+                "al": "L",
+                "ar": "L",
+                "ii": "I",
+                "iii": "I",
+                "iiii": "I"
+              }
+            },
+            "H2": 1.274165710165839,
+            "H1": 3.503269848989281,
+            "H3": 0.8998138950829473,
+            "H2_delta": -0.13163428983416092,
+            "in_cipher_range": false,
+            "TTR": 0.12318840579710146,
+            "zipf_exponent": 1.3791568224273252,
+            "vocab_size": 51
+          }
+        ]
+      }
+    },
+    "elapsed_seconds": 6.616135358810425
+  },
+  "deep_analysis": {
+    "slot_machine": {
+      "sweep_results": {
+        "n_tested": 84,
+        "n_valid": 84,
+        "n_triple_matches": 2,
+        "best_distance": 1.575774255002808
+      },
+      "best_params": {
+        "n_slots": 3,
+        "slot_sizes": [
+          4,
+          6,
+          3
+        ],
+        "slot_names": [
+          "prefix",
+          "root",
+          "suffix"
+        ],
+        "independence_noise": 0.2,
+        "frequency_skew": 1.0,
+        "seed": 42
+      },
+      "best_score": {
+        "profile_distance": 1.575774255002808,
+        "entropy": {
+          "H1": 3.154199312254284,
+          "H2": 0.9185911910120388,
+          "H3": 0.6920457749044875
+        },
+        "zipf_summary": {
+          "zipf_exponent": 1.5514206779447968,
+          "type_token_ratio": 0.09,
+          "vocabulary_size": 45,
+          "total_tokens": 500
+        },
+        "mean_word_length": 5.976,
+        "quick": {
+          "H2": 0.9185911910120388,
+          "TTR": 0.09,
+          "zipf_exponent": 1.5514206779447968,
+          "H2_delta": 0.48720880898796115,
+          "TTR_delta": 0.0743,
+          "zipf_delta": 0.30772067794479674,
+          "triple_match": false,
+          "distance": 1.5928596405642368
+        }
+      },
+      "critical_test": {
+        "passes": false,
+        "description": "Triple: H2=0.9186 (FAIL), TTR=0.0900 (FAIL), Zipf=1.5514 (FAIL). MI test requires separate run_mi_test() call.",
+        "details": {
+          "H2": 0.9185911910120388,
+          "TTR": 0.09,
+          "zipf_exponent": 1.5514206779447968,
+          "triple_match": false,
+          "mi_test_pending": true
+        }
+      },
+      "constraint_check": {
+        "error": "ConstraintModel.__init__() got an unexpected keyword argument 'verbose'"
+      },
+      "sample_output": "demin dihmin tdoemin demin dihmin doemin demin dihmin semin demin dpoemin dihmin soemin doemin tdemin dihmin tdemin doemin dpoemin dihmin deyy demin dphemin doemin soemin soemin soemin dpeyyy tdihmin soemin"
+    },
+    "glyph_decomposition": {
+      "sweep_results": {
+        "n_tested": 20,
+        "n_valid": 20,
+        "n_triple_matches": 10,
+        "best_distance": 0.00023921236202858301
+      },
+      "best_params": {
+        "alphabet_name": "eva_standard",
+        "merge_ligatures": true,
+        "split_gallows": false,
+        "seed": 42
+      },
+      "best_score": {
+        "profile_distance": 0.00023921236202858301,
+        "entropy": {
+          "H1": 3.7064889523436464,
+          "H2": 1.405779589229628,
+          "H3": 0.8983474957637183
+        },
+        "zipf_summary": {
+          "zipf_exponent": 1.2437128494297245,
+          "type_token_ratio": 0.1642512077294686,
+          "vocabulary_size": 68,
+          "total_tokens": 414
+        },
+        "mean_word_length": 4.908212560386473,
+        "quick": {
+          "H2": 1.405779589229628,
+          "TTR": 0.1642512077294686,
+          "zipf_exponent": 1.2437128494297245,
+          "H2_delta": 2.041077037184813e-05,
+          "TTR_delta": 4.879227053139479e-05,
+          "zipf_delta": 1.2849429724459682e-05,
+          "triple_match": true,
+          "distance": 0.00011803630778688987
+        }
+      },
+      "critical_test": {
+        "passes": false,
+        "description": "H2 = 1.4058 (target > 2.5 for cipher range). Delta from EVA baseline: -0.0000",
+        "details": {
+          "alphabet": "eva_standard",
+          "H2": 1.405779589229628,
+          "H1": 3.7064889523436464,
+          "H2_delta_from_baseline": -2.041077037184813e-05,
+          "in_cipher_range": false,
+          "threshold": 2.5
+        }
+      },
+      "constraint_check": {
+        "error": "ConstraintModel.__init__() got an unexpected keyword argument 'verbose'"
+      },
+      "sample_output": "fachys ykal ar ataiin shol shory cthres y kor sholdy sory ckhar or y kair shtaiin shol cphar aiin kaiin dar shey cthar shy daiin okain shy daiin shy daiin"
+    },
+    "grammar_induction": {
+      "sweep_results": {
+        "n_tested": 24,
+        "n_valid": 24,
+        "n_triple_matches": 0,
+        "best_distance": 4.928903309422238
+      },
+      "best_params": {
+        "max_rules": 25,
+        "max_symbols": 30,
+        "evolution_generations": 100,
+        "population_size": 20,
+        "seed": 42
+      },
+      "best_score": {
+        "profile_distance": 4.928903309422238,
+        "entropy": {
+          "H1": 3.6705607726557385,
+          "H2": 3.308154627098492,
+          "H3": 2.6568995159178073
+        },
+        "zipf_summary": {
+          "zipf_exponent": 0.20074858294280537,
+          "type_token_ratio": 0.89,
+          "vocabulary_size": 445,
+          "total_tokens": 500
+        },
+        "mean_word_length": 3.816,
+        "quick": {
+          "H2": 3.308154627098492,
+          "TTR": 0.89,
+          "zipf_exponent": 0.20074858294280537,
+          "H2_delta": 1.902354627098492,
+          "TTR_delta": 0.7257,
+          "zipf_delta": 1.0429514170571947,
+          "triple_match": false,
+          "distance": 6.247249854020073
+        }
+      },
+      "critical_test": {
+        "passes": false,
+        "description": "Grammar: 26 rules, 21 symbols (budget: 25/30). Distance: inf. FAIL",
+        "details": {
+          "n_rules": 26,
+          "n_symbols": 21,
+          "max_rules": 25,
+          "max_symbols": 30,
+          "complexity_ok": false,
+          "best_distance": Infinity,
+          "distance_ok": false
+        }
+      },
+      "constraint_check": {
+        "error": "ConstraintModel.__init__() got an unexpected keyword argument 'verbose'"
+      },
+      "sample_output": "dhoocm qam fhariy ta socrm qica kairm fairy dcoy ohrn to faircn sorc ihy hchy kiccm riy soy ay ciam qthhn foay ay dthhn kh shicrm srah ton qcrroy dhah"
+    }
+  },
+  "cross_cutting": {
+    "language_ab": {
+      "language_a": {
+        "profile": {
+          "label": "language_a",
+          "char_count": 785,
+          "token_count": 187,
+          "entropy": {
+            "H1": 3.633755785378876,
+            "H2": 1.4866474635313631,
+            "H3": 1.0212261070853632
+          },
+          "zipf": {
+            "zipf_exponent": 0.9309815773854573,
+            "r_squared": 0.9513501887983211,
+            "ranks": [
+              1.0,
+              2.0,
+              3.0,
+              4.0,
+              5.0,
+              6.0,
+              7.0,
+              8.0,
+              9.0,
+              10.0,
+              11.0,
+              12.0,
+              13.0,
+              14.0,
+              15.0,
+              16.0,
+              17.0,
+              18.0,
+              19.0,
+              20.0,
+              21.0,
+              22.0,
+              23.0,
+              24.0,
+              25.0,
+              26.0,
+              27.0,
+              28.0,
+              29.0,
+              30.0,
+              31.0,
+              32.0,
+              33.0,
+              34.0,
+              35.0,
+              36.0,
+              37.0,
+              38.0,
+              39.0,
+              40.0,
+              41.0,
+              42.0,
+              43.0,
+              44.0,
+              45.0,
+              46.0,
+              47.0,
+              48.0,
+              49.0,
+              50.0,
+              51.0,
+              52.0,
+              53.0,
+              54.0,
+              55.0,
+              56.0,
+              57.0
+            ],
+            "frequencies": [
+              46.0,
+              24.0,
+              10.0,
+              8.0,
+              8.0,
+              6.0,
+              4.0,
+              4.0,
+              4.0,
+              4.0,
+              4.0,
+              3.0,
+              3.0,
+              3.0,
+              3.0,
+              2.0,
+              2.0,
+              2.0,
+              2.0,
+              2.0,
+              2.0,
+              2.0,
+              2.0,
+              2.0,
+              2.0,
+              2.0,
+              1.0,
+              1.0,
+              1.0,
+              1.0,
+              1.0,
+              1.0,
+              1.0,
+              1.0,
+              1.0,
+              1.0,
+              1.0,
+              1.0,
+              1.0,
+              1.0,
+              1.0,
+              1.0,
+              1.0,
+              1.0,
+              1.0,
+              1.0,
+              1.0,
+              1.0,
+              1.0,
+              1.0,
+              1.0,
+              1.0,
+              1.0,
+              1.0,
+              1.0,
+              1.0,
+              1.0
+            ],
+            "top_20": [
+              [
+                "daiin",
+                46
+              ],
+              [
+                "shy",
+                24
+              ],
+              [
+                "shol",
+                10
+              ],
+              [
+                "shor",
+                8
+              ],
+              [
+                "ol",
+                8
+              ],
+              [
+                "chor",
+                6
+              ],
+              [
+                "or",
+                4
+              ],
+              [
+                "aiin",
+                4
+              ],
+              [
+                "dain",
+                4
+              ],
+              [
+                "oky",
+                4
+              ],
+              [
+                "dol",
+                4
+              ],
+              [
+                "chy",
+                3
+              ],
+              [
+                "sheey",
+                3
+              ],
+              [
+                "cthol",
+                3
+              ],
+              [
+                "okey",
+                3
+              ],
+              [
+                "ataiin",
+                2
+              ],
+              [
+                "y",
+                2
+              ],
+              [
+                "sholdy",
+                2
+              ],
+              [
+                "kaiin",
+                2
+              ],
+              [
+                "shey",
+                2
+              ]
+            ],
+            "vocabulary_size": 57,
+            "total_tokens": 187,
+            "type_token_ratio": 0.3048128342245989
+          },
+          "positional_entropy": {
+            "pos_0": 2.4701,
+            "pos_1": 2.5478,
+            "pos_2": 2.6873,
+            "pos_3": 2.5931,
+            "pos_4": 2.0269,
+            "pos_5": 2.1085,
+            "pos_6": -0.0
+          },
+          "glyph_classes": {
+            "f": "P",
+            "s": "P",
+            "a": "M",
+            "c": "P",
+            "h": "M",
+            "y": "S",
+            "l": "S",
+            "k": "A",
+            "r": "S",
+            "n": "S",
+            "t": "M",
+            "i": "M",
+            "o": "A",
+            "e": "M",
+            "d": "P",
+            "p": "A",
+            "q": "P"
+          },
+          "positional_distribution": {
+            "f": {
+              "initial": 2,
+              "medial": 0,
+              "final": 0,
+              "singleton": 0
+            },
+            "s": {
+              "initial": 56,
+              "medial": 2,
+              "final": 2,
+              "singleton": 0
+            },
+            "a": {
+              "initial": 7,
+              "medial": 73,
+              "final": 0,
+              "singleton": 0
+            },
+            "c": {
+              "initial": 22,
+              "medial": 6,
+              "final": 0,
+              "singleton": 0
+            },
+            "h": {
+              "initial": 0,
+              "medial": 82,
+              "final": 0,
+              "singleton": 0
+            },
+            "y": {
+              "initial": 1,
+              "medial": 1,
+              "final": 51,
+              "singleton": 2
+            },
+            "l": {
+              "initial": 0,
+              "medial": 2,
+              "final": 31,
+              "singleton": 0
+            },
+            "k": {
+              "initial": 7,
+              "medial": 16,
+              "final": 0,
+              "singleton": 0
+            },
+            "r": {
+              "initial": 0,
+              "medial": 4,
+              "final": 30,
+              "singleton": 0
+            },
+            "n": {
+              "initial": 0,
+              "medial": 0,
+              "final": 71,
+              "singleton": 0
+            },
+            "t": {
+              "initial": 0,
+              "medial": 16,
+              "final": 0,
+              "singleton": 0
+            },
+            "i": {
+              "initial": 0,
+              "medial": 138,
+              "final": 0,
+              "singleton": 0
+            },
+            "o": {
+              "initial": 32,
+              "medial": 47,
+              "final": 0,
+              "singleton": 0
+            },
+            "e": {
+              "initial": 0,
+              "medial": 22,
+              "final": 0,
+              "singleton": 0
+            },
+            "d": {
+              "initial": 55,
+              "medial": 2,
+              "final": 0,
+              "singleton": 0
+            },
+            "p": {
+              "initial": 1,
+              "medial": 2,
+              "final": 0,
+              "singleton": 0
+            },
+            "q": {
+              "initial": 2,
+              "medial": 0,
+              "final": 0,
+              "singleton": 0
+            }
+          },
+          "mean_word_length": 4.197860962566845,
+          "std_word_length": 1.1647201228732211,
+          "word_length_dist": {
+            "6": 13,
+            "4": 44,
+            "2": 13,
+            "5": 73,
+            "1": 2,
+            "3": 39,
+            "7": 3
+          }
+        },
+        "n_tokens": 187,
+        "sections": [
+          "herbal_a"
+        ]
+      },
+      "language_b": {
+        "profile": {
+          "label": "language_b",
+          "char_count": 1247,
+          "token_count": 227,
+          "entropy": {
+            "H1": 3.4914681969656507,
+            "H2": 0.7407027814561973,
+            "H3": 0.5485882052276168
+          },
+          "zipf": {
+            "zipf_exponent": 1.5830205392799217,
+            "r_squared": 0.793468587196289,
+            "ranks": [
+              1.0,
+              2.0,
+              3.0,
+              4.0,
+              5.0,
+              6.0,
+              7.0,
+              8.0,
+              9.0,
+              10.0,
+              11.0,
+              12.0,
+              13.0
+            ],
+            "frequencies": [
+              51.0,
+              48.0,
+              44.0,
+              21.0,
+              19.0,
+              10.0,
+              9.0,
+              9.0,
+              8.0,
+              4.0,
+              2.0,
+              1.0,
+              1.0
+            ],
+            "top_20": [
+              [
+                "chedy",
+                51
+              ],
+              [
+                "shedy",
+                48
+              ],
+              [
+                "otedy",
+                44
+              ],
+              [
+                "lchedy",
+                21
+              ],
+              [
+                "qokaiin",
+                19
+              ],
+              [
+                "otaiin",
+                10
+              ],
+              [
+                "qokedy",
+                9
+              ],
+              [
+                "qokeedy",
+                9
+              ],
+              [
+                "lkeedy",
+                8
+              ],
+              [
+                "qokain",
+                4
+              ],
+              [
+                "qokeey",
+                2
+              ],
+              [
+                "ykeedy",
+                1
+              ],
+              [
+                "otaiir",
+                1
+              ]
+            ],
+            "vocabulary_size": 13,
+            "total_tokens": 227,
+            "type_token_ratio": 0.05726872246696035
+          },
+          "positional_entropy": {
+            "pos_0": 2.3219,
+            "pos_1": 1.9747,
+            "pos_2": 1.3715,
+            "pos_3": 1.447,
+            "pos_4": 1.4784,
+            "pos_5": 1.8423,
+            "pos_6": 0.9059
+          },
+          "glyph_classes": {
+            "q": "P",
+            "n": "S",
+            "o": "A",
+            "k": "M",
+            "a": "M",
+            "i": "M",
+            "c": "P",
+            "y": "S",
+            "h": "M",
+            "e": "M",
+            "d": "M",
+            "s": "P",
+            "l": "P",
+            "t": "M",
+            "r": "S"
+          },
+          "positional_distribution": {
+            "q": {
+              "initial": 43,
+              "medial": 0,
+              "final": 0,
+              "singleton": 0
+            },
+            "n": {
+              "initial": 0,
+              "medial": 0,
+              "final": 33,
+              "singleton": 0
+            },
+            "o": {
+              "initial": 55,
+              "medial": 43,
+              "final": 0,
+              "singleton": 0
+            },
+            "k": {
+              "initial": 0,
+              "medial": 52,
+              "final": 0,
+              "singleton": 0
+            },
+            "a": {
+              "initial": 0,
+              "medial": 34,
+              "final": 0,
+              "singleton": 0
+            },
+            "i": {
+              "initial": 0,
+              "medial": 64,
+              "final": 0,
+              "singleton": 0
+            },
+            "c": {
+              "initial": 51,
+              "medial": 21,
+              "final": 0,
+              "singleton": 0
+            },
+            "y": {
+              "initial": 1,
+              "medial": 0,
+              "final": 193,
+              "singleton": 0
+            },
+            "h": {
+              "initial": 0,
+              "medial": 120,
+              "final": 0,
+              "singleton": 0
+            },
+            "e": {
+              "initial": 0,
+              "medial": 213,
+              "final": 0,
+              "singleton": 0
+            },
+            "d": {
+              "initial": 0,
+              "medial": 191,
+              "final": 0,
+              "singleton": 0
+            },
+            "s": {
+              "initial": 48,
+              "medial": 0,
+              "final": 0,
+              "singleton": 0
+            },
+            "l": {
+              "initial": 29,
+              "medial": 0,
+              "final": 0,
+              "singleton": 0
+            },
+            "t": {
+              "initial": 0,
+              "medial": 55,
+              "final": 0,
+              "singleton": 0
+            },
+            "r": {
+              "initial": 0,
+              "medial": 0,
+              "final": 1,
+              "singleton": 0
+            }
+          },
+          "mean_word_length": 5.493392070484582,
+          "std_word_length": 0.7047356742139637,
+          "word_length_dist": {
+            "7": 28,
+            "5": 143,
+            "6": 56
+          }
+        },
+        "n_tokens": 227,
+        "sections": [
+          "herbal_b",
+          "astronomical",
+          "biological",
+          "cosmological",
+          "pharmaceutical",
+          "recipes"
+        ]
+      },
+      "comparison": {
+        "distance": 2.5082047377825987,
+        "H2_diff": 0.7459446820751658,
+        "TTR_diff": 0.24754411175763857,
+        "word_length_diff": -1.2955311079177365
+      }
+    },
+    "qo_predictions": {
+      "verbose_cipher": {
+        "prediction": "qo-words encode 1-2 high-frequency letters as homophones",
+        "qo_frequency": 0.10869565217391304,
+        "best_letter_match": "e",
+        "letter_frequency": 0.12,
+        "frequency_diff": 0.011304347826086955,
+        "n_unique_suffixes": 6,
+        "top_suffixes": [
+          [
+            "kaiin",
+            19
+          ],
+          [
+            "kedy",
+            9
+          ],
+          [
+            "keedy",
+            9
+          ],
+          [
+            "kain",
+            4
+          ],
+          [
+            "keey",
+            3
+          ],
+          [
+            "l",
+            1
+          ]
+        ],
+        "consistent": true
+      },
+      "syllabary_code": {
+        "prediction": "qo-words encode common Latin syllable (possibly enclitic \"que\")",
+        "qo_frequency": 0.10869565217391304,
+        "best_syllable_match": "ra",
+        "best_syllable_freq": 0.028,
+        "que_hypothesis": {
+          "que_frequency": 0.008,
+          "frequency_match": false,
+          "end_bias_consistent": true
+        },
+        "consistent": false
+      },
+      "slot_machine": {
+        "prediction": "\"qo\" is a prefix slot value; suffix distribution independent",
+        "suffix_js_divergence": 0.984546586776728,
+        "distributions_similar": false,
+        "n_qo_suffixes": 6,
+        "n_non_qo_suffixes": 34,
+        "consistent": false
+      }
+    },
+    "minimal_fsm": {
+      "effective_choices_per_position": 2.65,
+      "estimated_vocabulary": 5953,
+      "core_vocabulary": 10,
+      "estimated_states": 10,
+      "estimated_transitions": 26,
+      "information_per_word_bits": 1.4058,
+      "total_information_bits": 50943,
+      "equivalent_latin_words": 2264,
+      "kolmogorov_bound_kb": 6.22,
+      "interpretation": "The Voynich encodes at most 50943 bits \u2248 6.2 KB. A medieval herbal of 2264 Latin words would be plausible for a manuscript of this size."
+    },
+    "model_comparisons": {
+      "slot_machine": {
+        "model_effective_states": 218,
+        "minimum_states": 10,
+        "ratio": 21.8,
+        "model_H2": 1.6034,
+        "compatible": false
+      },
+      "glyph_decomposition": {
+        "model_effective_states": 68,
+        "minimum_states": 10,
+        "ratio": 6.8,
+        "model_H2": 1.5678,
+        "compatible": false
+      },
+      "grammar_induction": {
+        "model_effective_states": 468,
+        "minimum_states": 10,
+        "ratio": 46.8,
+        "model_H2": 3.5674,
+        "compatible": false
+      }
+    }
+  },
+  "conclusion": {
+    "viable_models": [],
+    "best_model": "glyph_decomposition",
+    "best_distance": 0.00023921236202858301,
+    "triple_match_models": [],
+    "surviving_for_deep": [
+      "slot_machine",
+      "glyph_decomposition",
+      "grammar_induction"
+    ],
+    "next_steps": "No model fully matched the Voynich statistical signature. Consider: (1) hybrid models combining elements from multiple approaches, (2) expanding parameter ranges, (3) revisiting the glyph decomposition results for alternative alphabets."
+  },
+  "elapsed_seconds": 7.116315841674805
+}

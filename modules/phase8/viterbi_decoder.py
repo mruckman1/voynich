@@ -8,7 +8,7 @@ class ViterbiDecoder:
         self.base_map = base_map
         self.v_seq = v_morph.stem_sequence
         self.l_seq = l_parser.stem_sequence
-        self.l_vocab = list(set(self.l_seq))
+        self.l_vocab = sorted(set(self.l_seq))
 
         # Transition Probabilities P(Stem_B | Stem_A)
         self.transitions = defaultdict(lambda: defaultdict(float))

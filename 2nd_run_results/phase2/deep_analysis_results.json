@@ -1,0 +1,178 @@
+{
+  "slot_machine": {
+    "sweep_results": {
+      "n_tested": 84,
+      "n_valid": 84,
+      "n_triple_matches": 2,
+      "best_distance": 1.575774255002808
+    },
+    "best_params": {
+      "n_slots": 3,
+      "slot_sizes": [
+        4,
+        6,
+        3
+      ],
+      "slot_names": [
+        "prefix",
+        "root",
+        "suffix"
+      ],
+      "independence_noise": 0.2,
+      "frequency_skew": 1.0,
+      "seed": 42
+    },
+    "best_score": {
+      "profile_distance": 1.575774255002808,
+      "entropy": {
+        "H1": 3.154199312254284,
+        "H2": 0.9185911910120388,
+        "H3": 0.6920457749044875
+      },
+      "zipf_summary": {
+        "zipf_exponent": 1.5514206779447968,
+        "type_token_ratio": 0.09,
+        "vocabulary_size": 45,
+        "total_tokens": 500
+      },
+      "mean_word_length": 5.976,
+      "quick": {
+        "H2": 0.9185911910120388,
+        "TTR": 0.09,
+        "zipf_exponent": 1.5514206779447968,
+        "H2_delta": 0.48720880898796115,
+        "TTR_delta": 0.0743,
+        "zipf_delta": 0.30772067794479674,
+        "triple_match": false,
+        "distance": 1.5928596405642368
+      }
+    },
+    "critical_test": {
+      "passes": false,
+      "description": "Triple: H2=0.9186 (FAIL), TTR=0.0900 (FAIL), Zipf=1.5514 (FAIL). MI test requires separate run_mi_test() call.",
+      "details": {
+        "H2": 0.9185911910120388,
+        "TTR": 0.09,
+        "zipf_exponent": 1.5514206779447968,
+        "triple_match": false,
+        "mi_test_pending": true
+      }
+    },
+    "constraint_check": {
+      "error": "ConstraintModel.__init__() got an unexpected keyword argument 'verbose'"
+    },
+    "sample_output": "demin dihmin tdoemin demin dihmin doemin demin dihmin semin demin dpoemin dihmin soemin doemin tdemin dihmin tdemin doemin dpoemin dihmin deyy demin dphemin doemin soemin soemin soemin dpeyyy tdihmin soemin"
+  },
+  "glyph_decomposition": {
+    "sweep_results": {
+      "n_tested": 20,
+      "n_valid": 20,
+      "n_triple_matches": 10,
+      "best_distance": 0.00023921236202858301
+    },
+    "best_params": {
+      "alphabet_name": "eva_standard",
+      "merge_ligatures": true,
+      "split_gallows": false,
+      "seed": 42
+    },
+    "best_score": {
+      "profile_distance": 0.00023921236202858301,
+      "entropy": {
+        "H1": 3.7064889523436464,
+        "H2": 1.405779589229628,
+        "H3": 0.8983474957637183
+      },
+      "zipf_summary": {
+        "zipf_exponent": 1.2437128494297245,
+        "type_token_ratio": 0.1642512077294686,
+        "vocabulary_size": 68,
+        "total_tokens": 414
+      },
+      "mean_word_length": 4.908212560386473,
+      "quick": {
+        "H2": 1.405779589229628,
+        "TTR": 0.1642512077294686,
+        "zipf_exponent": 1.2437128494297245,
+        "H2_delta": 2.041077037184813e-05,
+        "TTR_delta": 4.879227053139479e-05,
+        "zipf_delta": 1.2849429724459682e-05,
+        "triple_match": true,
+        "distance": 0.00011803630778688987
+      }
+    },
+    "critical_test": {
+      "passes": false,
+      "description": "H2 = 1.4058 (target > 2.5 for cipher range). Delta from EVA baseline: -0.0000",
+      "details": {
+        "alphabet": "eva_standard",
+        "H2": 1.405779589229628,
+        "H1": 3.7064889523436464,
+        "H2_delta_from_baseline": -2.041077037184813e-05,
+        "in_cipher_range": false,
+        "threshold": 2.5
+      }
+    },
+    "constraint_check": {
+      "error": "ConstraintModel.__init__() got an unexpected keyword argument 'verbose'"
+    },
+    "sample_output": "fachys ykal ar ataiin shol shory cthres y kor sholdy sory ckhar or y kair shtaiin shol cphar aiin kaiin dar shey cthar shy daiin okain shy daiin shy daiin"
+  },
+  "grammar_induction": {
+    "sweep_results": {
+      "n_tested": 24,
+      "n_valid": 24,
+      "n_triple_matches": 0,
+      "best_distance": 4.928903309422238
+    },
+    "best_params": {
+      "max_rules": 25,
+      "max_symbols": 30,
+      "evolution_generations": 100,
+      "population_size": 20,
+      "seed": 42
+    },
+    "best_score": {
+      "profile_distance": 4.928903309422238,
+      "entropy": {
+        "H1": 3.6705607726557385,
+        "H2": 3.308154627098492,
+        "H3": 2.6568995159178073
+      },
+      "zipf_summary": {
+        "zipf_exponent": 0.20074858294280537,
+        "type_token_ratio": 0.89,
+        "vocabulary_size": 445,
+        "total_tokens": 500
+      },
+      "mean_word_length": 3.816,
+      "quick": {
+        "H2": 3.308154627098492,
+        "TTR": 0.89,
+        "zipf_exponent": 0.20074858294280537,
+        "H2_delta": 1.902354627098492,
+        "TTR_delta": 0.7257,
+        "zipf_delta": 1.0429514170571947,
+        "triple_match": false,
+        "distance": 6.247249854020073
+      }
+    },
+    "critical_test": {
+      "passes": false,
+      "description": "Grammar: 26 rules, 21 symbols (budget: 25/30). Distance: inf. FAIL",
+      "details": {
+        "n_rules": 26,
+        "n_symbols": 21,
+        "max_rules": 25,
+        "max_symbols": 30,
+        "complexity_ok": false,
+        "best_distance": Infinity,
+        "distance_ok": false
+      }
+    },
+    "constraint_check": {
+      "error": "ConstraintModel.__init__() got an unexpected keyword argument 'verbose'"
+    },
+    "sample_output": "dhoocm qam fhariy ta socrm qica kairm fairy dcoy ohrn to faircn sorc ihy hchy kiccm riy soy ay ciam qthhn foay ay dthhn kh shicrm srah ton qcrroy dhah"
+  }
+}

@@ -18,7 +18,7 @@ VOYNICH_CONSONANT_CLASSES = {
 
 class LatinPhoneticSkeletonizer:
     def __init__(self, latin_tokens: list):
-        self.vocab = list(set(latin_tokens))
+        self.vocab = sorted(set(latin_tokens))
         self.unigram_counts = Counter(latin_tokens)
         self.skeleton_index = defaultdict(list)
         self._build_index()
@@ -38,7 +38,7 @@ class LatinPhoneticSkeletonizer:
     def _build_index(self):
         """Index all Latin words by their phonetic consonant skeleton."""
         # Sort vocab by frequency so the most common word for a skeleton is checked first
-        sorted_vocab = sorted(self.vocab, key=lambda w: -self.unigram_counts[w])
+        sorted_vocab = sorted(self.vocab, key=lambda w: (-self.unigram_counts[w], w))
         for word in sorted_vocab:
             skel = self.get_skeleton(word)
             if skel:

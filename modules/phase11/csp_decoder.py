@@ -1,5 +1,5 @@
 import Levenshtein
-from collections import Counter
+from collections import Counter, deque
 
 # Sigla Map from Phase 10
 SIGLA_MAP = {
@@ -49,7 +49,7 @@ class CSPPhoneticDecoder:
             min_dist = float('inf')
             for l_skel in self.l_skel.skeleton_index.keys():
                 dist = Levenshtein.distance(target_skel, l_skel)
-                if dist < min_dist and dist <= 2: # Max 2 insertions/deletions allowed
+                if dist <= 2 and (dist < min_dist or (dist == min_dist and (closest_skel is None or l_skel < closest_skel))):
                     min_dist = dist
                     closest_skel = l_skel
 
@@ -80,7 +80,7 @@ class CSPPhoneticDecoder:
 
         if scored_candidates:
             # Sort by highest score
-            scored_candidates.sort(key=lambda x: -x[0])
+            scored_candidates.sort(key=lambda x: (-x[0], x[1]))
             best_word = scored_candidates[0][1]
             return best_word
 
@@ -88,7 +88,7 @@ class CSPPhoneticDecoder:
 
     def decode_folio(self, tokens: list) -> str:
         decoded_words = []
-        recent_words = set() # Anti-repetition memory
+        recent_words = deque(maxlen=6)  # Deterministic FIFO eviction
 
         for token in tokens:
             word = self.find_best_match(token)
@@ -99,11 +99,6 @@ class CSPPhoneticDecoder:
                 pass
 
             decoded_words.append(word)
-
-            # Keep a rolling window of recent words
-            recent_words.add(word)
-            if len(recent_words) > 5:
-                # remove an arbitrary element to keep the set small without using queue
-                recent_words.pop()
+            recent_words.append(word)
 
         return ' '.join(decoded_words)

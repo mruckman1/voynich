@@ -211,7 +211,7 @@ class BudgetedCSPDecoder:
                     min_dist = float('inf')
                     for l_skel in self.l_skel.skeleton_index.keys():
                         dist = Levenshtein.distance(target_skel, l_skel)
-                        if dist < min_dist and dist <= max_dist:
+                        if dist <= max_dist and (dist < min_dist or (dist == min_dist and (closest_skel is None or l_skel < closest_skel))):
                             min_dist = dist
                             closest_skel = l_skel
                     if closest_skel:
@@ -227,7 +227,7 @@ class BudgetedCSPDecoder:
             return f"[{v_token}]"
 
         # 6. Sort by score descending, pick best
-        all_scored.sort(key=lambda x: -x[0])
+        all_scored.sort(key=lambda x: (-x[0], x[1]))
         best_score, best_word = all_scored[0]
 
         # Minimum score gate: if budget penalties have crushed the score,

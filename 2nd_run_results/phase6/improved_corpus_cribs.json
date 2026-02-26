@@ -1,0 +1,276 @@
+{
+  "n_pairs": 1001,
+  "sample_pairs": [
+    {
+      "voynich": "daiin",
+      "rank": 0,
+      "candidates": [
+        "et",
+        "est",
+        "in"
+      ],
+      "confidence": "HIGH"
+    },
+    {
+      "voynich": "chol",
+      "rank": 1,
+      "candidates": [
+        "est",
+        "in",
+        "contra"
+      ],
+      "confidence": "HIGH"
+    },
+    {
+      "voynich": "chor",
+      "rank": 2,
+      "candidates": [
+        "in",
+        "contra",
+        "recipe"
+      ],
+      "confidence": "HIGH"
+    },
+    {
+      "voynich": "s",
+      "rank": 3,
+      "candidates": [
+        "contra",
+        "recipe",
+        "gradu"
+      ],
+      "confidence": "HIGH"
+    },
+    {
+      "voynich": "shol",
+      "rank": 4,
+      "candidates": [
+        "recipe",
+        "gradu",
+        "valet"
+      ],
+      "confidence": "HIGH"
+    },
+    {
+      "voynich": "dain",
+      "rank": 5,
+      "candidates": [
+        "gradu",
+        "valet",
+        "habet"
+      ],
+      "confidence": "HIGH"
+    },
+    {
+      "voynich": "cthy",
+      "rank": 6,
+      "candidates": [
+        "valet",
+        "habet",
+        "virtutem"
+      ],
+      "confidence": "HIGH"
+    },
+    {
+      "voynich": "chy",
+      "rank": 7,
+      "candidates": [
+        "habet",
+        "virtutem",
+        "fac"
+      ],
+      "confidence": "HIGH"
+    },
+    {
+      "voynich": "sho",
+      "rank": 8,
+      "candidates": [
+        "virtutem",
+        "fac",
+        "cum"
+      ],
+      "confidence": "HIGH"
+    },
+    {
+      "voynich": "dar",
+      "rank": 9,
+      "candidates": [
+        "fac",
+        "cum",
+        "sicca"
+      ],
+      "confidence": "HIGH"
+    },
+    {
+      "voynich": "or",
+      "rank": 10,
+      "candidates": [
+        "cum",
+        "sicca",
+        "secundo"
+      ],
+      "confidence": "HIGH"
+    },
+    {
+      "voynich": "dy",
+      "rank": 11,
+      "candidates": [
+        "sicca",
+        "secundo",
+        "tertio"
+      ],
+      "confidence": "HIGH"
+    },
+    {
+      "voynich": "chey",
+      "rank": 12,
+      "candidates": [
+        "secundo",
+        "tertio",
+        "quae"
+      ],
+      "confidence": "HIGH"
+    },
+    {
+      "voynich": "ol",
+      "rank": 13,
+      "candidates": [
+        "tertio",
+        "quae",
+        "primo"
+      ],
+      "confidence": "HIGH"
+    },
+    {
+      "voynich": "dal",
+      "rank": 14,
+      "candidates": [
+        "quae",
+        "primo",
+        "quarto"
+      ],
+      "confidence": "HIGH"
+    },
+    {
+      "voynich": "shor",
+      "rank": 15,
+      "candidates": [
+        "primo",
+        "quarto",
+        "super"
+      ],
+      "confidence": "HIGH"
+    },
+    {
+      "voynich": "cheol",
+      "rank": 16,
+      "candidates": [
+        "quarto",
+        "super",
+        "da"
+      ],
+      "confidence": "HIGH"
+    },
+    {
+      "voynich": "shey",
+      "rank": 17,
+      "candidates": [
+        "super",
+        "da",
+        "calidum"
+      ],
+      "confidence": "HIGH"
+    },
+    {
+      "voynich": "dol",
+      "rank": 18,
+      "candidates": [
+        "da",
+        "calidum",
+        "humidum"
+      ],
+      "confidence": "HIGH"
+    },
+    {
+      "voynich": "aiin",
+      "rank": 19,
+      "candidates": [
+        "calidum",
+        "humidum",
+        "humidus"
+      ],
+      "confidence": "HIGH"
+    }
+  ],
+  "validation": {
+    "n_pairs": 1001,
+    "n_with_candidates": 919,
+    "coverage": 0.9180819180819181,
+    "n_collisions": 281,
+    "collisions": [
+      {
+        "word1": "saiin",
+        "word2": "cho",
+        "shared_candidate": "calidus"
+      },
+      {
+        "word1": "cheor",
+        "word2": "okeol",
+        "shared_candidate": "frigidus"
+      },
+      {
+        "word1": "saiin",
+        "word2": "ar",
+        "shared_candidate": "calidus"
+      },
+      {
+        "word1": "cheor",
+        "word2": "cheey",
+        "shared_candidate": "frigidus"
+      },
+      {
+        "word1": "cheor",
+        "word2": "okeey",
+        "shared_candidate": "frigidus"
+      },
+      {
+        "word1": "cheor",
+        "word2": "okal",
+        "shared_candidate": "frigidus"
+      },
+      {
+        "word1": "saiin",
+        "word2": "sy",
+        "shared_candidate": "calidus"
+      },
+      {
+        "word1": "cheor",
+        "word2": "cheody",
+        "shared_candidate": "frigidus"
+      },
+      {
+        "word1": "saiin",
+        "word2": "dchy",
+        "shared_candidate": "calidus"
+      },
+      {
+        "word1": "saiin",
+        "word2": "chos",
+        "shared_candidate": "calidus"
+      }
+    ],
+    "rank_correlation": 0.9999987586848054,
+    "confidence_distribution": {
+      "HIGH": 638,
+      "MODERATE": 278,
+      "LOW": 3,
+      "NONE": 82
+    },
+    "n_botanical_overrides": 276,
+    "valid": false
+  },
+  "n_candidate_entries": 919,
+  "synthesis": {
+    "conclusion": "1001 rank-paired cribs generated. 919 have candidates (91.8% coverage). 281 collisions. Rank correlation: 1.000. 276 botanical overrides."
+  }
+}

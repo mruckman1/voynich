@@ -4,7 +4,7 @@ Voynich Convergence Attack — MAX SETTINGS
 Run all strategies at maximum resolution using the full ZL corpus.
 
 Usage:
-    uv run python run_max.py
+    PYTHONHASHSEED=0 uv run python run_max.py
 
 Prerequisites:
     1. Download the corpus:
