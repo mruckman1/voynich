@@ -11,4 +11,5 @@ dependencies = [
     "pandas>=3.0.1",
     "scipy>=1.17.1",
     "python-Levenshtein>=0.26.1",
+    "beautifulsoup4>=4.14.3",
 ]

@@ -24,6 +24,11 @@ MIN_CONFIDENCE_RATIO = 3.0    # Phase 12
 FOLIO_LIMIT_DEFAULT = 15      # Phase 11, 12
 FOLIO_LIMIT_DEMO = 10         # Phase 10
 
+# ── Phase 13: Scholarly Synthesis ────────────────────────────────
+HITL_OVERRIDES_FILE = 'hitl_overrides.json'
+HITL_MAX_CANDIDATES = 10
+WHITEPAPER_CHART_DPI = 150
+
 # ── Output Directories ────────────────────────────────────────────
 OUTPUT_ROOT = './output'
 

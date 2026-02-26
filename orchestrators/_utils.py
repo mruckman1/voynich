@@ -55,6 +55,7 @@ PHASE_DESCRIPTIONS = {
     10: 'Dictionary-Guided Trigram Decoder',
     11: 'Phonetic Constraint Satisfaction Decoder',
     12: 'Contextual Reconstruction & Deterministic Mask Solving',
+    13: 'Scholarly Synthesis & Presentation',
 }
 
 

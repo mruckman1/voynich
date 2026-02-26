@@ -19,6 +19,7 @@ _PHASE_REGISTRY = {
     10: ('orchestrators.phase10', 'run_phase10_final_translation'),
     11: ('orchestrators.phase11', 'run_phase11_csp_translation'),
     12: ('orchestrators.phase12', 'run_phase12_reconstruction'),
+    13: ('orchestrators.phase13', 'run_phase13_synthesis'),
 }
 
 

@@ -8,9 +8,16 @@ Usage:
   uv run cli.py --phase 2                # Run phase 2 only
   uv run cli.py --phase 7                # Run phase 7 only
   uv run cli.py --phase 5 --quick        # Run phase 5 in quick mode
-  uv run cli.py --all                    # Run all 12 phases sequentially
+  uv run cli.py --all                    # Run all 13 phases sequentially
   uv run cli.py --output-dir ./results   # Custom output directory
   uv run cli.py --list                   # List all available phases
+
+Phase 13 sub-phase flags:
+  uv run cli.py --phase 13 --html        # HTML viewer only
+  uv run cli.py --phase 13 --gloss       # English glosser only
+  uv run cli.py --phase 13 --hitl        # Interactive HITL console
+  uv run cli.py --phase 13 --whitepaper  # Whitepaper only
+  uv run cli.py --phase 13 --folios 20   # Limit decode to 20 folios
 
 Sub-phase flags are forwarded to the phase orchestrator:
   uv run cli.py --phase 2 --discrimination
@@ -119,6 +126,29 @@ def _parse_subphase_flags(phase_num, remaining_args):
             kwargs['saa_iterations'] = 1000
             kwargs['latin_corpus_size'] = 10000
 
+    elif phase_num == 13:
+        phases = []
+        if '--decode' in remaining_args:
+            phases.append('decode')
+        if '--html' in remaining_args:
+            phases.append('html')
+        if '--gloss' in remaining_args:
+            phases.append('gloss')
+        if '--hitl' in remaining_args:
+            phases.append('hitl')
+        if '--whitepaper' in remaining_args:
+            phases.append('whitepaper')
+        if phases:
+            kwargs['phases'] = phases
+        # --folios N flag
+        if '--folios' in remaining_args:
+            idx = remaining_args.index('--folios')
+            if idx + 1 < len(remaining_args):
+                try:
+                    kwargs['folio_limit'] = int(remaining_args[idx + 1])
+                except ValueError:
+                    pass
+
     return kwargs
 
 
@@ -133,11 +163,11 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument('--phase', type=int, metavar='N',
-                        help='Run a specific phase (2-12)')
+                        help='Run a specific phase (2-13)')
     parser.add_argument('--phased', action='store_true',
                         help='Run the full phased attack (phases 1-4)')
     parser.add_argument('--all', action='store_true',
-                        help='Run all 12 phases sequentially (1-12)')
+                        help='Run all 13 phases sequentially (1-13)')
     parser.add_argument('--output-dir', '-o', metavar='DIR',
                         help='Root output directory (default: ./output)')
     parser.add_argument('--list', action='store_true',
@@ -174,7 +204,7 @@ def main():
         from orchestrators import get_phase_runner
         print('=== Phase 1: Convergence Attack (5 strategies) ===')
         phase_results[1] = run_convergence_attack(verbose=verbose, **_phase_dir(1))
-        for phase_num in range(2, 13):
+        for phase_num in range(2, 14):
             print(f'\n=== Phase {phase_num} ===')
             phase_results[phase_num] = get_phase_runner(phase_num)(
                 verbose=verbose, **_phase_dir(phase_num)
