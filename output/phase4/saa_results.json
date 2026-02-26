@@ -1,0 +1,82 @@
+{
+  "vocab_size_used": 80,
+  "hungarian": {
+    "cost": 39.022255222840116,
+    "normalized_cost": 0.006097227378568768,
+    "quality": "good",
+    "mapping_sample": {
+      "daiin": "probatum",
+      "chol": "bibere",
+      "chor": "anodynam",
+      "s": "et",
+      "shol": "expectorantem",
+      "dain": "vulnus",
+      "cthy": "bibe",
+      "chy": "carminativam",
+      "sho": "inflammationem",
+      "dar": "primo"
+    },
+    "evaluation": {
+      "crib_satisfaction": 2,
+      "crib_total": 628,
+      "crib_rate": 0.0031847133757961785,
+      "function_word_matches": 1,
+      "decoded_sample": "[fachys] [ykal] hyoscyamus [ataiin] expectorantem [shory] [cthres] vulnera [kor] [sholdy] [sory] [ckhar] [ory] [kair] [chtaiin] [shar] [ase] [cthar] [cthardan] [syaiir] [sheky] rosmarinus [ykaiin] [shod] [cthoary] [cthes] [daraiin] capitis [soiin] [oteey] [oteosroloty] [cthiardaiin] digestivam rosmarinus [okan] [sairy] [chear] [cthaiin] [cphar] [cfhaiin] [ydaraishy] [odar] [cy] expectorantem [cphoy] [oydar] [sh] et [cfhoaiin] [shodary]"
+    }
+  },
+  "simulated_annealing": {
+    "cost": 19.491969437343172,
+    "normalized_cost": 0.003045620224584871,
+    "quality": "good",
+    "n_fixed_cribs": 38,
+    "mapping_sample": {
+      "daiin": "et",
+      "chol": "et",
+      "chor": "et",
+      "s": "et",
+      "shol": "et",
+      "dain": "siccum",
+      "cthy": "et",
+      "chy": "et",
+      "sho": "et",
+      "dar": "et"
+    },
+    "evaluation": {
+      "crib_satisfaction": 38,
+      "crib_total": 628,
+      "crib_rate": 0.06050955414012739,
+      "function_word_matches": 5,
+      "decoded_sample": "[fachys] [ykal] cum [ataiin] et [shory] [cthres] et [kor] [sholdy] [sory] [ckhar] [ory] [kair] [chtaiin] [shar] [ase] [cthar] [cthardan] [syaiir] [sheky] et [ykaiin] [shod] [cthoary] [cthes] [daraiin] virtutem [soiin] [oteey] [oteosroloty] [cthiardaiin] et et [okan] [sairy] [chear] [cthaiin] [cphar] [cfhaiin] [ydaraishy] [odar] [cy] et [cphoy] [oydar] [sh] et [cfhoaiin] [shodary]"
+    }
+  },
+  "best_mapping": {
+    "daiin": "et",
+    "chol": "et",
+    "chor": "et",
+    "s": "et",
+    "shol": "et",
+    "dain": "siccum",
+    "cthy": "et",
+    "chy": "et",
+    "sho": "et",
+    "dar": "et",
+    "or": "et",
+    "dy": "et",
+    "chey": "et",
+    "ol": "et",
+    "dal": "valet",
+    "shor": "et",
+    "cheol": "et",
+    "shey": "et",
+    "dol": "inflammationem",
+    "aiin": "siccum"
+  },
+  "synthesis": {
+    "best_method": "simulated_annealing",
+    "best_normalized_cost": 0.003045620224584871,
+    "plausible_decryption": true,
+    "crib_satisfaction_rate": 0.06050955414012739,
+    "decoded_sample": "[fachys] [ykal] cum [ataiin] et [shory] [cthres] et [kor] [sholdy] [sory] [ckhar] [ory] [kair] [chtaiin] [shar] [ase] [cthar] [cthardan] [syaiir] [sheky] et [ykaiin] [shod] [cthoary] [cthes] [daraiin]",
+    "conclusion": "SAA attack: best method=simulated_annealing, cost=0.003. Plausible candidate decryption."
+  }
+}

@@ -1,0 +1,145 @@
+{
+  "target_tokens": 30000,
+  "actual_tokens": 30012,
+  "vocabulary_size": 629,
+  "type_token_ratio": 0.020958283353325335,
+  "word_bigram_h2": 2.729539886241028,
+  "word_trigram_h3": 1.649531761930323,
+  "char_entropy": {
+    "H1": 4.019873045441974,
+    "H2": 3.2369877528315305,
+    "H3": 2.1785769996628517
+  },
+  "zipf": {
+    "zipf_exponent": 1.5343202616493405,
+    "r_squared": 0.7877087260362159
+  },
+  "top_30_words": [
+    [
+      "et",
+      4748
+    ],
+    [
+      "in",
+      1594
+    ],
+    [
+      "est",
+      1369
+    ],
+    [
+      "contra",
+      1181
+    ],
+    [
+      "valet",
+      912
+    ],
+    [
+      "virtutem",
+      838
+    ],
+    [
+      "gradu",
+      816
+    ],
+    [
+      "habet",
+      815
+    ],
+    [
+      "recipe",
+      815
+    ],
+    [
+      "fac",
+      561
+    ],
+    [
+      "cum",
+      377
+    ],
+    [
+      "da",
+      330
+    ],
+    [
+      "sicca",
+      246
+    ],
+    [
+      "super",
+      221
+    ],
+    [
+      "tertio",
+      218
+    ],
+    [
+      "secundo",
+      209
+    ],
+    [
+      "quarto",
+      200
+    ],
+    [
+      "sed",
+      191
+    ],
+    [
+      "primo",
+      189
+    ],
+    [
+      "siccum",
+      163
+    ],
+    [
+      "frigidum",
+      144
+    ],
+    [
+      "per",
+      143
+    ],
+    [
+      "cave",
+      143
+    ],
+    [
+      "misce",
+      142
+    ],
+    [
+      "frigidus",
+      140
+    ],
+    [
+      "siccus",
+      139
+    ],
+    [
+      "dosi",
+      138
+    ],
+    [
+      "calidum",
+      137
+    ],
+    [
+      "calidus",
+      134
+    ],
+    [
+      "frigida",
+      133
+    ]
+  ],
+  "voynich_comparison": {
+    "latin_word_bigram_h2": 2.729539886241028,
+    "voynich_h2": 2.385,
+    "delta": 0.34453988624102827,
+    "within_range": false
+  }
+}

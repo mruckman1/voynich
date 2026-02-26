@@ -1,0 +1,3778 @@
+{
+  "productive_affixes": {
+    "n_productive_prefixes": 65,
+    "n_productive_suffixes": 58,
+    "productive_prefixes": [
+      {
+        "prefix": "c",
+        "n_words": 245,
+        "expected_random": 47.67,
+        "enrichment": 5.14,
+        "example_words": [
+          "cfhaiin",
+          "cfhey",
+          "cfhol",
+          "cfhy",
+          "cha",
+          "chaiin",
+          "chain",
+          "chal"
+        ]
+      },
+      {
+        "prefix": "o",
+        "n_words": 208,
+        "expected_random": 47.67,
+        "enrichment": 4.36,
+        "example_words": [
+          "oaiin",
+          "oaiir",
+          "oain",
+          "oar",
+          "ochey",
+          "ochol",
+          "ochor",
+          "ochy"
+        ]
+      },
+      {
+        "prefix": "ch",
+        "n_words": 180,
+        "expected_random": 2.27,
+        "enrichment": 79.3,
+        "example_words": [
+          "cha",
+          "chaiin",
+          "chain",
+          "chal",
+          "chaldy",
+          "chaly",
+          "cham",
+          "chan"
+        ]
+      },
+      {
+        "prefix": "q",
+        "n_words": 122,
+        "expected_random": 47.67,
+        "enrichment": 2.56,
+        "example_words": [
+          "qkol",
+          "qo",
+          "qoaiin",
+          "qoair",
+          "qoaithy",
+          "qoar",
+          "qocho",
+          "qockhey"
+        ]
+      },
+      {
+        "prefix": "qo",
+        "n_words": 120,
+        "expected_random": 2.27,
+        "enrichment": 52.87,
+        "example_words": [
+          "qoaiin",
+          "qoair",
+          "qoaithy",
+          "qoar",
+          "qocho",
+          "qockhey",
+          "qockhol",
+          "qockhy"
+        ]
+      },
+      {
+        "prefix": "s",
+        "n_words": 107,
+        "expected_random": 47.67,
+        "enrichment": 2.24,
+        "example_words": [
+          "saiin",
+          "sain",
+          "sair",
+          "sal",
+          "sam",
+          "sar",
+          "sary",
+          "scheaiin"
+        ]
+      },
+      {
+        "prefix": "cho",
+        "n_words": 82,
+        "expected_random": 0.11,
+        "enrichment": 758.64,
+        "example_words": [
+          "choaiin",
+          "chochor",
+          "chochy",
+          "chockhey",
+          "chockhy",
+          "chocphy",
+          "chocthey",
+          "chocthhy"
+        ]
+      },
+      {
+        "prefix": "sh",
+        "n_words": 74,
+        "expected_random": 2.27,
+        "enrichment": 32.6,
+        "example_words": [
+          "sha",
+          "shaiin",
+          "shain",
+          "sham",
+          "shan",
+          "shar",
+          "shckhy",
+          "shcthy"
+        ]
+      },
+      {
+        "prefix": "ok",
+        "n_words": 60,
+        "expected_random": 2.27,
+        "enrichment": 26.43,
+        "example_words": [
+          "okaiin",
+          "okaiir",
+          "okain",
+          "okal",
+          "okalal",
+          "okaldy",
+          "okaly",
+          "okam"
+        ]
+      },
+      {
+        "prefix": "che",
+        "n_words": 52,
+        "expected_random": 0.11,
+        "enrichment": 481.09,
+        "example_words": [
+          "cheaiin",
+          "cheain",
+          "cheal",
+          "chean",
+          "chear",
+          "cheas",
+          "checkhey",
+          "checkhy"
+        ]
+      },
+      {
+        "prefix": "ot",
+        "n_words": 49,
+        "expected_random": 2.27,
+        "enrichment": 21.59,
+        "example_words": [
+          "otaiin",
+          "otaiir",
+          "otain",
+          "otair",
+          "otal",
+          "otaldy",
+          "otaly",
+          "otam"
+        ]
+      },
+      {
+        "prefix": "qok",
+        "n_words": 48,
+        "expected_random": 0.11,
+        "enrichment": 444.08,
+        "example_words": [
+          "qokaiin",
+          "qokain",
+          "qokair",
+          "qokal",
+          "qokaldy",
+          "qokalor",
+          "qokaly",
+          "qokam"
+        ]
+      },
+      {
+        "prefix": "sho",
+        "n_words": 34,
+        "expected_random": 0.11,
+        "enrichment": 314.56,
+        "example_words": [
+          "shoaiin",
+          "shockhey",
+          "shockhy",
+          "shocthody",
+          "shocthy",
+          "shod",
+          "shodaiin",
+          "shodain"
+        ]
+      },
+      {
+        "prefix": "ct",
+        "n_words": 33,
+        "expected_random": 2.27,
+        "enrichment": 14.54,
+        "example_words": [
+          "ctchy",
+          "cth",
+          "cthaiin",
+          "cthain",
+          "cthal",
+          "cthar",
+          "ctheey",
+          "ctheod"
+        ]
+      },
+      {
+        "prefix": "qot",
+        "n_words": 33,
+        "expected_random": 0.11,
+        "enrichment": 305.31,
+        "example_words": [
+          "qotaiin",
+          "qotain",
+          "qotal",
+          "qotam",
+          "qotchaiin",
+          "qotchar",
+          "qotcheaiin",
+          "qotcheol"
+        ]
+      },
+      {
+        "prefix": "da",
+        "n_words": 30,
+        "expected_random": 2.27,
+        "enrichment": 13.22,
+        "example_words": [
+          "daiidy",
+          "daiiin",
+          "daiin",
+          "daiindy",
+          "daiinody",
+          "daiiny",
+          "daiir",
+          "daim"
+        ]
+      },
+      {
+        "prefix": "ol",
+        "n_words": 29,
+        "expected_random": 2.27,
+        "enrichment": 12.78,
+        "example_words": [
+          "olaiin",
+          "olaldy",
+          "olaly",
+          "olcheey",
+          "olcheol",
+          "olcheor",
+          "olchey",
+          "olchor"
+        ]
+      },
+      {
+        "prefix": "yk",
+        "n_words": 29,
+        "expected_random": 2.27,
+        "enrichment": 12.78,
+        "example_words": [
+          "ykaiin",
+          "ykair",
+          "ykal",
+          "ykaly",
+          "ykam",
+          "ykar",
+          "ykchdy",
+          "ykchey"
+        ]
+      },
+      {
+        "prefix": "yt",
+        "n_words": 29,
+        "expected_random": 2.27,
+        "enrichment": 12.78,
+        "example_words": [
+          "ytaiin",
+          "ytain",
+          "ytal",
+          "ytam",
+          "ytar",
+          "ytchey",
+          "ytchody",
+          "ytchol"
+        ]
+      },
+      {
+        "prefix": "cth",
+        "n_words": 28,
+        "expected_random": 0.11,
+        "enrichment": 259.05,
+        "example_words": [
+          "cthaiin",
+          "cthain",
+          "cthal",
+          "cthar",
+          "ctheey",
+          "ctheod",
+          "ctheody",
+          "ctheol"
+        ]
+      },
+      {
+        "prefix": "she",
+        "n_words": 25,
+        "expected_random": 0.11,
+        "enrichment": 231.29,
+        "example_words": [
+          "sheaiin",
+          "sheal",
+          "sheam",
+          "shear",
+          "shedy",
+          "shee",
+          "sheear",
+          "sheeol"
+        ]
+      },
+      {
+        "prefix": "cheo",
+        "n_words": 24,
+        "expected_random": 0.01,
+        "enrichment": 2400.0,
+        "example_words": [
+          "cheockhy",
+          "cheocthy",
+          "cheod",
+          "cheodaiin",
+          "cheodain",
+          "cheodal",
+          "cheodam",
+          "cheodar"
+        ]
+      },
+      {
+        "prefix": "chok",
+        "n_words": 19,
+        "expected_random": 0.01,
+        "enrichment": 1900.0,
+        "example_words": [
+          "chokaiin",
+          "chokain",
+          "chokal",
+          "chokam",
+          "chokan",
+          "chokchey",
+          "chokcho",
+          "chokchol"
+        ]
+      },
+      {
+        "prefix": "oke",
+        "n_words": 19,
+        "expected_random": 0.11,
+        "enrichment": 175.78,
+        "example_words": [
+          "okeal",
+          "okeam",
+          "okear",
+          "okeedy",
+          "okeeey",
+          "okeeody",
+          "okeeol",
+          "okeeor"
+        ]
+      },
+      {
+        "prefix": "dc",
+        "n_words": 18,
+        "expected_random": 2.27,
+        "enrichment": 7.93,
+        "example_words": [
+          "dchaiin",
+          "dchal",
+          "dchar",
+          "dchchy",
+          "dchckhy",
+          "dcheey",
+          "dcheo",
+          "dcheor"
+        ]
+      },
+      {
+        "prefix": "dch",
+        "n_words": 18,
+        "expected_random": 0.11,
+        "enrichment": 166.53,
+        "example_words": [
+          "dchaiin",
+          "dchal",
+          "dchar",
+          "dchchy",
+          "dchckhy",
+          "dcheey",
+          "dcheo",
+          "dcheor"
+        ]
+      },
+      {
+        "prefix": "qoke",
+        "n_words": 17,
+        "expected_random": 0.01,
+        "enrichment": 1700.0,
+        "example_words": [
+          "qokechy",
+          "qokeees",
+          "qokeeey",
+          "qokeeo",
+          "qokeeody",
+          "qokeeol",
+          "qokeeor",
+          "qokeey"
+        ]
+      },
+      {
+        "prefix": "yc",
+        "n_words": 17,
+        "expected_random": 2.27,
+        "enrichment": 7.49,
+        "example_words": [
+          "ychain",
+          "ychear",
+          "ycheey",
+          "ychekchy",
+          "ycheo",
+          "ycheockhy",
+          "ycheoky",
+          "ycheol"
+        ]
+      },
+      {
+        "prefix": "ych",
+        "n_words": 17,
+        "expected_random": 0.11,
+        "enrichment": 157.28,
+        "example_words": [
+          "ychain",
+          "ychear",
+          "ycheey",
+          "ychekchy",
+          "ycheo",
+          "ycheockhy",
+          "ycheoky",
+          "ycheol"
+        ]
+      },
+      {
+        "prefix": "ck",
+        "n_words": 15,
+        "expected_random": 2.27,
+        "enrichment": 6.61,
+        "example_words": [
+          "ckhaiin",
+          "ckhal",
+          "ckham",
+          "ckhar",
+          "ckheey",
+          "ckheody",
+          "ckheol",
+          "ckheos"
+        ]
+      }
+    ],
+    "productive_suffixes": [
+      {
+        "suffix": "y",
+        "n_words": 367,
+        "expected_random": 47.67,
+        "enrichment": 7.7,
+        "example_words": [
+          "aldy",
+          "arary",
+          "cfhey",
+          "cfhy",
+          "chaldy",
+          "chaly",
+          "chary",
+          "chcfhhy"
+        ]
+      },
+      {
+        "suffix": "r",
+        "n_words": 158,
+        "expected_random": 47.67,
+        "enrichment": 3.31,
+        "example_words": [
+          "air",
+          "alor",
+          "ar",
+          "char",
+          "chear",
+          "cheeor",
+          "cheodar",
+          "cheodor"
+        ]
+      },
+      {
+        "suffix": "l",
+        "n_words": 145,
+        "expected_random": 47.67,
+        "enrichment": 3.04,
+        "example_words": [
+          "al",
+          "aral",
+          "cfhol",
+          "chal",
+          "chckhol",
+          "cheal",
+          "cheeol",
+          "chekal"
+        ]
+      },
+      {
+        "suffix": "n",
+        "n_words": 142,
+        "expected_random": 47.67,
+        "enrichment": 2.98,
+        "example_words": [
+          "aiiin",
+          "aiin",
+          "ain",
+          "an",
+          "cfhaiin",
+          "chaiin",
+          "chain",
+          "chan"
+        ]
+      },
+      {
+        "suffix": "in",
+        "n_words": 132,
+        "expected_random": 2.27,
+        "enrichment": 58.15,
+        "example_words": [
+          "aiiin",
+          "aiin",
+          "ain",
+          "cfhaiin",
+          "chaiin",
+          "chain",
+          "cheaiin",
+          "cheain"
+        ]
+      },
+      {
+        "suffix": "iin",
+        "n_words": 106,
+        "expected_random": 0.11,
+        "enrichment": 980.69,
+        "example_words": [
+          "aiiin",
+          "aiin",
+          "cfhaiin",
+          "chaiin",
+          "cheaiin",
+          "chekaiin",
+          "cheodaiin",
+          "cheoraiin"
+        ]
+      },
+      {
+        "suffix": "dy",
+        "n_words": 100,
+        "expected_random": 2.27,
+        "enrichment": 44.06,
+        "example_words": [
+          "aldy",
+          "chaldy",
+          "chcthody",
+          "chdy",
+          "cheedy",
+          "cheeody",
+          "cheody",
+          "cheoldy"
+        ]
+      },
+      {
+        "suffix": "ol",
+        "n_words": 99,
+        "expected_random": 2.27,
+        "enrichment": 43.62,
+        "example_words": [
+          "cfhol",
+          "chckhol",
+          "cheeol",
+          "cheol",
+          "cheotol",
+          "chkchol",
+          "chkol",
+          "chodol"
+        ]
+      },
+      {
+        "suffix": "ey",
+        "n_words": 97,
+        "expected_random": 2.27,
+        "enrichment": 42.73,
+        "example_words": [
+          "cfhey",
+          "chckhey",
+          "checkhey",
+          "cheeey",
+          "cheekey",
+          "cheey",
+          "chekeey",
+          "cheokeey"
+        ]
+      },
+      {
+        "suffix": "or",
+        "n_words": 92,
+        "expected_random": 2.27,
+        "enrichment": 40.53,
+        "example_words": [
+          "alor",
+          "cheeor",
+          "cheodor",
+          "cheokor",
+          "cheor",
+          "chkor",
+          "chochor",
+          "chokor"
+        ]
+      },
+      {
+        "suffix": "hy",
+        "n_words": 92,
+        "expected_random": 2.27,
+        "enrichment": 40.53,
+        "example_words": [
+          "cfhy",
+          "chcfhhy",
+          "chckhy",
+          "chcphy",
+          "chcthy",
+          "checkhy",
+          "cheockhy",
+          "cheocthy"
+        ]
+      },
+      {
+        "suffix": "aiin",
+        "n_words": 83,
+        "expected_random": 0.01,
+        "enrichment": 8300.0,
+        "example_words": [
+          "cfhaiin",
+          "chaiin",
+          "cheaiin",
+          "chekaiin",
+          "cheodaiin",
+          "cheoraiin",
+          "chkaiin",
+          "choaiin"
+        ]
+      },
+      {
+        "suffix": "ody",
+        "n_words": 59,
+        "expected_random": 0.11,
+        "enrichment": 545.85,
+        "example_words": [
+          "chcthody",
+          "cheeody",
+          "cheody",
+          "chody",
+          "chokeody",
+          "chokody",
+          "cholody",
+          "ckheody"
+        ]
+      },
+      {
+        "suffix": "ar",
+        "n_words": 47,
+        "expected_random": 2.27,
+        "enrichment": 20.71,
+        "example_words": [
+          "char",
+          "chear",
+          "cheodar",
+          "chkar",
+          "chodar",
+          "chotar",
+          "ckhar",
+          "cphar"
+        ]
+      },
+      {
+        "suffix": "hey",
+        "n_words": 43,
+        "expected_random": 0.11,
+        "enrichment": 397.83,
+        "example_words": [
+          "cfhey",
+          "chckhey",
+          "checkhey",
+          "chey",
+          "chockhey",
+          "chocthey",
+          "chokchey",
+          "chotchey"
+        ]
+      },
+      {
+        "suffix": "chy",
+        "n_words": 42,
+        "expected_random": 0.11,
+        "enrichment": 388.57,
+        "example_words": [
+          "chetchy",
+          "chkchy",
+          "chochy",
+          "chodchy",
+          "chokchy",
+          "chopchy",
+          "chorchy",
+          "chotchy"
+        ]
+      },
+      {
+        "suffix": "al",
+        "n_words": 41,
+        "expected_random": 2.27,
+        "enrichment": 18.06,
+        "example_words": [
+          "aral",
+          "chal",
+          "cheal",
+          "chekal",
+          "cheodal",
+          "cheokal",
+          "chokal",
+          "choldal"
+        ]
+      },
+      {
+        "suffix": "eey",
+        "n_words": 39,
+        "expected_random": 0.11,
+        "enrichment": 360.82,
+        "example_words": [
+          "cheeey",
+          "cheey",
+          "chekeey",
+          "cheokeey",
+          "chkeey",
+          "chokeey",
+          "ckheey",
+          "ctheey"
+        ]
+      },
+      {
+        "suffix": "hol",
+        "n_words": 33,
+        "expected_random": 0.11,
+        "enrichment": 305.31,
+        "example_words": [
+          "cfhol",
+          "chckhol",
+          "chkchol",
+          "chokchol",
+          "chol",
+          "chotshol",
+          "ckhol",
+          "cphol"
+        ]
+      },
+      {
+        "suffix": "eol",
+        "n_words": 33,
+        "expected_random": 0.11,
+        "enrichment": 305.31,
+        "example_words": [
+          "cheeol",
+          "cheol",
+          "chokeol",
+          "choteol",
+          "ckheol",
+          "cpheol",
+          "ctheol",
+          "dsheol"
+        ]
+      },
+      {
+        "suffix": "eor",
+        "n_words": 31,
+        "expected_random": 0.11,
+        "enrichment": 286.8,
+        "example_words": [
+          "cheeor",
+          "cheor",
+          "cpheor",
+          "ctheor",
+          "dcheor",
+          "dsheor",
+          "kcheor",
+          "keeor"
+        ]
+      },
+      {
+        "suffix": "hor",
+        "n_words": 29,
+        "expected_random": 0.11,
+        "enrichment": 268.3,
+        "example_words": [
+          "chochor",
+          "chor",
+          "ckhor",
+          "cphor",
+          "cthor",
+          "darchor",
+          "dchor",
+          "dshor"
+        ]
+      },
+      {
+        "suffix": "eody",
+        "n_words": 27,
+        "expected_random": 0.01,
+        "enrichment": 2700.0,
+        "example_words": [
+          "cheeody",
+          "cheody",
+          "chokeody",
+          "ckheody",
+          "ctheody",
+          "fcheody",
+          "keeody",
+          "keody"
+        ]
+      },
+      {
+        "suffix": "am",
+        "n_words": 26,
+        "expected_random": 2.27,
+        "enrichment": 11.45,
+        "example_words": [
+          "cham",
+          "cheodam",
+          "chokam",
+          "choldam",
+          "chotam",
+          "ckham",
+          "dairam",
+          "dam"
+        ]
+      },
+      {
+        "suffix": "ain",
+        "n_words": 23,
+        "expected_random": 0.11,
+        "enrichment": 212.79,
+        "example_words": [
+          "chain",
+          "cheain",
+          "cheodain",
+          "chodain",
+          "chokain",
+          "chorain",
+          "cthain",
+          "dain"
+        ]
+      },
+      {
+        "suffix": "os",
+        "n_words": 23,
+        "expected_random": 2.27,
+        "enrichment": 10.13,
+        "example_words": [
+          "cheos",
+          "chos",
+          "ckheos",
+          "ckhos",
+          "ctos",
+          "kchos",
+          "keeos",
+          "kos"
+        ]
+      },
+      {
+        "suffix": "ldy",
+        "n_words": 22,
+        "expected_random": 0.11,
+        "enrichment": 203.54,
+        "example_words": [
+          "aldy",
+          "chaldy",
+          "cheoldy",
+          "chkoldy",
+          "choldy",
+          "cpholdy",
+          "ctholdy",
+          "daldy"
+        ]
+      },
+      {
+        "suffix": "ho",
+        "n_words": 22,
+        "expected_random": 2.27,
+        "enrichment": 9.69,
+        "example_words": [
+          "chctho",
+          "cho",
+          "chokcho",
+          "ctho",
+          "dcho",
+          "dsho",
+          "kcho",
+          "ksho"
+        ]
+      },
+      {
+        "suffix": "chey",
+        "n_words": 22,
+        "expected_random": 0.01,
+        "enrichment": 2200.0,
+        "example_words": [
+          "chokchey",
+          "chotchey",
+          "dchey",
+          "dolchey",
+          "kchey",
+          "ochey",
+          "ofchey",
+          "okchey"
+        ]
+      },
+      {
+        "suffix": "chor",
+        "n_words": 20,
+        "expected_random": 0.01,
+        "enrichment": 2000.0,
+        "example_words": [
+          "chochor",
+          "darchor",
+          "dchor",
+          "kchor",
+          "ochor",
+          "okchor",
+          "olchor",
+          "opchor"
+        ]
+      }
+    ],
+    "alphabet_size": 21,
+    "n_words": 1001
+  },
+  "paradigms": [
+    {
+      "stem": "ch",
+      "n_members": 180,
+      "n_unique_suffixes": 180,
+      "members": [
+        {
+          "word": "chol",
+          "suffix": "ol"
+        },
+        {
+          "word": "chor",
+          "suffix": "or"
+        },
+        {
+          "word": "chy",
+          "suffix": "y"
+        },
+        {
+          "word": "chey",
+          "suffix": "ey"
+        },
+        {
+          "word": "cheol",
+          "suffix": "eol"
+        },
+        {
+          "word": "cheor",
+          "suffix": "eor"
+        },
+        {
+          "word": "chody",
+          "suffix": "ody"
+        },
+        {
+          "word": "cho",
+          "suffix": "o"
+        },
+        {
+          "word": "chaiin",
+          "suffix": "aiin"
+        },
+        {
+          "word": "cheey",
+          "suffix": "eey"
+        }
+      ],
+      "all_suffixes": [
+        "a",
+        "aiin",
+        "ain",
+        "al",
+        "aldy",
+        "aly",
+        "am",
+        "an",
+        "ar",
+        "ary",
+        "cfhhy",
+        "ckhey",
+        "ckhol",
+        "ckhy",
+        "cphy",
+        "cth",
+        "ctho",
+        "cthody",
+        "cthy",
+        "dy",
+        "eaiin",
+        "eain",
+        "eal",
+        "ean",
+        "ear",
+        "eas",
+        "eckhey",
+        "eckhy",
+        "eeb",
+        "eedy",
+        "eeey",
+        "eekey",
+        "eeky",
+        "eeody",
+        "eeol",
+        "eeor",
+        "ees",
+        "eey",
+        "ekaiin",
+        "ekal",
+        "ekeey",
+        "eky",
+        "eo",
+        "eockhy",
+        "eocthy",
+        "eod",
+        "eodaiin",
+        "eodain",
+        "eodal",
+        "eodam",
+        "eodar",
+        "eodor",
+        "eody",
+        "eokal",
+        "eokeey",
+        "eokor",
+        "eoky",
+        "eol",
+        "eoldy",
+        "eols",
+        "eom",
+        "eor",
+        "eoraiin",
+        "eory",
+        "eos",
+        "eotol",
+        "eoy",
+        "er",
+        "es",
+        "etchy",
+        "ety",
+        "ey",
+        "kaiin",
+        "kar",
+        "kchol",
+        "kchy",
+        "keey",
+        "key",
+        "ko",
+        "kol",
+        "koldy",
+        "kor",
+        "ky",
+        "l",
+        "o",
+        "oaiin",
+        "ochor",
+        "ochy",
+        "ockhey",
+        "ockhy",
+        "ocphy",
+        "octhey",
+        "octhhy",
+        "octhy",
+        "od",
+        "odaiin",
+        "odain",
+        "odaly",
+        "odar",
+        "odchy",
+        "odey",
+        "odol",
+        "ody",
+        "oety",
+        "of",
+        "oiin",
+        "ok",
+        "okaiin",
+        "okain",
+        "okal",
+        "okam",
+        "okan",
+        "okchey",
+        "okcho",
+        "okchol",
+        "okchy",
+        "okeey",
+        "okeo",
+        "okeody",
+        "okeol",
+        "okey",
+        "oko",
+        "okody",
+        "okol",
+        "okor",
+        "oky",
+        "ol",
+        "olaiin",
+        "oldaiin",
+        "oldal",
+        "oldam",
+        "oldan",
+        "oldy",
+        "olody",
+        "olol",
+        "olols",
+        "olor",
+        "ols",
+        "oly",
+        "om",
+        "oor",
+        "opchy",
+        "opy",
+        "or",
+        "oraiin",
+        "orain",
+        "orchy",
+        "ordy",
+        "oror",
+        "ory",
+        "os",
+        "osaiin",
+        "oshy",
+        "otaiin",
+        "otam",
+        "otar",
+        "otchey",
+        "otchy",
+        "oteol",
+        "otey",
+        "otol",
+        "otols",
+        "otom",
+        "otor",
+        "otshol",
+        "oty",
+        "oy",
+        "r",
+        "s",
+        "so",
+        "tchy",
+        "tol",
+        "tor",
+        "ty",
+        "y",
+        "ydy",
+        "ykchy",
+        "ykey",
+        "yky",
+        "yty"
+      ],
+      "combined_frequency": 1696
+    },
+    {
+      "stem": "qo",
+      "n_members": 120,
+      "n_unique_suffixes": 120,
+      "members": [
+        {
+          "word": "qotchy",
+          "suffix": "tchy"
+        },
+        {
+          "word": "qokol",
+          "suffix": "kol"
+        },
+        {
+          "word": "qokchy",
+          "suffix": "kchy"
+        },
+        {
+          "word": "qokeey",
+          "suffix": "keey"
+        },
+        {
+          "word": "qoky",
+          "suffix": "ky"
+        },
+        {
+          "word": "qokeol",
+          "suffix": "keol"
+        },
+        {
+          "word": "qoty",
+          "suffix": "ty"
+        },
+        {
+          "word": "qokaiin",
+          "suffix": "kaiin"
+        },
+        {
+          "word": "qotol",
+          "suffix": "tol"
+        },
+        {
+          "word": "qokeody",
+          "suffix": "keody"
+        }
+      ],
+      "all_suffixes": [
+        "aiin",
+        "air",
+        "aithy",
+        "ar",
+        "cho",
+        "ckhey",
+        "ckhol",
+        "ckhy",
+        "cphy",
+        "cthol",
+        "cthy",
+        "d",
+        "daiin",
+        "dal",
+        "dam",
+        "dar",
+        "dchy",
+        "dy",
+        "eeey",
+        "eeor",
+        "eey",
+        "ekeey",
+        "ekol",
+        "eol",
+        "eor",
+        "k",
+        "kaiin",
+        "kain",
+        "kair",
+        "kal",
+        "kaldy",
+        "kalor",
+        "kaly",
+        "kam",
+        "kar",
+        "kchaiin",
+        "kcheo",
+        "kcheody",
+        "kchey",
+        "kcho",
+        "kchod",
+        "kchody",
+        "kchol",
+        "kchor",
+        "kchy",
+        "kechy",
+        "keees",
+        "keeey",
+        "keeo",
+        "keeody",
+        "keeol",
+        "keeor",
+        "keey",
+        "keo",
+        "keod",
+        "keody",
+        "keol",
+        "keom",
+        "keor",
+        "keos",
+        "key",
+        "keyl",
+        "ko",
+        "kod",
+        "kody",
+        "koiiin",
+        "koiin",
+        "kol",
+        "koldy",
+        "kom",
+        "kor",
+        "korar",
+        "kshy",
+        "ky",
+        "l",
+        "or",
+        "os",
+        "p",
+        "pchey",
+        "pchor",
+        "pchy",
+        "pol",
+        "py",
+        "r",
+        "s",
+        "t",
+        "taiin",
+        "tain",
+        "tal",
+        "tam",
+        "tchaiin",
+        "tchar",
+        "tcheaiin",
+        "tcheol",
+        "tchey",
+        "tcho",
+        "tchod",
+        "tchody",
+        "tchoiin",
+        "tchol",
+        "tchor",
+        "tchy",
+        "teees",
+        "teeey",
+        "teeol",
+        "teey",
+        "teody",
+        "teol",
+        "tey",
+        "to",
+        "tod",
+        "tody",
+        "toeey",
+        "toiin",
+        "tol",
+        "tor",
+        "tshey",
+        "tshy",
+        "ty",
+        "y"
+      ],
+      "combined_frequency": 835
+    },
+    {
+      "stem": "cho",
+      "n_members": 82,
+      "n_unique_suffixes": 82,
+      "members": [
+        {
+          "word": "chol",
+          "suffix": "l"
+        },
+        {
+          "word": "chor",
+          "suffix": "r"
+        },
+        {
+          "word": "chody",
+          "suffix": "dy"
+        },
+        {
+          "word": "chodaiin",
+          "suffix": "daiin"
+        },
+        {
+          "word": "choky",
+          "suffix": "ky"
+        },
+        {
+          "word": "choty",
+          "suffix": "ty"
+        },
+        {
+          "word": "chos",
+          "suffix": "s"
+        },
+        {
+          "word": "chocthy",
+          "suffix": "cthy"
+        },
+        {
+          "word": "chokchy",
+          "suffix": "kchy"
+        },
+        {
+          "word": "choly",
+          "suffix": "ly"
+        }
+      ],
+      "all_suffixes": [
+        "aiin",
+        "chor",
+        "chy",
+        "ckhey",
+        "ckhy",
+        "cphy",
+        "cthey",
+        "cthhy",
+        "cthy",
+        "d",
+        "daiin",
+        "dain",
+        "daly",
+        "dar",
+        "dchy",
+        "dey",
+        "dol",
+        "dy",
+        "ety",
+        "f",
+        "iin",
+        "k",
+        "kaiin",
+        "kain",
+        "kal",
+        "kam",
+        "kan",
+        "kchey",
+        "kcho",
+        "kchol",
+        "kchy",
+        "keey",
+        "keo",
+        "keody",
+        "keol",
+        "key",
+        "ko",
+        "kody",
+        "kol",
+        "kor",
+        "ky",
+        "l",
+        "laiin",
+        "ldaiin",
+        "ldal",
+        "ldam",
+        "ldan",
+        "ldy",
+        "lody",
+        "lol",
+        "lols",
+        "lor",
+        "ls",
+        "ly",
+        "m",
+        "or",
+        "pchy",
+        "py",
+        "r",
+        "raiin",
+        "rain",
+        "rchy",
+        "rdy",
+        "ror",
+        "ry",
+        "s",
+        "saiin",
+        "shy",
+        "taiin",
+        "tam",
+        "tar",
+        "tchey",
+        "tchy",
+        "teol",
+        "tey",
+        "tol",
+        "tols",
+        "tom",
+        "tor",
+        "tshol",
+        "ty",
+        "y"
+      ],
+      "combined_frequency": 854
+    },
+    {
+      "stem": "sh",
+      "n_members": 74,
+      "n_unique_suffixes": 74,
+      "members": [
+        {
+          "word": "shol",
+          "suffix": "ol"
+        },
+        {
+          "word": "sho",
+          "suffix": "o"
+        },
+        {
+          "word": "shor",
+          "suffix": "or"
+        },
+        {
+          "word": "shey",
+          "suffix": "ey"
+        },
+        {
+          "word": "shy",
+          "suffix": "y"
+        },
+        {
+          "word": "sheol",
+          "suffix": "eol"
+        },
+        {
+          "word": "sheey",
+          "suffix": "eey"
+        },
+        {
+          "word": "shody",
+          "suffix": "ody"
+        },
+        {
+          "word": "sheor",
+          "suffix": "eor"
+        },
+        {
+          "word": "shodaiin",
+          "suffix": "odaiin"
+        }
+      ],
+      "all_suffixes": [
+        "a",
+        "aiin",
+        "ain",
+        "am",
+        "an",
+        "ar",
+        "ckhy",
+        "cthy",
+        "dy",
+        "e",
+        "eaiin",
+        "eal",
+        "eam",
+        "ear",
+        "edy",
+        "ee",
+        "eear",
+        "eeol",
+        "eeor",
+        "ees",
+        "eey",
+        "eky",
+        "eo",
+        "eockhey",
+        "eod",
+        "eodal",
+        "eody",
+        "eoky",
+        "eol",
+        "eoldy",
+        "eom",
+        "eor",
+        "eos",
+        "eoy",
+        "ey",
+        "kaiin",
+        "o",
+        "oaiin",
+        "ockhey",
+        "ockhy",
+        "octhody",
+        "octhy",
+        "od",
+        "odaiin",
+        "odain",
+        "odal",
+        "odol",
+        "ody",
+        "oiin",
+        "oikhy",
+        "ok",
+        "okaiin",
+        "okchy",
+        "okol",
+        "oky",
+        "ol",
+        "olaiin",
+        "olar",
+        "oldaiin",
+        "oldy",
+        "oly",
+        "om",
+        "or",
+        "ory",
+        "os",
+        "osaiin",
+        "oshy",
+        "ot",
+        "otol",
+        "oty",
+        "oy",
+        "tchy",
+        "y",
+        "ytchy"
+      ],
+      "combined_frequency": 743
+    },
+    {
+      "stem": "ok",
+      "n_members": 60,
+      "n_unique_suffixes": 60,
+      "members": [
+        {
+          "word": "okol",
+          "suffix": "ol"
+        },
+        {
+          "word": "oky",
+          "suffix": "y"
+        },
+        {
+          "word": "okeol",
+          "suffix": "eol"
+        },
+        {
+          "word": "okaiin",
+          "suffix": "aiin"
+        },
+        {
+          "word": "okeey",
+          "suffix": "eey"
+        },
+        {
+          "word": "okal",
+          "suffix": "al"
+        },
+        {
+          "word": "okor",
+          "suffix": "or"
+        },
+        {
+          "word": "okey",
+          "suffix": "ey"
+        },
+        {
+          "word": "okchy",
+          "suffix": "chy"
+        },
+        {
+          "word": "okeor",
+          "suffix": "eor"
+        }
+      ],
+      "all_suffixes": [
+        "aiin",
+        "aiir",
+        "ain",
+        "al",
+        "alal",
+        "aldy",
+        "aly",
+        "am",
+        "an",
+        "ar",
+        "ary",
+        "chal",
+        "chan",
+        "char",
+        "cheor",
+        "chey",
+        "cho",
+        "chody",
+        "chol",
+        "chom",
+        "chor",
+        "chy",
+        "eal",
+        "eam",
+        "ear",
+        "eedy",
+        "eeey",
+        "eeody",
+        "eeol",
+        "eeor",
+        "eeos",
+        "eey",
+        "eo",
+        "eody",
+        "eol",
+        "eoly",
+        "eom",
+        "eor",
+        "eos",
+        "eoy",
+        "ey",
+        "o",
+        "odaiin",
+        "ody",
+        "oiin",
+        "ol",
+        "olaiin",
+        "oldy",
+        "olol",
+        "olor",
+        "oly",
+        "om",
+        "or",
+        "oraiin",
+        "os",
+        "oy",
+        "shey",
+        "sho",
+        "shy",
+        "y"
+      ],
+      "combined_frequency": 494
+    },
+    {
+      "stem": "che",
+      "n_members": 52,
+      "n_unique_suffixes": 52,
+      "members": [
+        {
+          "word": "chey",
+          "suffix": "y"
+        },
+        {
+          "word": "cheol",
+          "suffix": "ol"
+        },
+        {
+          "word": "cheor",
+          "suffix": "or"
+        },
+        {
+          "word": "cheey",
+          "suffix": "ey"
+        },
+        {
+          "word": "cheody",
+          "suffix": "ody"
+        },
+        {
+          "word": "chear",
+          "suffix": "ar"
+        },
+        {
+          "word": "cheo",
+          "suffix": "o"
+        },
+        {
+          "word": "cheos",
+          "suffix": "os"
+        },
+        {
+          "word": "cheky",
+          "suffix": "ky"
+        },
+        {
+          "word": "chees",
+          "suffix": "es"
+        }
+      ],
+      "all_suffixes": [
+        "aiin",
+        "ain",
+        "al",
+        "an",
+        "ar",
+        "as",
+        "ckhey",
+        "ckhy",
+        "eb",
+        "edy",
+        "eey",
+        "ekey",
+        "eky",
+        "eody",
+        "eol",
+        "eor",
+        "es",
+        "ey",
+        "kaiin",
+        "kal",
+        "keey",
+        "ky",
+        "o",
+        "ockhy",
+        "octhy",
+        "od",
+        "odaiin",
+        "odain",
+        "odal",
+        "odam",
+        "odar",
+        "odor",
+        "ody",
+        "okal",
+        "okeey",
+        "okor",
+        "oky",
+        "ol",
+        "oldy",
+        "ols",
+        "om",
+        "or",
+        "oraiin",
+        "ory",
+        "os",
+        "otol",
+        "oy",
+        "r",
+        "s",
+        "tchy",
+        "ty",
+        "y"
+      ],
+      "combined_frequency": 443
+    },
+    {
+      "stem": "ot",
+      "n_members": 49,
+      "n_unique_suffixes": 49,
+      "members": [
+        {
+          "word": "oty",
+          "suffix": "y"
+        },
+        {
+          "word": "otol",
+          "suffix": "ol"
+        },
+        {
+          "word": "otchy",
+          "suffix": "chy"
+        },
+        {
+          "word": "otaiin",
+          "suffix": "aiin"
+        },
+        {
+          "word": "otchol",
+          "suffix": "chol"
+        },
+        {
+          "word": "otal",
+          "suffix": "al"
+        },
+        {
+          "word": "otchor",
+          "suffix": "chor"
+        },
+        {
+          "word": "oteey",
+          "suffix": "eey"
+        },
+        {
+          "word": "oteol",
+          "suffix": "eol"
+        },
+        {
+          "word": "otor",
+          "suffix": "or"
+        }
+      ],
+      "all_suffixes": [
+        "aiin",
+        "aiir",
+        "ain",
+        "air",
+        "al",
+        "aldy",
+        "aly",
+        "am",
+        "ar",
+        "chaiin",
+        "chal",
+        "cham",
+        "char",
+        "chdal",
+        "cheor",
+        "chey",
+        "cho",
+        "chody",
+        "chol",
+        "chor",
+        "chy",
+        "chyd",
+        "eeody",
+        "eeol",
+        "eeor",
+        "eeos",
+        "eey",
+        "eo",
+        "eodaiin",
+        "eodal",
+        "eody",
+        "eol",
+        "eor",
+        "eos",
+        "ey",
+        "ody",
+        "oky",
+        "ol",
+        "olchey",
+        "oldy",
+        "oly",
+        "or",
+        "oram",
+        "orchy",
+        "ory",
+        "shol",
+        "shy",
+        "y",
+        "ydy"
+      ],
+      "combined_frequency": 360
+    },
+    {
+      "stem": "qok",
+      "n_members": 48,
+      "n_unique_suffixes": 48,
+      "members": [
+        {
+          "word": "qokol",
+          "suffix": "ol"
+        },
+        {
+          "word": "qokchy",
+          "suffix": "chy"
+        },
+        {
+          "word": "qokeey",
+          "suffix": "eey"
+        },
+        {
+          "word": "qoky",
+          "suffix": "y"
+        },
+        {
+          "word": "qokeol",
+          "suffix": "eol"
+        },
+        {
+          "word": "qokaiin",
+          "suffix": "aiin"
+        },
+        {
+          "word": "qokeody",
+          "suffix": "eody"
+        },
+        {
+          "word": "qokey",
+          "suffix": "ey"
+        },
+        {
+          "word": "qokal",
+          "suffix": "al"
+        },
+        {
+          "word": "qokar",
+          "suffix": "ar"
+        }
+      ],
+      "all_suffixes": [
+        "aiin",
+        "ain",
+        "air",
+        "al",
+        "aldy",
+        "alor",
+        "aly",
+        "am",
+        "ar",
+        "chaiin",
+        "cheo",
+        "cheody",
+        "chey",
+        "cho",
+        "chod",
+        "chody",
+        "chol",
+        "chor",
+        "chy",
+        "echy",
+        "eees",
+        "eeey",
+        "eeo",
+        "eeody",
+        "eeol",
+        "eeor",
+        "eey",
+        "eo",
+        "eod",
+        "eody",
+        "eol",
+        "eom",
+        "eor",
+        "eos",
+        "ey",
+        "eyl",
+        "o",
+        "od",
+        "ody",
+        "oiiin",
+        "oiin",
+        "ol",
+        "oldy",
+        "om",
+        "or",
+        "orar",
+        "shy",
+        "y"
+      ],
+      "combined_frequency": 432
+    },
+    {
+      "stem": "sho",
+      "n_members": 34,
+      "n_unique_suffixes": 34,
+      "members": [
+        {
+          "word": "shol",
+          "suffix": "l"
+        },
+        {
+          "word": "shor",
+          "suffix": "r"
+        },
+        {
+          "word": "shody",
+          "suffix": "dy"
+        },
+        {
+          "word": "shodaiin",
+          "suffix": "daiin"
+        },
+        {
+          "word": "shocthy",
+          "suffix": "cthy"
+        },
+        {
+          "word": "shoiin",
+          "suffix": "iin"
+        },
+        {
+          "word": "shokchy",
+          "suffix": "kchy"
+        },
+        {
+          "word": "shos",
+          "suffix": "s"
+        },
+        {
+          "word": "shockhy",
+          "suffix": "ckhy"
+        },
+        {
+          "word": "shod",
+          "suffix": "d"
+        }
+      ],
+      "all_suffixes": [
+        "aiin",
+        "ckhey",
+        "ckhy",
+        "cthody",
+        "cthy",
+        "d",
+        "daiin",
+        "dain",
+        "dal",
+        "dol",
+        "dy",
+        "iin",
+        "ikhy",
+        "k",
+        "kaiin",
+        "kchy",
+        "kol",
+        "ky",
+        "l",
+        "laiin",
+        "lar",
+        "ldaiin",
+        "ldy",
+        "ly",
+        "m",
+        "r",
+        "ry",
+        "s",
+        "saiin",
+        "shy",
+        "t",
+        "tol",
+        "ty",
+        "y"
+      ],
+      "combined_frequency": 313
+    },
+    {
+      "stem": "ct",
+      "n_members": 33,
+      "n_unique_suffixes": 33,
+      "members": [
+        {
+          "word": "cthy",
+          "suffix": "hy"
+        },
+        {
+          "word": "cthol",
+          "suffix": "hol"
+        },
+        {
+          "word": "cthor",
+          "suffix": "hor"
+        },
+        {
+          "word": "cthey",
+          "suffix": "hey"
+        },
+        {
+          "word": "cthody",
+          "suffix": "hody"
+        },
+        {
+          "word": "cthaiin",
+          "suffix": "haiin"
+        },
+        {
+          "word": "cthar",
+          "suffix": "har"
+        },
+        {
+          "word": "ctheey",
+          "suffix": "heey"
+        },
+        {
+          "word": "ctheol",
+          "suffix": "heol"
+        },
+        {
+          "word": "ctho",
+          "suffix": "ho"
+        }
+      ],
+      "all_suffixes": [
+        "chy",
+        "h",
+        "haiin",
+        "hain",
+        "hal",
+        "har",
+        "heey",
+        "heod",
+        "heody",
+        "heol",
+        "heor",
+        "hey",
+        "hhy",
+        "ho",
+        "hod",
+        "hodaiin",
+        "hodal",
+        "hodol",
+        "hody",
+        "hog",
+        "hoiin",
+        "hol",
+        "holdy",
+        "hols",
+        "holy",
+        "hom",
+        "hor",
+        "hory",
+        "hy",
+        "hyd",
+        "o",
+        "os",
+        "y"
+      ],
+      "combined_frequency": 356
+    },
+    {
+      "stem": "qot",
+      "n_members": 33,
+      "n_unique_suffixes": 33,
+      "members": [
+        {
+          "word": "qotchy",
+          "suffix": "chy"
+        },
+        {
+          "word": "qoty",
+          "suffix": "y"
+        },
+        {
+          "word": "qotol",
+          "suffix": "ol"
+        },
+        {
+          "word": "qotor",
+          "suffix": "or"
+        },
+        {
+          "word": "qotaiin",
+          "suffix": "aiin"
+        },
+        {
+          "word": "qotchol",
+          "suffix": "chol"
+        },
+        {
+          "word": "qotchor",
+          "suffix": "chor"
+        },
+        {
+          "word": "qoteey",
+          "suffix": "eey"
+        },
+        {
+          "word": "qotchey",
+          "suffix": "chey"
+        },
+        {
+          "word": "qotcho",
+          "suffix": "cho"
+        }
+      ],
+      "all_suffixes": [
+        "aiin",
+        "ain",
+        "al",
+        "am",
+        "chaiin",
+        "char",
+        "cheaiin",
+        "cheol",
+        "chey",
+        "cho",
+        "chod",
+        "chody",
+        "choiin",
+        "chol",
+        "chor",
+        "chy",
+        "eees",
+        "eeey",
+        "eeol",
+        "eey",
+        "eody",
+        "eol",
+        "ey",
+        "o",
+        "od",
+        "ody",
+        "oeey",
+        "oiin",
+        "ol",
+        "or",
+        "shey",
+        "shy",
+        "y"
+      ],
+      "combined_frequency": 236
+    },
+    {
+      "stem": "da",
+      "n_members": 30,
+      "n_unique_suffixes": 30,
+      "members": [
+        {
+          "word": "daiin",
+          "suffix": "iin"
+        },
+        {
+          "word": "dain",
+          "suffix": "in"
+        },
+        {
+          "word": "dar",
+          "suffix": "r"
+        },
+        {
+          "word": "dal",
+          "suffix": "l"
+        },
+        {
+          "word": "dam",
+          "suffix": "m"
+        },
+        {
+          "word": "dair",
+          "suffix": "ir"
+        },
+        {
+          "word": "daiiin",
+          "suffix": "iiin"
+        },
+        {
+          "word": "dan",
+          "suffix": "n"
+        },
+        {
+          "word": "daldy",
+          "suffix": "ldy"
+        },
+        {
+          "word": "daly",
+          "suffix": "ly"
+        }
+      ],
+      "all_suffixes": [
+        "iidy",
+        "iiin",
+        "iin",
+        "iindy",
+        "iinody",
+        "iiny",
+        "iir",
+        "im",
+        "in",
+        "ir",
+        "iram",
+        "irin",
+        "ky",
+        "l",
+        "lar",
+        "lchdy",
+        "lchy",
+        "ldaiin",
+        "ldy",
+        "lol",
+        "lor",
+        "ls",
+        "ly",
+        "m",
+        "n",
+        "r",
+        "ram",
+        "rar",
+        "rchor",
+        "ry"
+      ],
+      "combined_frequency": 882
+    },
+    {
+      "stem": "ol",
+      "n_members": 29,
+      "n_unique_suffixes": 29,
+      "members": [
+        {
+          "word": "olaiin",
+          "suffix": "aiin"
+        },
+        {
+          "word": "oldaiin",
+          "suffix": "daiin"
+        },
+        {
+          "word": "oly",
+          "suffix": "y"
+        },
+        {
+          "word": "ols",
+          "suffix": "s"
+        },
+        {
+          "word": "oldy",
+          "suffix": "dy"
+        },
+        {
+          "word": "olcheol",
+          "suffix": "cheol"
+        },
+        {
+          "word": "olchey",
+          "suffix": "chey"
+        },
+        {
+          "word": "oldam",
+          "suffix": "dam"
+        },
+        {
+          "word": "oldar",
+          "suffix": "dar"
+        },
+        {
+          "word": "olol",
+          "suffix": "ol"
+        }
+      ],
+      "all_suffixes": [
+        "aiin",
+        "aldy",
+        "aly",
+        "cheey",
+        "cheol",
+        "cheor",
+        "chey",
+        "chor",
+        "chy",
+        "daiin",
+        "dain",
+        "dal",
+        "dam",
+        "dar",
+        "dor",
+        "dy",
+        "eees",
+        "keey",
+        "keol",
+        "key",
+        "o",
+        "ol",
+        "or",
+        "s",
+        "sheey",
+        "sheody",
+        "shey",
+        "shy",
+        "y"
+      ],
+      "combined_frequency": 102
+    },
+    {
+      "stem": "yk",
+      "n_members": 29,
+      "n_unique_suffixes": 29,
+      "members": [
+        {
+          "word": "ykeey",
+          "suffix": "eey"
+        },
+        {
+          "word": "ykchy",
+          "suffix": "chy"
+        },
+        {
+          "word": "ykaiin",
+          "suffix": "aiin"
+        },
+        {
+          "word": "ykeol",
+          "suffix": "eol"
+        },
+        {
+          "word": "ykol",
+          "suffix": "ol"
+        },
+        {
+          "word": "yky",
+          "suffix": "y"
+        },
+        {
+          "word": "ykeody",
+          "suffix": "eody"
+        },
+        {
+          "word": "ykeor",
+          "suffix": "eor"
+        },
+        {
+          "word": "ykar",
+          "suffix": "ar"
+        },
+        {
+          "word": "ykchol",
+          "suffix": "chol"
+        }
+      ],
+      "all_suffixes": [
+        "aiin",
+        "air",
+        "al",
+        "aly",
+        "am",
+        "ar",
+        "chdy",
+        "chey",
+        "cho",
+        "chody",
+        "chol",
+        "chor",
+        "chy",
+        "eeody",
+        "eeol",
+        "eeor",
+        "eey",
+        "eody",
+        "eol",
+        "eor",
+        "ey",
+        "hey",
+        "o",
+        "ody",
+        "oiin",
+        "ol",
+        "or",
+        "shy",
+        "y"
+      ],
+      "combined_frequency": 156
+    },
+    {
+      "stem": "yt",
+      "n_members": 29,
+      "n_unique_suffixes": 29,
+      "members": [
+        {
+          "word": "ytchy",
+          "suffix": "chy"
+        },
+        {
+          "word": "ytol",
+          "suffix": "ol"
+        },
+        {
+          "word": "yty",
+          "suffix": "y"
+        },
+        {
+          "word": "ytaiin",
+          "suffix": "aiin"
+        },
+        {
+          "word": "ytchor",
+          "suffix": "chor"
+        },
+        {
+          "word": "ytor",
+          "suffix": "or"
+        },
+        {
+          "word": "ytal",
+          "suffix": "al"
+        },
+        {
+          "word": "ytar",
+          "suffix": "ar"
+        },
+        {
+          "word": "ytchey",
+          "suffix": "chey"
+        },
+        {
+          "word": "ytchol",
+          "suffix": "chol"
+        }
+      ],
+      "all_suffixes": [
+        "aiin",
+        "ain",
+        "al",
+        "am",
+        "ar",
+        "chey",
+        "chody",
+        "chol",
+        "chor",
+        "choy",
+        "chy",
+        "eeody",
+        "eeor",
+        "eey",
+        "eodaiin",
+        "eody",
+        "eol",
+        "eor",
+        "ey",
+        "o",
+        "odaiin",
+        "ody",
+        "oiin",
+        "ol",
+        "oldy",
+        "or",
+        "sho",
+        "shy",
+        "y"
+      ],
+      "combined_frequency": 138
+    },
+    {
+      "stem": "cth",
+      "n_members": 28,
+      "n_unique_suffixes": 28,
+      "members": [
+        {
+          "word": "cthy",
+          "suffix": "y"
+        },
+        {
+          "word": "cthol",
+          "suffix": "ol"
+        },
+        {
+          "word": "cthor",
+          "suffix": "or"
+        },
+        {
+          "word": "cthey",
+          "suffix": "ey"
+        },
+        {
+          "word": "cthody",
+          "suffix": "ody"
+        },
+        {
+          "word": "cthaiin",
+          "suffix": "aiin"
+        },
+        {
+          "word": "cthar",
+          "suffix": "ar"
+        },
+        {
+          "word": "ctheey",
+          "suffix": "eey"
+        },
+        {
+          "word": "ctheol",
+          "suffix": "eol"
+        },
+        {
+          "word": "ctho",
+          "suffix": "o"
+        }
+      ],
+      "all_suffixes": [
+        "aiin",
+        "ain",
+        "al",
+        "ar",
+        "eey",
+        "eod",
+        "eody",
+        "eol",
+        "eor",
+        "ey",
+        "hy",
+        "o",
+        "od",
+        "odaiin",
+        "odal",
+        "odol",
+        "ody",
+        "og",
+        "oiin",
+        "ol",
+        "oldy",
+        "ols",
+        "oly",
+        "om",
+        "or",
+        "ory",
+        "y",
+        "yd"
+      ],
+      "combined_frequency": 341
+    },
+    {
+      "stem": "she",
+      "n_members": 25,
+      "n_unique_suffixes": 25,
+      "members": [
+        {
+          "word": "shey",
+          "suffix": "y"
+        },
+        {
+          "word": "sheol",
+          "suffix": "ol"
+        },
+        {
+          "word": "sheey",
+          "suffix": "ey"
+        },
+        {
+          "word": "sheor",
+          "suffix": "or"
+        },
+        {
+          "word": "sheo",
+          "suffix": "o"
+        },
+        {
+          "word": "sheody",
+          "suffix": "ody"
+        },
+        {
+          "word": "sheaiin",
+          "suffix": "aiin"
+        },
+        {
+          "word": "shear",
+          "suffix": "ar"
+        },
+        {
+          "word": "sheky",
+          "suffix": "ky"
+        },
+        {
+          "word": "sheeol",
+          "suffix": "eol"
+        }
+      ],
+      "all_suffixes": [
+        "aiin",
+        "al",
+        "am",
+        "ar",
+        "dy",
+        "e",
+        "ear",
+        "eol",
+        "eor",
+        "es",
+        "ey",
+        "ky",
+        "o",
+        "ockhey",
+        "od",
+        "odal",
+        "ody",
+        "oky",
+        "ol",
+        "oldy",
+        "om",
+        "or",
+        "os",
+        "oy",
+        "y"
+      ],
+      "combined_frequency": 230
+    },
+    {
+      "stem": "cheo",
+      "n_members": 24,
+      "n_unique_suffixes": 24,
+      "members": [
+        {
+          "word": "cheol",
+          "suffix": "l"
+        },
+        {
+          "word": "cheor",
+          "suffix": "r"
+        },
+        {
+          "word": "cheody",
+          "suffix": "dy"
+        },
+        {
+          "word": "cheos",
+          "suffix": "s"
+        },
+        {
+          "word": "cheodaiin",
+          "suffix": "daiin"
+        },
+        {
+          "word": "cheom",
+          "suffix": "m"
+        },
+        {
+          "word": "cheoldy",
+          "suffix": "ldy"
+        },
+        {
+          "word": "cheodal",
+          "suffix": "dal"
+        },
+        {
+          "word": "cheoky",
+          "suffix": "ky"
+        },
+        {
+          "word": "cheockhy",
+          "suffix": "ckhy"
+        }
+      ],
+      "all_suffixes": [
+        "ckhy",
+        "cthy",
+        "d",
+        "daiin",
+        "dain",
+        "dal",
+        "dam",
+        "dar",
+        "dor",
+        "dy",
+        "kal",
+        "keey",
+        "kor",
+        "ky",
+        "l",
+        "ldy",
+        "ls",
+        "m",
+        "r",
+        "raiin",
+        "ry",
+        "s",
+        "tol",
+        "y"
+      ],
+      "combined_frequency": 206
+    },
+    {
+      "stem": "oke",
+      "n_members": 19,
+      "n_unique_suffixes": 19,
+      "members": [
+        {
+          "word": "okeol",
+          "suffix": "ol"
+        },
+        {
+          "word": "okeey",
+          "suffix": "ey"
+        },
+        {
+          "word": "okey",
+          "suffix": "y"
+        },
+        {
+          "word": "okeor",
+          "suffix": "or"
+        },
+        {
+          "word": "okeody",
+          "suffix": "ody"
+        },
+        {
+          "word": "okeeey",
+          "suffix": "eey"
+        },
+        {
+          "word": "okeeol",
+          "suffix": "eol"
+        },
+        {
+          "word": "okeeor",
+          "suffix": "eor"
+        },
+        {
+          "word": "okeal",
+          "suffix": "al"
+        },
+        {
+          "word": "okeoly",
+          "suffix": "oly"
+        }
+      ],
+      "all_suffixes": [
+        "al",
+        "am",
+        "ar",
+        "edy",
+        "eey",
+        "eody",
+        "eol",
+        "eor",
+        "eos",
+        "ey",
+        "o",
+        "ody",
+        "ol",
+        "oly",
+        "om",
+        "or",
+        "os",
+        "oy",
+        "y"
+      ],
+      "combined_frequency": 161
+    },
+    {
+      "stem": "chok",
+      "n_members": 19,
+      "n_unique_suffixes": 19,
+      "members": [
+        {
+          "word": "choky",
+          "suffix": "y"
+        },
+        {
+          "word": "chokchy",
+          "suffix": "chy"
+        },
+        {
+          "word": "chokaiin",
+          "suffix": "aiin"
+        },
+        {
+          "word": "chokeey",
+          "suffix": "eey"
+        },
+        {
+          "word": "chokey",
+          "suffix": "ey"
+        },
+        {
+          "word": "chokchol",
+          "suffix": "chol"
+        },
+        {
+          "word": "chokal",
+          "suffix": "al"
+        },
+        {
+          "word": "chokol",
+          "suffix": "ol"
+        },
+        {
+          "word": "chokor",
+          "suffix": "or"
+        },
+        {
+          "word": "chokain",
+          "suffix": "ain"
+        }
+      ],
+      "all_suffixes": [
+        "aiin",
+        "ain",
+        "al",
+        "am",
+        "an",
+        "chey",
+        "cho",
+        "chol",
+        "chy",
+        "eey",
+        "eo",
+        "eody",
+        "eol",
+        "ey",
+        "o",
+        "ody",
+        "ol",
+        "or",
+        "y"
+      ],
+      "combined_frequency": 92
+    },
+    {
+      "stem": "dc",
+      "n_members": 18,
+      "n_unique_suffixes": 18,
+      "members": [
+        {
+          "word": "dchor",
+          "suffix": "hor"
+        },
+        {
+          "word": "dchy",
+          "suffix": "hy"
+        },
+        {
+          "word": "dchol",
+          "suffix": "hol"
+        },
+        {
+          "word": "dchey",
+          "suffix": "hey"
+        },
+        {
+          "word": "dcho",
+          "suffix": "ho"
+        },
+        {
+          "word": "dcheey",
+          "suffix": "heey"
+        },
+        {
+          "word": "dchaiin",
+          "suffix": "haiin"
+        },
+        {
+          "word": "dcheor",
+          "suffix": "heor"
+        },
+        {
+          "word": "dchar",
+          "suffix": "har"
+        },
+        {
+          "word": "dcheo",
+          "suffix": "heo"
+        }
+      ],
+      "all_suffixes": [
+        "haiin",
+        "hal",
+        "har",
+        "hchy",
+        "hckhy",
+        "heey",
+        "heo",
+        "heor",
+        "hey",
+        "ho",
+        "hodaiin",
+        "hog",
+        "hokchy",
+        "hol",
+        "hom",
+        "hor",
+        "hy",
+        "hydy"
+      ],
+      "combined_frequency": 114
+    },
+    {
+      "stem": "yc",
+      "n_members": 17,
+      "n_unique_suffixes": 17,
+      "members": [
+        {
+          "word": "ychor",
+          "suffix": "hor"
+        },
+        {
+          "word": "ycheor",
+          "suffix": "heor"
+        },
+        {
+          "word": "ychey",
+          "suffix": "hey"
+        },
+        {
+          "word": "ychol",
+          "suffix": "hol"
+        },
+        {
+          "word": "ycheey",
+          "suffix": "heey"
+        },
+        {
+          "word": "ycheol",
+          "suffix": "heol"
+        },
+        {
+          "word": "ycheo",
+          "suffix": "heo"
+        },
+        {
+          "word": "ycho",
+          "suffix": "ho"
+        },
+        {
+          "word": "ychy",
+          "suffix": "hy"
+        },
+        {
+          "word": "ychain",
+          "suffix": "hain"
+        }
+      ],
+      "all_suffixes": [
+        "hain",
+        "hear",
+        "heey",
+        "hekchy",
+        "heo",
+        "heockhy",
+        "heoky",
+        "heol",
+        "heor",
+        "hey",
+        "ho",
+        "hocthy",
+        "hody",
+        "hol",
+        "hor",
+        "hos",
+        "hy"
+      ],
+      "combined_frequency": 73
+    },
+    {
+      "stem": "qoke",
+      "n_members": 17,
+      "n_unique_suffixes": 17,
+      "members": [
+        {
+          "word": "qokeey",
+          "suffix": "ey"
+        },
+        {
+          "word": "qokeol",
+          "suffix": "ol"
+        },
+        {
+          "word": "qokeody",
+          "suffix": "ody"
+        },
+        {
+          "word": "qokey",
+          "suffix": "y"
+        },
+        {
+          "word": "qokeor",
+          "suffix": "or"
+        },
+        {
+          "word": "qokeos",
+          "suffix": "os"
+        },
+        {
+          "word": "qokeeo",
+          "suffix": "eo"
+        },
+        {
+          "word": "qokeeol",
+          "suffix": "eol"
+        },
+        {
+          "word": "qokechy",
+          "suffix": "chy"
+        },
+        {
+          "word": "qokeeey",
+          "suffix": "eey"
+        }
+      ],
+      "all_suffixes": [
+        "chy",
+        "ees",
+        "eey",
+        "eo",
+        "eody",
+        "eol",
+        "eor",
+        "ey",
+        "o",
+        "od",
+        "ody",
+        "ol",
+        "om",
+        "or",
+        "os",
+        "y",
+        "yl"
+      ],
+      "combined_frequency": 153
+    },
+    {
+      "stem": "ck",
+      "n_members": 15,
+      "n_unique_suffixes": 15,
+      "members": [
+        {
+          "word": "ckhey",
+          "suffix": "hey"
+        },
+        {
+          "word": "ckhy",
+          "suffix": "hy"
+        },
+        {
+          "word": "ckhol",
+          "suffix": "hol"
+        },
+        {
+          "word": "ckheey",
+          "suffix": "heey"
+        },
+        {
+          "word": "ckhor",
+          "suffix": "hor"
+        },
+        {
+          "word": "ckheody",
+          "suffix": "heody"
+        },
+        {
+          "word": "ckheol",
+          "suffix": "heol"
+        },
+        {
+          "word": "ckhody",
+          "suffix": "hody"
+        },
+        {
+          "word": "ckhaiin",
+          "suffix": "haiin"
+        },
+        {
+          "word": "ckham",
+          "suffix": "ham"
+        }
+      ],
+      "all_suffixes": [
+        "haiin",
+        "hal",
+        "ham",
+        "har",
+        "heey",
+        "heody",
+        "heol",
+        "heos",
+        "hey",
+        "hody",
+        "hol",
+        "hor",
+        "hos",
+        "hy",
+        "y"
+      ],
+      "combined_frequency": 116
+    },
+    {
+      "stem": "do",
+      "n_members": 15,
+      "n_unique_suffixes": 15,
+      "members": [
+        {
+          "word": "dol",
+          "suffix": "l"
+        },
+        {
+          "word": "dor",
+          "suffix": "r"
+        },
+        {
+          "word": "doiin",
+          "suffix": "iin"
+        },
+        {
+          "word": "dom",
+          "suffix": "m"
+        },
+        {
+          "word": "doiir",
+          "suffix": "iir"
+        },
+        {
+          "word": "dory",
+          "suffix": "ry"
+        },
+        {
+          "word": "dody",
+          "suffix": "dy"
+        },
+        {
+          "word": "doldaiin",
+          "suffix": "ldaiin"
+        },
+        {
+          "word": "doly",
+          "suffix": "ly"
+        },
+        {
+          "word": "doaiin",
+          "suffix": "aiin"
+        }
+      ],
+      "all_suffixes": [
+        "aiin",
+        "d",
+        "dy",
+        "iin",
+        "iir",
+        "l",
+        "lchey",
+        "ldaiin",
+        "ldam",
+        "ldy",
+        "ly",
+        "m",
+        "r",
+        "roiin",
+        "ry"
+      ],
+      "combined_frequency": 141
+    },
+    {
+      "stem": "op",
+      "n_members": 15,
+      "n_unique_suffixes": 15,
+      "members": [
+        {
+          "word": "opchey",
+          "suffix": "chey"
+        },
+        {
+          "word": "opchy",
+          "suffix": "chy"
+        },
+        {
+          "word": "opaiin",
+          "suffix": "aiin"
+        },
+        {
+          "word": "opcheol",
+          "suffix": "cheol"
+        },
+        {
+          "word": "opchol",
+          "suffix": "chol"
+        },
+        {
+          "word": "opchor",
+          "suffix": "chor"
+        },
+        {
+          "word": "opydaiin",
+          "suffix": "ydaiin"
+        },
+        {
+          "word": "opaldaiin",
+          "suffix": "aldaiin"
+        },
+        {
+          "word": "opar",
+          "suffix": "ar"
+        },
+        {
+          "word": "opchal",
+          "suffix": "chal"
+        }
+      ],
+      "all_suffixes": [
+        "aiin",
+        "aldaiin",
+        "ar",
+        "chal",
+        "cheol",
+        "cheor",
+        "chey",
+        "chol",
+        "chor",
+        "chordy",
+        "chy",
+        "or",
+        "y",
+        "ydaiin",
+        "ydy"
+      ],
+      "combined_frequency": 41
+    },
+    {
+      "stem": "so",
+      "n_members": 14,
+      "n_unique_suffixes": 14,
+      "members": [
+        {
+          "word": "sor",
+          "suffix": "r"
+        },
+        {
+          "word": "sol",
+          "suffix": "l"
+        },
+        {
+          "word": "soiin",
+          "suffix": "iin"
+        },
+        {
+          "word": "sody",
+          "suffix": "dy"
+        },
+        {
+          "word": "soiiin",
+          "suffix": "iiin"
+        },
+        {
+          "word": "soraiin",
+          "suffix": "raiin"
+        },
+        {
+          "word": "sodaiin",
+          "suffix": "daiin"
+        },
+        {
+          "word": "sodar",
+          "suffix": "dar"
+        },
+        {
+          "word": "soin",
+          "suffix": "in"
+        },
+        {
+          "word": "sols",
+          "suffix": "ls"
+        }
+      ],
+      "all_suffixes": [
+        "daiin",
+        "dar",
+        "dy",
+        "iiin",
+        "iin",
+        "in",
+        "l",
+        "ls",
+        "m",
+        "r",
+        "raiin",
+        "ry",
+        "s",
+        "shy"
+      ],
+      "combined_frequency": 73
+    },
+    {
+      "stem": "ckh",
+      "n_members": 14,
+      "n_unique_suffixes": 14,
+      "members": [
+        {
+          "word": "ckhey",
+          "suffix": "ey"
+        },
+        {
+          "word": "ckhy",
+          "suffix": "y"
+        },
+        {
+          "word": "ckhol",
+          "suffix": "ol"
+        },
+        {
+          "word": "ckheey",
+          "suffix": "eey"
+        },
+        {
+          "word": "ckhor",
+          "suffix": "or"
+        },
+        {
+          "word": "ckheody",
+          "suffix": "eody"
+        },
+        {
+          "word": "ckheol",
+          "suffix": "eol"
+        },
+        {
+          "word": "ckhody",
+          "suffix": "ody"
+        },
+        {
+          "word": "ckhaiin",
+          "suffix": "aiin"
+        },
+        {
+          "word": "ckham",
+          "suffix": "am"
+        }
+      ],
+      "all_suffixes": [
+        "aiin",
+        "al",
+        "am",
+        "ar",
+        "eey",
+        "eody",
+        "eol",
+        "eos",
+        "ey",
+        "ody",
+        "ol",
+        "or",
+        "os",
+        "y"
+      ],
+      "combined_frequency": 114
+    },
+    {
+      "stem": "oko",
+      "n_members": 14,
+      "n_unique_suffixes": 14,
+      "members": [
+        {
+          "word": "okol",
+          "suffix": "l"
+        },
+        {
+          "word": "okor",
+          "suffix": "r"
+        },
+        {
+          "word": "okoiin",
+          "suffix": "iin"
+        },
+        {
+          "word": "okody",
+          "suffix": "dy"
+        },
+        {
+          "word": "okoldy",
+          "suffix": "ldy"
+        },
+        {
+          "word": "okoly",
+          "suffix": "ly"
+        },
+        {
+          "word": "okom",
+          "suffix": "m"
+        },
+        {
+          "word": "okos",
+          "suffix": "s"
+        },
+        {
+          "word": "okoy",
+          "suffix": "y"
+        },
+        {
+          "word": "okodaiin",
+          "suffix": "daiin"
+        }
+      ],
+      "all_suffixes": [
+        "daiin",
+        "dy",
+        "iin",
+        "l",
+        "laiin",
+        "ldy",
+        "lol",
+        "lor",
+        "ly",
+        "m",
+        "r",
+        "raiin",
+        "s",
+        "y"
+      ],
+      "combined_frequency": 100
+    },
+    {
+      "stem": "ctho",
+      "n_members": 14,
+      "n_unique_suffixes": 14,
+      "members": [
+        {
+          "word": "cthol",
+          "suffix": "l"
+        },
+        {
+          "word": "cthor",
+          "suffix": "r"
+        },
+        {
+          "word": "cthody",
+          "suffix": "dy"
+        },
+        {
+          "word": "cthom",
+          "suffix": "m"
+        },
+        {
+          "word": "cthod",
+          "suffix": "d"
+        },
+        {
+          "word": "ctholy",
+          "suffix": "ly"
+        },
+        {
+          "word": "cthodaiin",
+          "suffix": "daiin"
+        },
+        {
+          "word": "cthodal",
+          "suffix": "dal"
+        },
+        {
+          "word": "cthodol",
+          "suffix": "dol"
+        },
+        {
+          "word": "cthog",
+          "suffix": "g"
+        }
+      ],
+      "all_suffixes": [
+        "d",
+        "daiin",
+        "dal",
+        "dol",
+        "dy",
+        "g",
+        "iin",
+        "l",
+        "ldy",
+        "ls",
+        "ly",
+        "m",
+        "r",
+        "ry"
+      ],
+      "combined_frequency": 134
+    }
+  ],
+  "decomposition": {
+    "total_words": 1001,
+    "decomposed": 983,
+    "has_prefix": 809,
+    "has_suffix": 889,
+    "has_both": 715,
+    "decomposition_rate": 0.9820179820179821,
+    "prefix_rate": 0.8081918081918081,
+    "suffix_rate": 0.8881118881118881,
+    "examples": [
+      {
+        "word": "aiiin",
+        "prefix": "",
+        "stem": "ai",
+        "suffix": "iin"
+      },
+      {
+        "word": "aiin",
+        "prefix": "",
+        "stem": "",
+        "suffix": "aiin"
+      },
+      {
+        "word": "ain",
+        "prefix": "",
+        "stem": "",
+        "suffix": "ain"
+      },
+      {
+        "word": "air",
+        "prefix": "",
+        "stem": "ai",
+        "suffix": "r"
+      },
+      {
+        "word": "al",
+        "prefix": "",
+        "stem": "",
+        "suffix": "al"
+      },
+      {
+        "word": "aldy",
+        "prefix": "",
+        "stem": "a",
+        "suffix": "ldy"
+      },
+      {
+        "word": "alor",
+        "prefix": "",
+        "stem": "al",
+        "suffix": "or"
+      },
+      {
+        "word": "am",
+        "prefix": "",
+        "stem": "",
+        "suffix": "am"
+      },
+      {
+        "word": "an",
+        "prefix": "",
+        "stem": "a",
+        "suffix": "n"
+      },
+      {
+        "word": "ar",
+        "prefix": "",
+        "stem": "",
+        "suffix": "ar"
+      },
+      {
+        "word": "aral",
+        "prefix": "",
+        "stem": "ar",
+        "suffix": "al"
+      },
+      {
+        "word": "arary",
+        "prefix": "",
+        "stem": "arar",
+        "suffix": "y"
+      },
+      {
+        "word": "c",
+        "prefix": "c",
+        "stem": "",
+        "suffix": ""
+      },
+      {
+        "word": "cfhaiin",
+        "prefix": "c",
+        "stem": "fh",
+        "suffix": "aiin"
+      },
+      {
+        "word": "cfhey",
+        "prefix": "c",
+        "stem": "f",
+        "suffix": "hey"
+      },
+      {
+        "word": "cfhol",
+        "prefix": "c",
+        "stem": "f",
+        "suffix": "hol"
+      },
+      {
+        "word": "cfhy",
+        "prefix": "c",
+        "stem": "f",
+        "suffix": "hy"
+      },
+      {
+        "word": "cha",
+        "prefix": "ch",
+        "stem": "a",
+        "suffix": ""
+      },
+      {
+        "word": "chaiin",
+        "prefix": "ch",
+        "stem": "",
+        "suffix": "aiin"
+      },
+      {
+        "word": "chain",
+        "prefix": "ch",
+        "stem": "",
+        "suffix": "ain"
+      }
+    ]
+  },
+  "statistics": {
+    "n_paradigms": 228,
+    "words_in_paradigms": 811,
+    "paradigm_coverage": 0.8101898101898102,
+    "mean_paradigm_size": 9.68421052631579,
+    "max_paradigm_size": 180,
+    "n_unique_suffixes_in_paradigms": 465,
+    "suffix_entropy": 7.421715863845755,
+    "n_productive_prefixes": 65,
+    "n_productive_suffixes": 58,
+    "decomposition_rate": 0.9820179820179821
+  },
+  "morphology_confirmed": true,
+  "interpretation": "STRONG morphological structure: 123 productive affixes, 228 paradigms covering 81.0% of vocabulary. Voynich words are compositional, not opaque codebook entries. Word-level substitution cipher is likely wrong.",
+  "synthesis": {
+    "n_productive_affixes": 123,
+    "n_paradigms": 228,
+    "paradigm_coverage": 0.8101898101898102,
+    "decomposition_rate": 0.9820179820179821,
+    "morphology_confirmed": true,
+    "conclusion": "STRONG morphological structure: 123 productive affixes, 228 paradigms covering 81.0% of vocabulary. Voynich words are compositional, not opaque codebook entries. Word-level substitution cipher is likely wrong."
+  }
+}

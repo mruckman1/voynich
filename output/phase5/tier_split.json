@@ -1,0 +1,54 @@
+{
+  "split": {
+    "tier1_types": 1001,
+    "tier2_types": 2761,
+    "tier1_tokens": 8030,
+    "tier2_tokens": 2761,
+    "total_tokens": 10791,
+    "tier1_coverage": 0.744138634046891,
+    "tier2_coverage": 0.2558613659531091,
+    "threshold": 2
+  },
+  "validation": {
+    "tier1_types_ok": true,
+    "tier2_types_ok": true,
+    "coverage_ok": true,
+    "sparsity_ok": true,
+    "all_valid": true,
+    "mean_successors_per_word": 7.003996003996004,
+    "median_successors_per_word": 3.0,
+    "expected_perplexity": 4.5,
+    "n_bridged_bigrams": 8029,
+    "split_stats": {
+      "tier1_types": 1001,
+      "tier2_types": 2761,
+      "tier1_tokens": 8030,
+      "tier2_tokens": 2761,
+      "total_tokens": 10791,
+      "tier1_coverage": 0.744138634046891,
+      "tier2_coverage": 0.2558613659531091,
+      "threshold": 2
+    }
+  },
+  "tier_statistics": {
+    "full_char_h2": 2.3850308850002544,
+    "tier1_char_h2": 2.172664650468393,
+    "tier2_char_h2": 2.722657600980767,
+    "h2_drop": 0.21236623453186132,
+    "h2_drop_significant": true,
+    "tier1_char_h1": 3.7964568380387784,
+    "tier2_char_h1": 3.870696119187391,
+    "tier1_alphabet_size": 21,
+    "tier2_alphabet_size": 24,
+    "tier1_mean_word_length": 4.627646326276463,
+    "tier2_mean_word_length": 6.736327417602318,
+    "tier1_word_h2": 4.012820077032412,
+    "interpretation": "H2 drop: 0.212 (SIGNIFICANT, threshold=0.15). Tier 1 alphabet: 21, Tier 2 alphabet: 24. Tier 1 mean length: 4.63, Tier 2 mean length: 6.74."
+  },
+  "synthesis": {
+    "valid_split": true,
+    "h2_drop_significant": true,
+    "nomenclator_confirmed": true,
+    "conclusion": "Tier split: 1001 codebook types (74.4% of tokens), 2761 cipher types. H2 drop: 0.212 (SIGNIFICANT). Validation: PASS."
+  }
+}

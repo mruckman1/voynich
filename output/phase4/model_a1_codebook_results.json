@@ -1,0 +1,67 @@
+{
+  "h2_match_test": {
+    "latin_word_bigram_h2": 2.1973739976570457,
+    "voynich_lang_a_char_h2": 2.3850308850002544,
+    "delta_h2": 0.18765688734320873,
+    "passes_h2": true,
+    "latin_word_trigram_h3": 0.9096505073024055,
+    "voynich_lang_a_char_h3": 2.1251607892363964,
+    "delta_h3": 1.215510281933991,
+    "pass_criterion": "|delta| < 0.2",
+    "interpretation": "MODERATE MATCH: Latin word-bigram H2 (2.197) is within tolerance of Voynich Language A char H2 (2.385). Delta=0.188. The codebook model is plausibly supported."
+  },
+  "zipf_compatibility": {
+    "voynich_zipf_exponent": 0.7432484437096333,
+    "latin_zipf_exponent": 1.113042282789333,
+    "delta_exponent": 0.36979383907969965,
+    "compatible": false,
+    "voynich_r_squared": 0.8893280641157802,
+    "latin_r_squared": 0.9696687265221255
+  },
+  "ttr_compatibility": {
+    "voynich_ttr": 0.3486238532110092,
+    "latin_ttr": 0.1483790523690773,
+    "delta_ttr": 0.20024480084193189,
+    "compatible": false,
+    "note": "TTR comparison is approximate \u2014 text lengths differ significantly, which naturally affects TTR"
+  },
+  "codebook_size_analysis": {
+    "voynich_vocabulary_size": 3762,
+    "latin_vocabulary_size": 238,
+    "top_57_latin_coverage": 0.78428927680798,
+    "top_10_latin_concentration": 0.5049875311720698,
+    "plausible": true,
+    "interpretation": "Top 57 Latin words cover 78.4% of the text. A 57-entry codebook is plausible for encoding this text."
+  },
+  "frequency_rank_correlation": {
+    "n_compared": 20,
+    "rank_correlation": 0.9855605946413543,
+    "compatible": true,
+    "voynich_top_5_proportions": [
+      0.2115732368896926,
+      0.1089511754068716,
+      0.07414104882459313,
+      0.05922242314647378,
+      0.049276672694394216
+    ],
+    "latin_top_5_proportions": [
+      0.29573170731707316,
+      0.1016260162601626,
+      0.0782520325203252,
+      0.06707317073170732,
+      0.0508130081300813
+    ]
+  },
+  "synthesis": {
+    "codebook_supported": true,
+    "confidence": "MODERATE",
+    "tests_passed": 3,
+    "tests_total": 5,
+    "h2_passes": true,
+    "zipf_passes": false,
+    "ttr_passes": false,
+    "size_passes": true,
+    "rank_passes": true,
+    "conclusion": "Whole-word codebook model: MODERATE. 3/5 tests passed. The codebook hypothesis is viable \u2014 proceed to SAA."
+  }
+}

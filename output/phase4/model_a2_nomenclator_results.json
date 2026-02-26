@@ -1,0 +1,60 @@
+{
+  "frequent_only_h2": {
+    "full_char_h2": 2.3850308850002544,
+    "frequent_only_char_h2": 2.172664650468393,
+    "h2_drop": 0.21236623453186132,
+    "significant_drop": true,
+    "word_h2_frequent": 4.012820077032412,
+    "word_h2_full": 3.0514429968891594,
+    "n_frequent_tokens": 8030,
+    "n_frequent_types": 1001,
+    "pass_criterion": "h2_drop > 0.15",
+    "interpretation": "Frequent-word H2 (2.173) vs full H2 (2.385): drop=0.212. Significant \u2014 nomenclator tier structure detected."
+  },
+  "singleton_character_structure": {
+    "frequent_char_h1": 3.7964568380387784,
+    "singleton_char_h1": 3.870696119187391,
+    "h1_difference": 0.07423928114861278,
+    "frequent_mean_word_length": 4.627646326276463,
+    "singleton_mean_word_length": 6.736327417602318,
+    "frequent_alphabet_size": 21,
+    "singleton_alphabet_size": 24,
+    "cipher_like_singletons": true,
+    "interpretation": "Singleton char H1=3.871 vs frequent H1=3.796. Singleton mean length=6.7 vs frequent=4.6. Singletons show cipher-like character diversity."
+  },
+  "plaintext_split": {
+    "codebook_fraction": 0.744138634046891,
+    "cipher_fraction": 0.2558613659531091,
+    "codebook_types": 1001,
+    "cipher_types": 2761,
+    "total_types": 3762,
+    "interpretation": "74.4% of tokens are codebook-encoded (1001 types), 25.6% are cipher-encoded (2761 types)."
+  },
+  "transition_patterns": {
+    "observed": {
+      "freq_to_freq": 6104,
+      "freq_to_sing": 1925,
+      "sing_to_freq": 1926,
+      "sing_to_sing": 835
+    },
+    "expected_random": {
+      "freq_to_freq": 5974.9,
+      "freq_to_sing": 2054.4,
+      "sing_to_freq": 2054.4,
+      "sing_to_sing": 706.4
+    },
+    "ff_enrichment": 1.0216105632165335,
+    "ss_enrichment": 1.1821037705405004,
+    "non_random_transitions": false
+  },
+  "synthesis": {
+    "nomenclator_supported": true,
+    "confidence": "MODERATE",
+    "supporting_signals": 2,
+    "signals_total": 3,
+    "h2_drop_significant": true,
+    "cipher_like_singletons": true,
+    "non_random_transitions": false,
+    "conclusion": "Nomenclator model: MODERATE. 2/3 signals detected. Two-tier encoding structure present."
+  }
+}

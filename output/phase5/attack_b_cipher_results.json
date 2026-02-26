@@ -1,0 +1,284 @@
+{
+  "context_recovery": {
+    "n_singletons_with_context": 2761,
+    "sample_contexts": [
+      {
+        "singleton": "fachys",
+        "decoded_context": "[fachys] applicati frigidus dosis"
+      },
+      {
+        "singleton": "ataiin",
+        "decoded_context": "applicati frigidus [ataiin] dosis pice cassia"
+      },
+      {
+        "singleton": "cthres",
+        "decoded_context": "frigidus dosis pice [cthres] cassia imperatoria thymum"
+      },
+      {
+        "singleton": "chtaiin",
+        "decoded_context": "melissam cyclamen plenilunio [chtaiin] flores dissolutivam duros"
+      },
+      {
+        "singleton": "ase",
+        "decoded_context": "cyclamen plenilunio flores [ase] dissolutivam duros mundificat"
+      },
+      {
+        "singleton": "cthardan",
+        "decoded_context": "plenilunio flores dissolutivam [cthardan] duros mundificat calculis"
+      },
+      {
+        "singleton": "syaiir",
+        "decoded_context": "plenilunio flores dissolutivam [syaiir] duros mundificat calculis"
+      },
+      {
+        "singleton": "cthoary",
+        "decoded_context": "mundificat calculis unum [cthoary] calidus frigida tere"
+      },
+      {
+        "singleton": "cthes",
+        "decoded_context": "mundificat calculis unum [cthes] calidus frigida tere"
+      },
+      {
+        "singleton": "daraiin",
+        "decoded_context": "mundificat calculis unum [daraiin] calidus frigida tere"
+      }
+    ]
+  },
+  "character_analysis": {
+    "n_singletons": 2761,
+    "total_characters": 18599,
+    "alphabet_size": 24,
+    "character_h1": 3.870696119187391,
+    "latin_h1": 3.9506211569255725,
+    "h1_compatible": true,
+    "mean_word_length": 6.736327417602318,
+    "std_word_length": 1.8847686598434379,
+    "top_characters": [
+      [
+        "o",
+        2887
+      ],
+      [
+        "h",
+        2081
+      ],
+      [
+        "c",
+        1594
+      ],
+      [
+        "e",
+        1491
+      ],
+      [
+        "y",
+        1483
+      ],
+      [
+        "a",
+        1321
+      ],
+      [
+        "l",
+        1072
+      ],
+      [
+        "d",
+        1040
+      ],
+      [
+        "s",
+        973
+      ],
+      [
+        "k",
+        918
+      ],
+      [
+        "i",
+        917
+      ],
+      [
+        "r",
+        776
+      ],
+      [
+        "t",
+        734
+      ],
+      [
+        "n",
+        394
+      ],
+      [
+        "q",
+        282
+      ]
+    ],
+    "voynich_char_freqs": {
+      "o": 0.1552233991074789,
+      "h": 0.11188773589977956,
+      "c": 0.08570353244798107,
+      "e": 0.08016560030109146,
+      "y": 0.07973546964890585,
+      "a": 0.07102532394214743,
+      "l": 0.05763750739287059,
+      "d": 0.05591698478412818,
+      "s": 0.052314640572073766,
+      "k": 0.04935749233829776,
+      "i": 0.04930372600677456,
+      "r": 0.04172267326200333,
+      "t": 0.039464487338028924,
+      "n": 0.021183934620140867,
+      "q": 0.015162105489542449
+    }
+  },
+  "substitution_candidates": {
+    "n_characters_mapped": 24,
+    "sample": {
+      "o": [
+        "e",
+        "i",
+        "t"
+      ],
+      "h": [
+        "e",
+        "i",
+        "t",
+        "a"
+      ],
+      "c": [
+        "e",
+        "i",
+        "t",
+        "a",
+        "s"
+      ],
+      "e": [
+        "i",
+        "t",
+        "a",
+        "s",
+        "n"
+      ],
+      "y": [
+        "t",
+        "a",
+        "s",
+        "n",
+        "r"
+      ],
+      "a": [
+        "a",
+        "s",
+        "n",
+        "r",
+        "u"
+      ],
+      "l": [
+        "s",
+        "n",
+        "r",
+        "u",
+        "o"
+      ],
+      "d": [
+        "n",
+        "r",
+        "u",
+        "o",
+        "c"
+      ],
+      "s": [
+        "r",
+        "u",
+        "o",
+        "c",
+        "m"
+      ],
+      "k": [
+        "u",
+        "o",
+        "c",
+        "m",
+        "d"
+      ]
+    }
+  },
+  "pattern_matching": {
+    "n_singletons": 2761,
+    "n_with_pattern_matches": 1571,
+    "n_with_length_match": 1571,
+    "n_unique_match": 360,
+    "match_rate": 0.5689967403114814,
+    "sample_matches": [
+      {
+        "singleton": "a",
+        "pattern": "A",
+        "n_candidates": 0,
+        "top": []
+      },
+      {
+        "singleton": "aiidaiim",
+        "pattern": "ABBCABBD",
+        "n_candidates": 0,
+        "top": []
+      },
+      {
+        "singleton": "aiidal",
+        "pattern": "ABBCAD",
+        "n_candidates": 0,
+        "top": []
+      },
+      {
+        "singleton": "aiim",
+        "pattern": "ABBC",
+        "n_candidates": 0,
+        "top": []
+      },
+      {
+        "singleton": "aiinchoeeer",
+        "pattern": "ABBCDEFGGGH",
+        "n_candidates": 0,
+        "top": []
+      },
+      {
+        "singleton": "aiind",
+        "pattern": "ABBCD",
+        "n_candidates": 0,
+        "top": []
+      },
+      {
+        "singleton": "aiindals",
+        "pattern": "ABBCDAEF",
+        "n_candidates": 0,
+        "top": []
+      },
+      {
+        "singleton": "aiinshalom",
+        "pattern": "ABBCDEAFGH",
+        "n_candidates": 0,
+        "top": []
+      },
+      {
+        "singleton": "aiioly",
+        "pattern": "ABBCDE",
+        "n_candidates": 1,
+        "top": [
+          "allium"
+        ]
+      },
+      {
+        "singleton": "aikheky",
+        "pattern": "ABCDECF",
+        "n_candidates": 1,
+        "top": [
+          "fructus"
+        ]
+      }
+    ]
+  },
+  "synthesis": {
+    "conclusion": "Cipher tier attack: 2761 singletons analyzed. Character H1=3.87 (Latin H1=3.95, compatible). 1571/2761 singletons have pattern-matched candidates, 360 uniquely determined."
+  }
+}
