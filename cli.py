@@ -249,13 +249,13 @@ def main():
 
     if args.all:
         from convergence_attack import run_convergence_attack
-        from orchestrators import get_phase_runner
+        from orchestrators import get_phase_runner, list_phases
         print('=== Phase 1: Convergence Attack (5 strategies) ===')
         phase_results[1] = run_convergence_attack(verbose=verbose, **_phase_dir(1))
-        for phase_num in range(2, 14):
-            print(f'\n=== Phase {phase_num} ===')
-            phase_results[phase_num] = get_phase_runner(phase_num)(
-                verbose=verbose, **_phase_dir(phase_num)
+        for phase_key in list_phases():
+            print(f'\n=== Phase {phase_key} ===')
+            phase_results[phase_key] = get_phase_runner(phase_key)(
+                verbose=verbose, **_phase_dir(phase_key)
             )
 
     elif args.phase:

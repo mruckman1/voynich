@@ -1,6 +1,6 @@
 # Voynich Manuscript Convergence Attack Toolkit
 
-A multi-strategy cryptanalytic framework for the Voynich Manuscript (Beinecke MS 408) implementing a 12-phase convergence attack that progressively narrows the solution space through cascading constraint satisfaction.
+A multi-strategy cryptanalytic framework for the Voynich Manuscript (Beinecke MS 408) implementing a multi-phase convergence attack that progressively narrows the solution space through cascading constraint satisfaction.
 
 The core insight: rather than attacking the cipher monolithically, multiple independent cryptanalytic strategies constrain each other, exponentially reducing viable hypotheses at each phase.
 
@@ -24,6 +24,8 @@ The core insight: rather than attacking the cipher monolithically, multiple inde
 | 11 | CSP eliminates repetition; 36.5% bracketed | MODERATE | 655 skeletons; 481 brackets -> 97 resolved by n-gram -> 25.6% final |
 | 12 | Folio translations produced | PRELIMINARY | 15 folios decoded, 25.6% unresolved rate |
 | 12 | Content: Medieval Latin medical recipes | MODERATE | Recurring: *bibe, coque, oleo, aloe, bufo, aqua, hora* |
+| 12.5 | Adversarial defense suite | HIGH | 5 tests: unicity, domain swap, polyglot, EVA collapse, ablation |
+| 13 | Scholarly synthesis: 114 folios decoded | MODERATE | HTML viewer, English glosser, HITL console, whitepaper |
 
 ## Architecture
 
@@ -36,17 +38,28 @@ voynich/
 ├── orchestrators/                     # Phase execution layer
 │   ├── __init__.py                    # Lazy phase registry
 │   ├── _config.py                     # Centralized constants (SAA iters, corpus size, etc.)
-│   ├── _foundation.py                 # Shared initialization pipeline (phases 7-12)
+│   ├── _foundation.py                 # Shared initialization pipeline (phases 7-13)
 │   ├── _utils.py                      # File I/O and output directory helpers
-│   └── phase2..phase12.py             # Individual phase orchestrators
+│   ├── phase2..phase12.py             # Individual phase orchestrators
+│   ├── phase12_5.py                   # Adversarial defense suite (5 tests + diagnostics)
+│   └── phase13.py                     # Scholarly synthesis (HTML, glosser, HITL, whitepaper)
 │
 ├── data/
 │   ├── voynich_corpus.py              # EVA transliterations, scribe mappings, zodiac labels
 │   ├── ivtff_parser.py                # IVTFF full-corpus parser (Zandbergen format)
 │   ├── botanical_identifications.py   # Plant species IDs for herbal section
+│   ├── expanded_medical_vocabulary.py # 225 lemmas, 909 inflected forms (6 categories)
 │   ├── glyph_alphabets.py            # EVA glyph properties, positional classes, ligatures
 │   ├── latin_syllables.py            # Medieval Latin syllabification rules
-│   └── medieval_text_templates.py    # Latin herbal recipe templates
+│   ├── medieval_text_templates.py    # Latin herbal recipe templates
+│   ├── english_glossary.json         # Latin-to-English dictionary for Phase 13
+│   ├── corpora/                      # Reference Latin text corpora
+│   │   ├── latin_vulgate_sample.txt  # Vulgate Bible sample (5K tokens)
+│   │   └── corpus_juris_civilis.txt  # Medieval legal Latin
+│   └── dictionaries/                 # Language dictionaries for adversarial tests
+│       ├── phase5_latin_dict.json    # Latin dictionary (Phase 5)
+│       ├── romance_italian_dict.json # Italian dictionary (polyglot test)
+│       └── romance_occitan_dict.json # Occitan dictionary (polyglot test)
 │
 ├── modules/
 │   ├── statistical_analysis.py        # H1/H2/H3 entropy, Zipf, bigram matrices
@@ -80,7 +93,9 @@ voynich/
 │   ├── phase8/                       # Viterbi decoder, morphological synthesizer
 │   ├── phase9/                       # Latin syllabifier, sigla mapper, beam search
 │   ├── phase11/                      # Phonetic skeletonizer, CSP decoder
-│   └── phase12/                      # Fuzzy skeletonizer, syntactic scaffold, n-gram mask solver
+│   ├── phase12/                      # Fuzzy skeletonizer, syntactic scaffold, n-gram mask solver
+│   ├── phase12_5/                    # Adversarial tests (unicity, domain swap, polyglot, EVA collapse, ablation)
+│   └── phase13/                      # English glosser, HTML viewer, HITL console, whitepaper generator
 │
 └── output/
     ├── phase3/                       # Language B profile, hybrid model results
@@ -92,12 +107,14 @@ voynich/
     ├── phase9/                       # Syllabic beam search results
     ├── phase10/                      # Dictionary-guided trigram translations
     ├── phase11/                      # CSP phonetic translations
-    └── phase12/                      # Final contextual reconstruction
+    ├── phase12/                      # Final contextual reconstruction
+    ├── phase12_5/                    # Adversarial defense verdicts
+    └── phase13/                      # Full translations, English glosses, HTML viewer, whitepaper
 ```
 
-## The 12-Phase Framework
+## The Phase Framework
 
-Each phase proves a specific hypothesis, unlocking the next phase's assumptions.
+Each phase proves a specific hypothesis, unlocking the next phase's assumptions. Phases 1-12 form the core decoding pipeline, Phase 12.5 validates results adversarially, and Phase 13 produces scholarly output.
 
 ### Phase 1: Convergence Attack (5 Strategies)
 
@@ -319,6 +336,32 @@ Final phase combining CSP decoding with n-gram mask solving:
 - 97 resolved by n-gram context, 337 still unresolved
 - **Final unresolved rate: 25.6%**
 
+### Phase 12.5: Adversarial Defense Suite
+
+Subjects the Phase 11/12 decoding pipeline to 5 adversarial conditions to mathematically prove that its success on real Voynich text is genuine, not an artifact of algorithmic overfitting:
+
+1. **Unicity Distance** -- scrambled/random text baseline; proves resolution isn't from random guessing
+2. **Domain Swap** -- injects Bible/Legal transition matrices; confirms domain-specific dictionary matters
+3. **Polyglot Dictionary** -- substitutes Italian/Occitan dictionaries for Latin; resolution should collapse
+4. **EVA Collapse** -- re-tokenizes with ligature collapse to 18 glyphs; resolution should degrade
+5. **Ablation Study** -- removes function word recovery and grammar traces; measures contribution of each component
+
+Additional diagnostics:
+- **Compositionality Proof** -- proves Voynich words are compositional (affixes + stems), not opaque codes
+- **Dictionary Diagnostic** -- audits skeleton-to-word coverage in the transition matrix; categorizes unresolved words into ZERO_MATCH (13%), MATCH_IN_MATRIX (54%), MATCH_NOT_IN_MATRIX (11%), NO_SKELETON (22%)
+
+Each test produces a pass/fail verdict. The overall defense score is `tests_passed / 5`.
+
+### Phase 13: Scholarly Synthesis
+
+Transforms all decoding output into readable, publishable formats:
+
+1. **Full-Corpus Decode** -- runs the Phase 12 pipeline on all 114 folios (10,791 words)
+2. **Interlinear HTML Viewer** -- 4-tier offline HTML (Voynich glyph / skeleton / Latin / English) with full traceability
+3. **Deterministic English Glosser** -- Latin-to-English dictionary + inflection rules; 26.9% gloss rate across 114 folios
+4. **HITL Console** -- interactive human-in-the-loop editor for manually resolving `[UNRESOLVED]` tokens
+5. **Academic Whitepaper** -- structured Markdown with matplotlib charts (bracket waterfall, folio frequency, resolution by folio, Zipf comparison)
+
 ## Sample Translation Output (Phase 12, folio f1r)
 
 ```
@@ -364,11 +407,11 @@ The unified CLI (`cli.py`) is the recommended way to run all phases:
 # Phase 1: Core 5-strategy convergence attack (default)
 uv run cli.py
 
-# Run a specific phase (2-12)
+# Run a specific phase (2-13, or 12.5)
 uv run cli.py --phase 2
 uv run cli.py --phase 7
 
-# Run all 12 phases sequentially
+# Run all phases sequentially (1-13, including 12.5)
 uv run cli.py --all
 
 # Run phases 1-4 only
@@ -400,6 +443,24 @@ uv run cli.py --phase 3 --hybrid
 
 # Phase 6: run recovery paths A and C
 uv run cli.py --phase 6 --path-a --path-c
+
+# Phase 12.5: adversarial defense suite
+uv run cli.py --phase 12.5                        # All 5 core adversarial tests
+uv run cli.py --phase 12.5 --unicity              # Unicity distance test only
+uv run cli.py --phase 12.5 --domain-swap          # Domain swap test only
+uv run cli.py --phase 12.5 --polyglot             # Polyglot dictionary test only
+uv run cli.py --phase 12.5 --eva-collapse         # EVA collapse test only
+uv run cli.py --phase 12.5 --ablation             # Ablation study only
+uv run cli.py --phase 12.5 --compositionality     # Compositionality proof (opt-in)
+uv run cli.py --phase 12.5 --dictionary-diagnostic  # Dictionary coverage audit
+
+# Phase 13: scholarly synthesis
+uv run cli.py --phase 13                           # Full synthesis pipeline
+uv run cli.py --phase 13 --html                    # HTML viewer only
+uv run cli.py --phase 13 --gloss                   # English glosser only
+uv run cli.py --phase 13 --hitl                    # Interactive HITL console
+uv run cli.py --phase 13 --whitepaper              # Whitepaper generation only
+uv run cli.py --phase 13 --folios 20               # Limit decode to 20 folios
 ```
 
 ### Run Individual Strategies
@@ -434,6 +495,7 @@ from modules.naibbe_cipher import demo; demo()
 - matplotlib >= 3.10.8
 - datasets >= 4.5.0
 - python-Levenshtein >= 0.26.1
+- beautifulsoup4 >= 4.14.3
 
 ## References
 
