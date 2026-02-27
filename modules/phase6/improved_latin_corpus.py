@@ -318,6 +318,316 @@ NEW_TEMPLATES = [
     _template_vocabulary_rich,
 ]
 
+
+# ============================================================================
+# GAP-FILLING TEMPLATES (18 structures for bigram diversity)
+# ============================================================================
+# These templates produce word orderings NOT covered by existing templates,
+# filling zero-probability cells in the transition matrix.
+
+# --- Category A: Verb-First / Imperative Templates ---
+
+def _template_imperative_sequence(rng, plant, quality, moisture, degree):
+    """Verb-first: coque plant in substance, cola, da dosage."""
+    verb = rng.choice(EXTRA_VERBS)
+    substance = rng.choice(EXPANDED_SUBSTANCE_WORDS)
+    dosage = rng.choice(DOSAGE_WORDS)
+    time = rng.choice(TIME_WORDS)
+    return (
+        f'coque {plant} in {substance} {time} '
+        f'et cola per pannum et da {dosage} '
+        f'{rng.choice(DELIVERY_WORDS)} '
+        f'quia {plant} {verb} {rng.choice(CONDITION_WORDS)} '
+        f'{rng.choice(EXPANDED_CLOSING_PHRASES)}'
+    )
+
+
+def _template_preparation_chain(rng, plant, quality, moisture, degree):
+    """Multi-verb chain: accipe, tere, misce, fac."""
+    substance = rng.choice(EXPANDED_SUBSTANCE_WORDS)
+    noun = rng.choice(EXTRA_NOUNS)
+    return (
+        f'accipe {plant} et tere in pulverem '
+        f'misce cum {substance} et fac emplastrum '
+        f'pone super {rng.choice(EXPANDED_BODY_WORDS)} '
+        f'contra {rng.choice(CONDITION_WORDS)} '
+        f'et {rng.choice(EXTRA_VERBS)} {noun} '
+        f'{rng.choice(EXPANDED_CLOSING_PHRASES)}'
+    )
+
+
+def _template_multi_step(rng, plant, quality, moisture, degree):
+    """Sequential: primo... deinde... tandem..."""
+    prep1 = rng.choice(PREPARATION_WORDS)
+    prep2 = rng.choice(PREPARATION_WORDS)
+    substance = rng.choice(EXPANDED_SUBSTANCE_WORDS)
+    return (
+        f'primo {prep1} {plant} '
+        f'deinde {prep2} cum {substance} '
+        f'tandem {rng.choice(DELIVERY_WORDS)} '
+        f'{rng.choice(DOSAGE_WORDS)} {rng.choice(TIME_WORDS)} '
+        f'contra {rng.choice(CONDITION_WORDS)} {rng.choice(EXPANDED_BODY_WORDS)} '
+        f'{rng.choice(EXPANDED_CLOSING_PHRASES)}'
+    )
+
+
+def _template_compound_recipe_gap(rng, plant, quality, moisture, degree):
+    """Compound recipe with multiple plants and additive."""
+    plant2 = rng.choice(EXPANDED_PLANT_NAMES)
+    while plant2 == plant:
+        plant2 = rng.choice(EXPANDED_PLANT_NAMES)
+    substance = rng.choice(EXPANDED_SUBSTANCE_WORDS)
+    ingredient = rng.choice(ANIMAL_INGREDIENTS + MINERAL_INGREDIENTS)
+    return (
+        f'recipe {plant} et {plant2} cum {substance} '
+        f'{rng.choice(PREPARATION_WORDS)} et adde {ingredient} '
+        f'{rng.choice(DELIVERY_WORDS)} {rng.choice(DOSAGE_WORDS)} '
+        f'valet contra {rng.choice(CONDITION_WORDS)} '
+        f'{rng.choice(EXPANDED_CLOSING_PHRASES)}'
+    )
+
+
+def _template_instruction_dense(rng, plant, quality, moisture, degree):
+    """Dense instruction sequence with many verb→noun bigrams."""
+    substance = rng.choice(EXPANDED_SUBSTANCE_WORDS)
+    dosage = rng.choice(DOSAGE_WORDS)
+    return (
+        f'contere {plant} cola per pannum '
+        f'adde {substance} {dosage} '
+        f'da {rng.choice(TIME_WORDS)} '
+        f'{rng.choice(DELIVERY_WORDS)} '
+        f'et {rng.choice(EXTRA_VERBS)} {rng.choice(CONDITION_WORDS)} '
+        f'{rng.choice(EXPANDED_BODY_WORDS)} '
+        f'{rng.choice(EXPANDED_CLOSING_PHRASES)}'
+    )
+
+
+# --- Category B: Body-Part / Application Templates ---
+
+def _template_body_target(rng, plant, quality, moisture, degree):
+    """Body-part targeted: ad dolorem {body} recipe plant."""
+    body = rng.choice(EXPANDED_BODY_WORDS)
+    body2 = rng.choice(EXPANDED_BODY_WORDS)
+    return (
+        f'ad dolorem {body} recipe {plant} '
+        f'quae est {quality} et {moisture} '
+        f'et applica super {body} '
+        f'{rng.choice(PREPARATION_WORDS)} '
+        f'item contra {rng.choice(CONDITION_WORDS)} {body2} '
+        f'{rng.choice(DELIVERY_WORDS)} '
+        f'{rng.choice(EXPANDED_CLOSING_PHRASES)}'
+    )
+
+
+def _template_lavation(rng, plant, quality, moisture, degree):
+    """Washing/lavation: lava body cum decocto plant."""
+    body = rng.choice(EXPANDED_BODY_WORDS)
+    verb = rng.choice(EXTRA_VERBS)
+    return (
+        f'lava {body} cum decocto {plant} '
+        f'{rng.choice(TIME_WORDS)} '
+        f'et {verb} {rng.choice(CONDITION_WORDS)} '
+        f'quia {plant} est {quality} et {moisture} '
+        f'in {degree} gradu '
+        f'{rng.choice(EXPANDED_CLOSING_PHRASES)}'
+    )
+
+
+def _template_unction(rng, plant, quality, moisture, degree):
+    """Unction: unge body cum oleo plant."""
+    body = rng.choice(EXPANDED_BODY_WORDS)
+    return (
+        f'unge {body} cum oleo {plant} '
+        f'quod est {quality} et {moisture} '
+        f'contra {rng.choice(CONDITION_WORDS)} {body} '
+        f'{rng.choice(TIME_WORDS)} '
+        f'et {rng.choice(EXTRA_VERBS)} dolorem '
+        f'{rng.choice(EXPANDED_CLOSING_PHRASES)}'
+    )
+
+
+def _template_fomentation(rng, plant, quality, moisture, degree):
+    """Fomentation: fac fomentum de plant super body."""
+    plant2 = rng.choice(EXPANDED_PLANT_NAMES)
+    while plant2 == plant:
+        plant2 = rng.choice(EXPANDED_PLANT_NAMES)
+    body = rng.choice(EXPANDED_BODY_WORDS)
+    return (
+        f'fac fomentum de {plant} et {plant2} '
+        f'et pone super {body} '
+        f'{rng.choice(TIME_WORDS)} '
+        f'contra {rng.choice(CONDITION_WORDS)} '
+        f'quia {plant} est {quality} et {plant2} est {moisture} '
+        f'{rng.choice(EXPANDED_CLOSING_PHRASES)}'
+    )
+
+
+# --- Category C: Disease/Indication-Leading Templates ---
+
+def _template_disease_first(rng, plant, quality, moisture, degree):
+    """Disease-leading: contra condition body recipe plant."""
+    body = rng.choice(EXPANDED_BODY_WORDS)
+    condition = rng.choice(CONDITION_WORDS)
+    verb = rng.choice(EXTRA_VERBS)
+    return (
+        f'contra {condition} {body} '
+        f'recipe {plant} quae {verb} {condition} '
+        f'est {quality} et {moisture} in {degree} gradu '
+        f'{rng.choice(PREPARATION_WORDS)} '
+        f'{rng.choice(DELIVERY_WORDS)} '
+        f'{rng.choice(EXPANDED_CLOSING_PHRASES)}'
+    )
+
+
+def _template_conditional_disease(rng, plant, quality, moisture, degree):
+    """Conditional: si diagnostic adest recipe plant cum substance."""
+    diag = rng.choice(DIAGNOSTIC_TERMS)
+    condition = rng.choice(CONDITION_WORDS)
+    substance = rng.choice(EXPANDED_SUBSTANCE_WORDS)
+    return (
+        f'si {diag} adest et {condition} fuerit '
+        f'tunc {rng.choice(PREPARATION_WORDS)} {plant} cum {substance} '
+        f'{rng.choice(DELIVERY_WORDS)} {rng.choice(DOSAGE_WORDS)} '
+        f'quia {plant} est {quality} et {moisture} '
+        f'{rng.choice(EXPANDED_CLOSING_PHRASES)}'
+    )
+
+
+def _template_proven_remedy(rng, plant, quality, moisture, degree):
+    """Proven remedy: ad condition curandum probatum est plant."""
+    condition = rng.choice(CONDITION_WORDS)
+    substance = rng.choice(EXPANDED_SUBSTANCE_WORDS)
+    return (
+        f'ad {condition} curandum probatum est {plant} '
+        f'cum {substance} {rng.choice(DELIVERY_WORDS)} '
+        f'{rng.choice(DOSAGE_WORDS)} {rng.choice(TIME_WORDS)} '
+        f'quia est {quality} et {moisture} in {degree} gradu '
+        f'{rng.choice(EXPANDED_CLOSING_PHRASES)}'
+    )
+
+
+# --- Category D: Dosage/Timing-Centered Templates ---
+
+def _template_dosage_precise(rng, plant, quality, moisture, degree):
+    """Precise dosage: da dosage plant cum dosage substance."""
+    dosage1 = rng.choice(DOSAGE_WORDS)
+    dosage2 = rng.choice(DOSAGE_WORDS)
+    substance = rng.choice(EXPANDED_SUBSTANCE_WORDS)
+    return (
+        f'da {dosage1} {plant} cum {dosage2} {substance} '
+        f'{rng.choice(TIME_WORDS)} '
+        f'contra {rng.choice(CONDITION_WORDS)} {rng.choice(EXPANDED_BODY_WORDS)} '
+        f'et {rng.choice(EXTRA_VERBS)} dolorem '
+        f'{rng.choice(EXPANDED_CLOSING_PHRASES)}'
+    )
+
+
+def _template_regimen(rng, plant, quality, moisture, degree):
+    """Regimen: bibat dosage plant mane et sero."""
+    dosage = rng.choice(DOSAGE_WORDS)
+    time = rng.choice(TIME_WORDS)
+    condition = rng.choice(CONDITION_WORDS)
+    return (
+        f'bibat {dosage} {plant} mane et sero '
+        f'per {time} contra {condition} '
+        f'{rng.choice(EXPANDED_BODY_WORDS)} '
+        f'et {rng.choice(EXTRA_VERBS)} {condition} '
+        f'quia {plant} est {quality} et {moisture} '
+        f'{rng.choice(EXPANDED_CLOSING_PHRASES)}'
+    )
+
+
+def _template_graduated_dose(rng, plant, quality, moisture, degree):
+    """Graduated dosing: in primo die da dosage, in secundo die..."""
+    dosage1 = rng.choice(DOSAGE_WORDS)
+    dosage2 = rng.choice(DOSAGE_WORDS)
+    return (
+        f'in primo die da {dosage1} {plant} '
+        f'in secundo die da {dosage2} {plant} '
+        f'usque ad sanitatem '
+        f'valet contra {rng.choice(CONDITION_WORDS)} '
+        f'{rng.choice(EXPANDED_BODY_WORDS)} '
+        f'{rng.choice(EXPANDED_CLOSING_PHRASES)}'
+    )
+
+
+# --- Category E: Compound/Connecting Templates ---
+
+def _template_dual_plant(rng, plant, quality, moisture, degree):
+    """Dual plant comparison: plant et plant2 simul valent."""
+    plant2 = rng.choice(EXPANDED_PLANT_NAMES)
+    while plant2 == plant:
+        plant2 = rng.choice(EXPANDED_PLANT_NAMES)
+    body = rng.choice(EXPANDED_BODY_WORDS)
+    return (
+        f'{plant} et {plant2} simul {rng.choice(PREPARATION_WORDS)} '
+        f'valent contra {rng.choice(CONDITION_WORDS)} {body} '
+        f'melius quam {plant} solum '
+        f'{rng.choice(DELIVERY_WORDS)} {rng.choice(DOSAGE_WORDS)} '
+        f'{rng.choice(EXPANDED_CLOSING_PHRASES)}'
+    )
+
+
+def _template_alternative(rng, plant, quality, moisture, degree):
+    """Alternative: plant valet vel plant2 si non habetur."""
+    plant2 = rng.choice(EXPANDED_PLANT_NAMES)
+    while plant2 == plant:
+        plant2 = rng.choice(EXPANDED_PLANT_NAMES)
+    condition = rng.choice(CONDITION_WORDS)
+    return (
+        f'{plant} valet contra {condition} '
+        f'vel {plant2} si {plant} non habetur '
+        f'{rng.choice(DELIVERY_WORDS)} '
+        f'quia utraque est {quality} et {moisture} '
+        f'{rng.choice(EXPANDED_CLOSING_PHRASES)}'
+    )
+
+
+def _template_compound_sentence(rng, plant, quality, moisture, degree):
+    """Compound: plant verb condition item plant prep cum substance."""
+    verb = rng.choice(EXTRA_VERBS)
+    condition1 = rng.choice(CONDITION_WORDS)
+    condition2 = rng.choice(CONDITION_WORDS)
+    substance = rng.choice(EXPANDED_SUBSTANCE_WORDS)
+    body = rng.choice(EXPANDED_BODY_WORDS)
+    return (
+        f'{plant} {verb} {condition1} '
+        f'{rng.choice(TRANSITIONAL_PHRASES)} '
+        f'{plant} {rng.choice(PREPARATION_WORDS)} cum {substance} '
+        f'valet contra {condition2} {body} '
+        f'{rng.choice(DELIVERY_WORDS)} '
+        f'{rng.choice(EXPANDED_CLOSING_PHRASES)}'
+    )
+
+
+# Gap-filling template list
+GAP_FILLING_TEMPLATES = [
+    # Category A: Verb-First / Imperative
+    _template_imperative_sequence,
+    _template_preparation_chain,
+    _template_multi_step,
+    _template_compound_recipe_gap,
+    _template_instruction_dense,
+    # Category B: Body-Part / Application
+    _template_body_target,
+    _template_lavation,
+    _template_unction,
+    _template_fomentation,
+    # Category C: Disease/Indication-Leading
+    _template_disease_first,
+    _template_conditional_disease,
+    _template_proven_remedy,
+    # Category D: Dosage/Timing-Centered
+    _template_dosage_precise,
+    _template_regimen,
+    _template_graduated_dose,
+    # Category E: Compound/Connecting
+    _template_dual_plant,
+    _template_alternative,
+    _template_compound_sentence,
+]
+
+
 # Combined: Phase 5 templates + new templates
 ALL_TEMPLATES = list(PHASE5_TEMPLATES) + NEW_TEMPLATES
 
@@ -404,16 +714,28 @@ class ImprovedLatinCorpus:
                         tpl = rng.choice(_medical_templates)
                         parts.append(tpl(rng, form))
 
-        # Source 4: Synthetic generation with ALL templates (Phase 5 + new)
-        current_text = ' '.join(parts)
-        current_count = len(current_text.split())
-        remaining = self.target_tokens - current_count
-
+        # Source 4: Gap-filling bigram diversity sentences
+        # Added as a separate fixed-count source to avoid perturbing the
+        # main generation loop's seed progression (ablation test sensitive).
         qualities = ['calida', 'frigida', 'calidus', 'frigidus',
                      'calidum', 'frigidum']
         moistures = ['sicca', 'humida', 'siccus', 'humidus',
                      'siccum', 'humidum']
         degrees = ['primo', 'secundo', 'tertio', 'quarto']
+
+        gap_rng = random.Random(self.seed + 7919)  # Separate RNG
+        for _ in range(100):
+            plant = gap_rng.choice(EXPANDED_PLANT_NAMES)
+            quality = gap_rng.choice(qualities)
+            moisture = gap_rng.choice(moistures)
+            degree = gap_rng.choice(degrees)
+            template = gap_rng.choice(GAP_FILLING_TEMPLATES)
+            parts.append(template(gap_rng, plant, quality, moisture, degree))
+
+        # Source 5: Synthetic generation with ALL templates (Phase 5 + new)
+        current_text = ' '.join(parts)
+        current_count = len(current_text.split())
+        remaining = self.target_tokens - current_count
 
         while remaining > 0:
             plant = rng.choice(EXPANDED_PLANT_NAMES)
