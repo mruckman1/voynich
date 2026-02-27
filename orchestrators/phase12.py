@@ -31,6 +31,7 @@ from orchestrators._config import (
     ENABLE_FUNCTION_WORD_RECOVERY, FUNCTION_WORD_TRIGRAM_THRESHOLD,
     DUAL_CONTEXT_RATIO_FACTOR, DUAL_CONTEXT_MAX_DISTANCE,
     ENABLE_UNIGRAM_BACKOFF, UNIGRAM_BACKOFF_RATIO_FACTOR, UNIGRAM_BACKOFF_MIN_SEGMENTS,
+    ENABLE_POS_BACKOFF, POS_BACKOFF_WEIGHT, POS_BACKOFF_MIN_CONFIDENCE,
     # Resolution recovery improvements
     ENABLE_CROSS_FOLIO_CONSISTENCY, CROSS_FOLIO_MIN_AGREEMENT, CROSS_FOLIO_MIN_OCCURRENCES,
     ENABLE_GRADUATED_CSP, CSP_HIGH_CONFIDENCE_THRESHOLD, CSP_MEDIUM_CONFIDENCE_THRESHOLD,
@@ -200,6 +201,10 @@ def run_phase12_reconstruction(
             enable_unigram_backoff=ENABLE_UNIGRAM_BACKOFF,
             unigram_backoff_ratio_factor=UNIGRAM_BACKOFF_RATIO_FACTOR,
             unigram_backoff_min_segments=UNIGRAM_BACKOFF_MIN_SEGMENTS,
+            # Improvement 6: POS-level backoff scoring
+            enable_pos_backoff=ENABLE_POS_BACKOFF,
+            pos_backoff_weight=POS_BACKOFF_WEIGHT,
+            pos_backoff_min_confidence=POS_BACKOFF_MIN_CONFIDENCE,
         )
         ngram_solver.set_corpus_frequencies(l_tokens)
 
@@ -513,6 +518,37 @@ def run_phase12_reconstruction(
                 top_5 = list(consistent_mappings.items())[:5]
                 for skel, word in top_5:
                     print(f'    {skel} → {word}')
+
+    # ================================================================
+    # SUB-PHASE 7: POS Backoff Pass (Post-Consistency)
+    # ================================================================
+    if 'solve' in run_phases and ENABLE_POS_BACKOFF:
+        total_pos_resolved = 0
+        for folio in final_translations:
+            updated_text, n_resolved = ngram_solver.pos_backoff_pass(
+                final_translations[folio]
+            )
+            final_translations[folio] = updated_text
+            total_pos_resolved += n_resolved
+
+        # Update per-folio stats to reflect POS backoff
+        for folio, text in final_translations.items():
+            top_words = _count_word_repetitions(text)
+            max_repeat = max(top_words.values()) if top_words else 0
+            meta = folio_metadata.get(folio, {})
+            per_folio_stats[folio] = {
+                'language': meta.get('language', 'A'),
+                'section': meta.get('section', 'unknown'),
+                'scribe': meta.get('scribe', 0),
+                'top_words': top_words,
+                'max_repeat': max_repeat,
+                'word_count': len(text.split()),
+                'remaining_brackets': _count_brackets(text),
+            }
+
+        if verbose and total_pos_resolved > 0:
+            print(f'\n[7/7] POS Backoff Pass...')
+            print(f'  → POS backoff resolved: {total_pos_resolved} additional tokens')
 
     # ================================================================
     # Save & Report

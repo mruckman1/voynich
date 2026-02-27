@@ -192,6 +192,7 @@ class AblationStudyTest:
             enable_length_scaled_ratio=False,
             enable_bidirectional=False,
             enable_function_word_recovery=False,
+            enable_pos_backoff=False,
         )
 
         decoded = ablated_decoder.decode_folio(tokens, folio_id=folio_id)

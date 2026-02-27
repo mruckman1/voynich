@@ -30,6 +30,7 @@ from orchestrators._config import (
     ENABLE_FUNCTION_WORD_RECOVERY, FUNCTION_WORD_TRIGRAM_THRESHOLD,
     DUAL_CONTEXT_RATIO_FACTOR, DUAL_CONTEXT_MAX_DISTANCE,
     ENABLE_UNIGRAM_BACKOFF, UNIGRAM_BACKOFF_RATIO_FACTOR, UNIGRAM_BACKOFF_MIN_SEGMENTS,
+    ENABLE_POS_BACKOFF, POS_BACKOFF_WEIGHT, POS_BACKOFF_MIN_CONFIDENCE,
 )
 from orchestrators._foundation import build_morphological_context
 
@@ -139,6 +140,10 @@ def run_phase12_5_adversarial(
         enable_unigram_backoff=ENABLE_UNIGRAM_BACKOFF,
         unigram_backoff_ratio_factor=UNIGRAM_BACKOFF_RATIO_FACTOR,
         unigram_backoff_min_segments=UNIGRAM_BACKOFF_MIN_SEGMENTS,
+        # Improvement 6: POS-level backoff scoring
+        enable_pos_backoff=ENABLE_POS_BACKOFF,
+        pos_backoff_weight=POS_BACKOFF_WEIGHT,
+        pos_backoff_min_confidence=POS_BACKOFF_MIN_CONFIDENCE,
     )
     ngram_solver.set_corpus_frequencies(l_tokens)
 

@@ -89,6 +89,10 @@ class NgramMaskSolver:
         enable_unigram_backoff: bool = True,
         unigram_backoff_ratio_factor: float = 1.5,
         unigram_backoff_min_segments: int = 3,
+        # Improvement 6: POS-level backoff scoring
+        enable_pos_backoff: bool = False,
+        pos_backoff_weight: float = 0.1,
+        pos_backoff_min_confidence: float = 3.0,
     ):
         """
         Args:
@@ -124,6 +128,12 @@ class NgramMaskSolver:
                 so 5.0x becomes 7.5x for normal skeletons).
             unigram_backoff_min_segments: Minimum skeleton segment count for
                 unigram backoff (default 3, skip very short skeletons).
+            enable_pos_backoff: When word-level bigram returns 0, fall back to
+                POS transition probability as a coarser discriminator.
+            pos_backoff_weight: Scale factor for POS scores relative to word-level
+                scores (default 0.1).
+            pos_backoff_min_confidence: Separate (lower) confidence ratio for
+                candidates scored entirely via POS backoff (default 3.0).
         """
         self.matrix = transition_matrix
         self.vocab = vocab
@@ -167,6 +177,13 @@ class NgramMaskSolver:
         self.unigram_backoff_ratio_factor = unigram_backoff_ratio_factor
         self.unigram_backoff_min_segments = unigram_backoff_min_segments
         self._unigram_freq: Dict[str, int] = {}
+
+        # Improvement 6: POS-level backoff scoring
+        self.enable_pos_backoff = enable_pos_backoff
+        self.pos_backoff_weight = pos_backoff_weight
+        self.pos_backoff_min_confidence = pos_backoff_min_confidence
+        self._word_level_resolutions = 0
+        self._pos_backoff_resolutions = 0
 
     def set_corpus_frequencies(self, corpus_tokens: List[str]) -> None:
         """
@@ -593,11 +610,13 @@ class NgramMaskSolver:
                 # Confident resolution
                 result[i] = best_word
                 new_resolutions += 1
+                self._word_level_resolutions += 1
                 ratio = best_score / second_score if second_score > 0 else float('inf')
                 log.append({
                     'position': i, 'token': voynich_token, 'pos': pos_tag,
                     'status': 'resolved',
                     'resolved': best_word,
+                    'resolution_type': 'word_level',
                     'score': round(best_score, 6),
                     'ratio': round(ratio, 2) if ratio != float('inf') else 'inf',
                 })
@@ -747,6 +766,10 @@ class NgramMaskSolver:
         Returns:
             (resolved_text, stats_dict)
         """
+        # Reset per-folio counters
+        self._word_level_resolutions = 0
+        self._pos_backoff_resolutions = 0
+
         words = decoded_text.split()
         resolved_words, log = self.solve(
             words, folio_id=folio_id, medium_candidates=medium_candidates,
@@ -771,6 +794,8 @@ class NgramMaskSolver:
             'unresolved': unresolved_count,
             'resolution_rate': resolved_count / max(1, total_brackets),
             'total_passes': max((e.get('pass', 0) for e in log), default=0) + 1 if log else 1,
+            'word_level_resolutions': self._word_level_resolutions,
+            'pos_backoff_resolutions': self._pos_backoff_resolutions,
             'confidence_scores': [
                 {
                     'token': entry['token'],
@@ -783,3 +808,117 @@ class NgramMaskSolver:
         }
 
         return ' '.join(resolved_words), stats
+
+    def pos_backoff_pass(self, resolved_text: str) -> Tuple[str, int]:
+        """
+        Post-consistency POS backoff pass.
+
+        Scans remaining UNRESOLVED brackets and attempts to resolve them
+        using POS transition probabilities when word-level bigrams are zero.
+
+        Called AFTER cross-folio consistency to avoid poisoning cross-folio
+        agreement with inconsistent POS-context-dependent resolutions.
+
+        Gates (prevent false positives on random text):
+          1. Both neighbors must be resolved words (two-sided POS evidence)
+          2. Both neighbors within dual_context_max_distance positions
+          3. Skeleton >= unigram_backoff_min_segments segments
+
+        Returns:
+            (updated_text, num_resolved)
+        """
+        if not self.enable_pos_backoff or not self._syntactic_veto_enabled:
+            return resolved_text, 0
+
+        words = resolved_text.split()
+        result = list(words)
+        num_resolved = 0
+
+        for i, word in enumerate(words):
+            # Only process UNRESOLVED brackets
+            match = TAGGED_BRACKET_RE.match(word)
+            if not match:
+                continue
+            if match.group(1) is not None:
+                voynich_token = match.group(1)
+                pos_tag = match.group(2)
+                bracket_type = 'square'
+            else:
+                voynich_token = match.group(3)
+                pos_tag = match.group(4)
+                bracket_type = 'angle'
+            if pos_tag != 'UNRESOLVED':
+                continue
+
+            # Find nearest resolved neighbors
+            w_prev, w_prev_dist = None, 999
+            for j in range(i - 1, -1, -1):
+                if not TAGGED_BRACKET_RE.match(result[j]):
+                    w_prev = result[j]
+                    w_prev_dist = i - j
+                    break
+
+            w_next, w_next_dist = None, 999
+            for j in range(i + 1, len(result)):
+                if not TAGGED_BRACKET_RE.match(result[j]):
+                    w_next = result[j]
+                    w_next_dist = j - i
+                    break
+
+            # Gate: both neighbors resolved and close
+            if (w_prev is None or w_next is None
+                    or w_prev_dist > self.dual_context_max_distance
+                    or w_next_dist > self.dual_context_max_distance):
+                continue
+
+            # Gate: skeleton segment minimum
+            seg_count = self._get_skeleton_segment_count(voynich_token)
+            if seg_count < self.unigram_backoff_min_segments:
+                continue
+
+            # Generate candidates
+            candidates = self._get_candidates_for_token(voynich_token)
+            if not candidates:
+                continue
+
+            # POS filtering + syntactic veto
+            pos_filtered = [c for c in candidates
+                            if self._candidate_matches_pos(c, pos_tag)]
+            if not pos_filtered:
+                pos_filtered = candidates
+            pos_filtered = self._syntactic_veto(pos_filtered, w_prev)
+
+            # POS transition scoring
+            prev_pos = self.pos_tagger.tag(w_prev)
+            next_pos = self.pos_tagger.tag(w_next)
+            prev_pos_idx = self.pos_to_idx.get(prev_pos)
+            next_pos_idx = self.pos_to_idx.get(next_pos)
+            if prev_pos_idx is None or next_pos_idx is None:
+                continue
+
+            pos_scored = []
+            for candidate in pos_filtered:
+                cand_pos = self.pos_tagger.tag(candidate)
+                cand_pos_idx = self.pos_to_idx.get(cand_pos)
+                if cand_pos_idx is not None:
+                    ps = (
+                        self.pos_matrix[prev_pos_idx][cand_pos_idx]
+                        + self.pos_matrix[cand_pos_idx][next_pos_idx]
+                    ) * self.pos_backoff_weight
+                else:
+                    ps = 0.0
+                pos_scored.append((ps, candidate))
+            pos_scored.sort(key=lambda x: (-x[0], x[1]))
+
+            if not pos_scored or pos_scored[0][0] == 0.0:
+                continue
+
+            best_ps, best_pw = pos_scored[0]
+            second_ps = pos_scored[1][0] if len(pos_scored) > 1 else 0.0
+
+            if second_ps == 0 or best_ps / second_ps >= self.pos_backoff_min_confidence:
+                result[i] = best_pw
+                num_resolved += 1
+                self._pos_backoff_resolutions += 1
+
+        return ' '.join(result), num_resolved

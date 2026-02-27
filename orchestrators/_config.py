@@ -47,6 +47,13 @@ ENABLE_UNIGRAM_BACKOFF = True
 UNIGRAM_BACKOFF_RATIO_FACTOR = 1.5   # 5.0x × 1.5 = 7.5x threshold for unigram-only
 UNIGRAM_BACKOFF_MIN_SEGMENTS = 3     # Skip very short skeletons (unicity protection)
 
+# Improvement 6: POS-level backoff scoring
+# When word-level bigrams return zero, fall back to POS transition
+# probabilities (8×8 matrix) as a coarser discriminator.
+ENABLE_POS_BACKOFF = True
+POS_BACKOFF_WEIGHT = 0.1            # Scale POS scores relative to word-level
+POS_BACKOFF_MIN_CONFIDENCE = 5.0    # Match word-level ratio to prevent random text resolution
+
 # ── Cross-Folio Consistency Engine ────────────────────────────────
 ENABLE_CROSS_FOLIO_CONSISTENCY = True
 CROSS_FOLIO_MIN_AGREEMENT = 0.6     # Minimum fraction of folios agreeing on mapping
