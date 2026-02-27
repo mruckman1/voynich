@@ -22,7 +22,7 @@ The core insight: rather than attacking the cipher monolithically, multiple inde
 | 9 | Syllabic constraints prevent hallucination | MODERATE | 538 syllables, 13 sigla rules, beam width 25 |
 | 10 | Dictionary-guided translation with humoral patterns | MODERATE | 914 vocabulary, 50,027 tokens; *calida et humida in primo gradu* |
 | 11 | CSP eliminates repetition; 36.5% bracketed | MODERATE | 655 skeletons; 481 brackets -> 97 resolved by n-gram -> 25.6% final |
-| 12 | Folio translations produced | PRELIMINARY | 15 folios decoded, 25.6% unresolved rate |
+| 12 | Full-corpus contextual reconstruction | MODERATE | 224 folios, 41.4% Lang A / 40.5% Lang B resolution |
 | 12 | Content: Medieval Latin medical recipes | MODERATE | Recurring: *bibe, coque, oleo, aloe, bufo, aqua, hora* |
 | 12.5 | Adversarial defense suite | HIGH | 5 tests: unicity, domain swap, polyglot, EVA collapse, ablation |
 | 13 | Scholarly synthesis: 114 folios decoded | MODERATE | HTML viewer, English glosser, HITL console, whitepaper |
@@ -93,7 +93,7 @@ voynich/
 │   ├── phase8/                       # Viterbi decoder, morphological synthesizer
 │   ├── phase9/                       # Latin syllabifier, sigla mapper, beam search
 │   ├── phase11/                      # Phonetic skeletonizer, CSP decoder
-│   ├── phase12/                      # Fuzzy skeletonizer, syntactic scaffold, n-gram mask solver
+│   ├── phase12/                      # Fuzzy skeletonizer, syntactic scaffold, n-gram mask solver, char n-gram model
 │   ├── phase12_5/                    # Adversarial tests (unicity, domain swap, polyglot, EVA collapse, ablation)
 │   └── phase13/                      # English glosser, HTML viewer, HITL console, whitepaper generator
 │
@@ -330,11 +330,23 @@ Eliminated HMM hallucination but suffered from repetition in high-frequency deco
 
 ### Phase 12: Contextual Reconstruction
 
-Final phase combining CSP decoding with n-gram mask solving:
-- **15 folios decoded** (f1r through f8r)
-- 1,318 total words, 481 initially bracketed (unresolved)
-- 97 resolved by n-gram context, 337 still unresolved
-- **Final unresolved rate: 25.6%**
+Full-corpus decoding combining CSP, syntactic scaffolding, n-gram mask solving, cross-folio consistency, POS backoff, and character n-gram fallback scoring across an 8-sub-phase pipeline:
+
+1. **Load Dependencies** -- Latin corpus (50,027 tokens, 1,695 types), skeleton index (1,087 skeletons), transition matrix (1,001×1,001)
+2. **Build Components** -- FuzzySkeletonizer (y/o branching), BudgetedCSPDecoder (graduated scoring), SyntacticScaffolder (POS tagging), NgramMaskSolver (7 improvements), CharNgramModel (trigram fallback)
+3. **Budgeted CSP Decoding** -- frequency budgeting + humoral crib injection across all 224 folios
+4. **Syntactic Scaffolding** -- POS-tag remaining brackets via Latin suffix patterns
+5. **Deterministic N-Gram Mask Solving** -- word-level bigram scoring with bidirectional multi-pass, function word recovery, dual-context confidence reduction, unigram frequency backoff
+6. **Cross-Folio Consistency** -- skeleton→word mappings agreed across 3+ folios override local ambiguity
+7. **POS Backoff Pass** -- when word-level P(candidate|prev) = 0, falls back to POS transition probability (8×8 matrix) as a coarser discriminator. Runs post-consistency to avoid poisoning cross-folio agreement.
+8. **Character N-Gram Fallback** -- for remaining unresolved tokens, scores candidates by Latin character trigram plausibility. Unlike word-level and POS-level scoring, does not require resolved neighbors. Uses average log-probability with score gap thresholding.
+
+**Current results (224 folios):**
+- Language A: 41.4% resolution (5,468 / 13,204 words)
+- Language B: 40.5% resolution (9,319 / 23,030 words)
+- Cross-folio consistency: 2,167 tokens resolved
+- POS backoff: ~203 additional tokens
+- Character n-gram fallback: ~257 additional tokens
 
 ### Phase 12.5: Adversarial Defense Suite
 
@@ -365,26 +377,29 @@ Transforms all decoding output into readable, publishable formats:
 ## Sample Translation Output (Phase 12, folio f1r)
 
 ```
-facies [ykal] [ar] et oleo hora aures in quae aloe bibere [ckhar]
-hora cor et sero [ase] [cthar] ruta [syaiir] quae hora [ykaiin] et
-vere si hora [sy] bibe [oteey] expellit ortu [okaiin] [or] [okan]
-[sairy] [chear] [cthaiin] bufo viva tres et [cy] alio ab et [sh] sed
-bibe tere ossa da aqua quia et eos [dain] [chor] coque [daiin] eas
-bufo da [dain] si et et bis ossa viva [ytain] eos vitalis eas cassia
-butyrum [oteol] ricini et hoc [daiin] [shoy] [ckhey] quod ab vitalis
-[cthey] ossa et est [dain] in oleo et et deo ricini et [cthy] [kod]
-[daiin] quoque aqua per [char] [shey] hac aloe alio aqua [chal] [sho]
-oleo et occasu quia est [or] et [sho] coque bibe et hoc fixus et
-[cthy] die bufo aloe [she] cutis viola [darain] [dain] dosi [dchar]
-et cor aqua aqua et pilulas valet quoque [chor] [chey] [dain] [ckhey]
-viva [daiiin] ab [shaiin] hac alio [tshodeesy] [shey] habet [cha]
-ruta et oleo [dain] [cthal] hedera [shear] quae hedera ossa [cthar]
-aqua et aqua [shoaiin] [okol] [daiin] bibe [cthol] [daiin] valet
-[ycheey] [okeey] [oky] [daiin] quia coque hoc aceto aloe [dcheo]
-ideo cassia et quoque hac quotidie et [eo] alio quae tutia et [dchaiin]
+efficax [ykal] [ar] [ataiin] [shol] hora aures in aqua oleo [sory]
+cera vere [kair] die [shar] [ase] [cthar] ruta [syaiir] quae [or]
+[ykaiin] [shod] [cthoary] [cthes] [daraiin] [sy] [soiin] [oteey]
+destillat ortu [okaiin] [or] [okan] [sairy] [chear] [cthaiin] bibe
+bufo dorsi et [cy] aloe viva et [sh] sed ab tere [yshey] da quae
+aqua et si [dain] [chor] [kos] [daiin] [shos] [cfhol] da [dain] bis
+da [ydain] bis [ols] [cphey] [ytain] ossa subtilis eas cassia
+[otairin] [oteol] genu et quia [daiin] ossa aqua quotidiana cibo
+subtilis [cthey] ossa et est [dain] [oiin] [chol] et et [chdy]
+[okain] et [cthy] aceto [daiin] sicca [ckeo] per cor ossa [kol]
+[chol] [chol] [kor] [chal] ossa [chol] et cassia [kchy] est [or] et
+[sho] [koeam] [ycho] [tchey] coque bis [dydyd] [cthy] die [yto]
+[shol] [she] cutis viola [darain] [dain] [ckhyds] decoquere et
+[okaiir] quae quae et utilis [dlocto] [shok] [chor] quae [dain]
+[ckhey] [otol] [daiiin] [cpho] [shaiin] hoc [chol] testis ossa habet
+aqua ruta [ydoin] [chol] [dain] [cthal] hedera sero [kaiin] hedera
+ossa [cthar] aqua et coque [shoaiin] [okol] [daiin] bibere [cthol]
+[daiin] [ctholdar] [ycheey] [okeey] [oky] [daiin] quoque [kokaiin]
+hac [kdchy] [dal] [dcheo] deo cassia [cthy] [okchey] [keey] cautela
+[chtor] [eo] [chol] [chok] ideo et [dchaiin]
 ```
 
-Bracketed words `[...]` are unresolved Voynich stems. The decoded content shows Medieval Latin medical/herbal recipe language: *bibe* (drink), *coque* (cook/boil), *oleo* (oil), *aloe*, *bufo* (toad), *aqua* (water), *ossa* (bones), *cassia*, *ruta* (rue), *viola* (violet), *pilulas* (pills), *cutis* (skin).
+Bracketed words `[...]` are unresolved Voynich stems (203 words total, 110 unresolved). The decoded content shows Medieval Latin medical/herbal recipe language: *efficax* (effective), *bibe* (drink), *coque* (cook/boil), *destillat* (distill), *aqua* (water), *ossa* (bones), *cassia*, *ruta* (rue), *hedera* (ivy), *viola* (violet), *cutis* (skin), *subtilis* (fine/subtle), *quotidiana* (daily), *aceto* (vinegar).
 
 ## Usage
 

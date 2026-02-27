@@ -93,6 +93,13 @@ class NgramMaskSolver:
         enable_pos_backoff: bool = False,
         pos_backoff_weight: float = 0.1,
         pos_backoff_min_confidence: float = 3.0,
+        # Improvement 7: Character-level n-gram fallback scoring
+        enable_char_ngram_fallback: bool = False,
+        char_ngram_model=None,
+        char_ngram_min_score_gap: float = 0.5,
+        char_ngram_min_segments: int = 3,
+        char_ngram_max_context_distance: int = 4,
+        char_ngram_require_context: bool = True,
     ):
         """
         Args:
@@ -134,6 +141,17 @@ class NgramMaskSolver:
                 scores (default 0.1).
             pos_backoff_min_confidence: Separate (lower) confidence ratio for
                 candidates scored entirely via POS backoff (default 3.0).
+            enable_char_ngram_fallback: Enable character-level n-gram scoring
+                as a final fallback for unresolved tokens.
+            char_ngram_model: Trained LatinCharNgramModel instance, or None.
+            char_ngram_min_score_gap: Minimum avg-log-prob gap between best
+                and second-best candidate (default 0.5).
+            char_ngram_min_segments: Skeleton segment minimum for char n-gram
+                resolution (default 3).
+            char_ngram_max_context_distance: Max positions to nearest resolved
+                neighbor for context gate (default 4).
+            char_ngram_require_context: Require at least one resolved neighbor
+                within max_context_distance (default True).
         """
         self.matrix = transition_matrix
         self.vocab = vocab
@@ -184,6 +202,15 @@ class NgramMaskSolver:
         self.pos_backoff_min_confidence = pos_backoff_min_confidence
         self._word_level_resolutions = 0
         self._pos_backoff_resolutions = 0
+
+        # Improvement 7: Character-level n-gram fallback scoring
+        self.enable_char_ngram_fallback = enable_char_ngram_fallback
+        self.char_ngram_model = char_ngram_model
+        self.char_ngram_min_score_gap = char_ngram_min_score_gap
+        self.char_ngram_min_segments = char_ngram_min_segments
+        self.char_ngram_max_context_distance = char_ngram_max_context_distance
+        self.char_ngram_require_context = char_ngram_require_context
+        self._char_ngram_resolutions = 0
 
     def set_corpus_frequencies(self, corpus_tokens: List[str]) -> None:
         """
@@ -769,6 +796,7 @@ class NgramMaskSolver:
         # Reset per-folio counters
         self._word_level_resolutions = 0
         self._pos_backoff_resolutions = 0
+        self._char_ngram_resolutions = 0
 
         words = decoded_text.split()
         resolved_words, log = self.solve(
@@ -796,6 +824,7 @@ class NgramMaskSolver:
             'total_passes': max((e.get('pass', 0) for e in log), default=0) + 1 if log else 1,
             'word_level_resolutions': self._word_level_resolutions,
             'pos_backoff_resolutions': self._pos_backoff_resolutions,
+            'char_ngram_resolutions': self._char_ngram_resolutions,
             'confidence_scores': [
                 {
                     'token': entry['token'],
@@ -920,5 +949,98 @@ class NgramMaskSolver:
                 result[i] = best_pw
                 num_resolved += 1
                 self._pos_backoff_resolutions += 1
+
+        return ' '.join(result), num_resolved
+
+    def char_ngram_pass(self, resolved_text: str) -> Tuple[str, int]:
+        """
+        Post-consistency character n-gram fallback pass.
+
+        Scans remaining UNRESOLVED brackets and attempts to resolve them
+        using character trigram plausibility scoring. Fires only when
+        all higher-level scorers (bigram, unigram, POS backoff) returned
+        zero signal.
+
+        Called AFTER POS backoff as the final resolution attempt.
+
+        Gates (prevent false positives on random text):
+          1. enable_char_ngram_fallback must be True
+          2. char_ngram_model must be trained (not None)
+          3. Skeleton >= char_ngram_min_segments segments
+          4. At least one resolved neighbor within char_ngram_max_context_distance
+             (when char_ngram_require_context is True)
+          5. Score gap between best and second candidate >= char_ngram_min_score_gap
+
+        Returns:
+            (updated_text, num_resolved)
+        """
+        if (not self.enable_char_ngram_fallback
+                or self.char_ngram_model is None):
+            return resolved_text, 0
+
+        words = resolved_text.split()
+        result = list(words)
+        num_resolved = 0
+
+        for i, word in enumerate(words):
+            # Only process UNRESOLVED brackets
+            match = TAGGED_BRACKET_RE.match(word)
+            if not match:
+                continue
+            if match.group(1) is not None:
+                voynich_token = match.group(1)
+                pos_tag = match.group(2)
+            else:
+                voynich_token = match.group(3)
+                pos_tag = match.group(4)
+            if pos_tag != 'UNRESOLVED':
+                continue
+
+            # Gate 1: Skeleton segment minimum
+            seg_count = self._get_skeleton_segment_count(voynich_token)
+            if seg_count < self.char_ngram_min_segments:
+                continue
+
+            # Gate 2: Context proximity (at least one resolved neighbor)
+            if self.char_ngram_require_context:
+                has_context = False
+                for j in range(i - 1, max(-1, i - self.char_ngram_max_context_distance - 1), -1):
+                    if j >= 0 and not TAGGED_BRACKET_RE.match(result[j]):
+                        has_context = True
+                        break
+                if not has_context:
+                    for j in range(i + 1, min(len(result), i + self.char_ngram_max_context_distance + 1)):
+                        if not TAGGED_BRACKET_RE.match(result[j]):
+                            has_context = True
+                            break
+                if not has_context:
+                    continue
+
+            # Generate candidates (re-generate, consistent with pos_backoff_pass)
+            candidates = self._get_candidates_for_token(voynich_token)
+            if not candidates:
+                continue
+
+            # Character n-gram scoring
+            scored = self.char_ngram_model.score_candidates(candidates)
+            if not scored:
+                continue
+
+            best_score, best_word = scored[0]
+            second_score = scored[1][0] if len(scored) > 1 else -float('inf')
+
+            # Confidence: score gap threshold
+            if len(scored) == 1:
+                # Single candidate — resolve if score is above empirical threshold
+                if best_score > -8.0:
+                    result[i] = best_word
+                    num_resolved += 1
+                    self._char_ngram_resolutions += 1
+            else:
+                gap = best_score - second_score
+                if gap >= self.char_ngram_min_score_gap:
+                    result[i] = best_word
+                    num_resolved += 1
+                    self._char_ngram_resolutions += 1
 
         return ' '.join(result), num_resolved

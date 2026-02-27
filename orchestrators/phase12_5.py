@@ -31,6 +31,9 @@ from orchestrators._config import (
     DUAL_CONTEXT_RATIO_FACTOR, DUAL_CONTEXT_MAX_DISTANCE,
     ENABLE_UNIGRAM_BACKOFF, UNIGRAM_BACKOFF_RATIO_FACTOR, UNIGRAM_BACKOFF_MIN_SEGMENTS,
     ENABLE_POS_BACKOFF, POS_BACKOFF_WEIGHT, POS_BACKOFF_MIN_CONFIDENCE,
+    ENABLE_CHAR_NGRAM_FALLBACK, CHAR_NGRAM_ORDER, CHAR_NGRAM_SMOOTHING,
+    CHAR_NGRAM_MIN_SCORE_GAP, CHAR_NGRAM_MIN_SEGMENTS,
+    CHAR_NGRAM_MAX_CONTEXT_DISTANCE, CHAR_NGRAM_REQUIRE_CONTEXT,
 )
 from orchestrators._foundation import build_morphological_context
 
@@ -41,6 +44,7 @@ from modules.phase12.syntactic_scaffolder import (
     SyntacticScaffolder, build_pos_transition_matrix,
 )
 from modules.phase12.ngram_mask_solver import NgramMaskSolver
+from modules.phase12.char_ngram_model import LatinCharNgramModel
 
 from modules.phase12_5.adv_1_unicity_distance import UnicityDistanceTest
 from modules.phase12_5.adv_2_domain_swap import DomainSwapTest
@@ -119,6 +123,15 @@ def run_phase12_5_adversarial(
     # Build POS transition matrix for syntactic veto (Academic Fortification)
     pos_matrix, pos_vocab, pos_tagger = build_pos_transition_matrix(l_tokens)
 
+    # Build character n-gram model for fallback scoring
+    char_ngram_model = None
+    if ENABLE_CHAR_NGRAM_FALLBACK:
+        char_ngram_model = LatinCharNgramModel(
+            order=CHAR_NGRAM_ORDER,
+            smoothing=CHAR_NGRAM_SMOOTHING,
+        )
+        char_ngram_model.train(l_tokens)
+
     ngram_solver = NgramMaskSolver(
         trans_matrix, trans_vocab, latin_skel, fuzzy_skel,
         humoral_vocab=HUMORAL_VOCAB,
@@ -144,6 +157,13 @@ def run_phase12_5_adversarial(
         enable_pos_backoff=ENABLE_POS_BACKOFF,
         pos_backoff_weight=POS_BACKOFF_WEIGHT,
         pos_backoff_min_confidence=POS_BACKOFF_MIN_CONFIDENCE,
+        # Improvement 7: Character-level n-gram fallback
+        enable_char_ngram_fallback=ENABLE_CHAR_NGRAM_FALLBACK,
+        char_ngram_model=char_ngram_model,
+        char_ngram_min_score_gap=CHAR_NGRAM_MIN_SCORE_GAP,
+        char_ngram_min_segments=CHAR_NGRAM_MIN_SEGMENTS,
+        char_ngram_max_context_distance=CHAR_NGRAM_MAX_CONTEXT_DISTANCE,
+        char_ngram_require_context=CHAR_NGRAM_REQUIRE_CONTEXT,
     )
     ngram_solver.set_corpus_frequencies(l_tokens)
 

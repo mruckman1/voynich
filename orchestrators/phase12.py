@@ -32,6 +32,9 @@ from orchestrators._config import (
     DUAL_CONTEXT_RATIO_FACTOR, DUAL_CONTEXT_MAX_DISTANCE,
     ENABLE_UNIGRAM_BACKOFF, UNIGRAM_BACKOFF_RATIO_FACTOR, UNIGRAM_BACKOFF_MIN_SEGMENTS,
     ENABLE_POS_BACKOFF, POS_BACKOFF_WEIGHT, POS_BACKOFF_MIN_CONFIDENCE,
+    ENABLE_CHAR_NGRAM_FALLBACK, CHAR_NGRAM_ORDER, CHAR_NGRAM_SMOOTHING,
+    CHAR_NGRAM_MIN_SCORE_GAP, CHAR_NGRAM_MIN_SEGMENTS,
+    CHAR_NGRAM_MAX_CONTEXT_DISTANCE, CHAR_NGRAM_REQUIRE_CONTEXT,
     # Resolution recovery improvements
     ENABLE_CROSS_FOLIO_CONSISTENCY, CROSS_FOLIO_MIN_AGREEMENT, CROSS_FOLIO_MIN_OCCURRENCES,
     ENABLE_GRADUATED_CSP, CSP_HIGH_CONFIDENCE_THRESHOLD, CSP_MEDIUM_CONFIDENCE_THRESHOLD,
@@ -46,6 +49,7 @@ from modules.phase12.syntactic_scaffolder import (
     SyntacticScaffolder, build_pos_transition_matrix,
 )
 from modules.phase12.ngram_mask_solver import NgramMaskSolver
+from modules.phase12.char_ngram_model import LatinCharNgramModel
 from modules.phase12.cross_folio_consistency import CrossFolioConsistencyEngine
 
 from data.botanical_identifications import PLANT_IDS
@@ -177,6 +181,15 @@ def run_phase12_reconstruction(
         # Build POS transition matrix for syntactic veto (Academic Fortification)
         pos_matrix, pos_vocab, pos_tagger = build_pos_transition_matrix(l_tokens)
 
+        # Build character n-gram model for fallback scoring
+        char_ngram_model = None
+        if ENABLE_CHAR_NGRAM_FALLBACK:
+            char_ngram_model = LatinCharNgramModel(
+                order=CHAR_NGRAM_ORDER,
+                smoothing=CHAR_NGRAM_SMOOTHING,
+            )
+            char_ngram_model.train(l_tokens)
+
         ngram_solver = NgramMaskSolver(
             trans_matrix, trans_vocab, latin_skel, fuzzy_skel,
             humoral_vocab=HUMORAL_VOCAB,
@@ -205,6 +218,13 @@ def run_phase12_reconstruction(
             enable_pos_backoff=ENABLE_POS_BACKOFF,
             pos_backoff_weight=POS_BACKOFF_WEIGHT,
             pos_backoff_min_confidence=POS_BACKOFF_MIN_CONFIDENCE,
+            # Improvement 7: Character-level n-gram fallback
+            enable_char_ngram_fallback=ENABLE_CHAR_NGRAM_FALLBACK,
+            char_ngram_model=char_ngram_model,
+            char_ngram_min_score_gap=CHAR_NGRAM_MIN_SCORE_GAP,
+            char_ngram_min_segments=CHAR_NGRAM_MIN_SEGMENTS,
+            char_ngram_max_context_distance=CHAR_NGRAM_MAX_CONTEXT_DISTANCE,
+            char_ngram_require_context=CHAR_NGRAM_REQUIRE_CONTEXT,
         )
         ngram_solver.set_corpus_frequencies(l_tokens)
 
@@ -228,6 +248,10 @@ def run_phase12_reconstruction(
                 features.append(f'function word recovery (threshold {FUNCTION_WORD_TRIGRAM_THRESHOLD})')
             print(f'  → NgramMaskSolver: confidence threshold = {min_confidence_ratio}x '
                   f'+ {", ".join(features)}')
+            if ENABLE_CHAR_NGRAM_FALLBACK and char_ngram_model is not None:
+                cstats = char_ngram_model.get_stats()
+                print(f'  → CharNgramModel: {cstats["unique_ngrams"]} unique '
+                      f'{CHAR_NGRAM_ORDER}-grams, gap threshold {CHAR_NGRAM_MIN_SCORE_GAP}')
 
     # ================================================================
     # SUB-PHASE 3: Decode Folios with Budgeted CSP
@@ -549,6 +573,37 @@ def run_phase12_reconstruction(
         if verbose and total_pos_resolved > 0:
             print(f'\n[7/7] POS Backoff Pass...')
             print(f'  → POS backoff resolved: {total_pos_resolved} additional tokens')
+
+    # ================================================================
+    # SUB-PHASE 8: Character N-Gram Fallback Pass (Post-POS Backoff)
+    # ================================================================
+    if 'solve' in run_phases and ENABLE_CHAR_NGRAM_FALLBACK:
+        total_char_ngram_resolved = 0
+        for folio in final_translations:
+            updated_text, n_resolved = ngram_solver.char_ngram_pass(
+                final_translations[folio]
+            )
+            final_translations[folio] = updated_text
+            total_char_ngram_resolved += n_resolved
+
+        # Update per-folio stats to reflect char n-gram pass
+        for folio, text in final_translations.items():
+            top_words = _count_word_repetitions(text)
+            max_repeat = max(top_words.values()) if top_words else 0
+            meta = folio_metadata.get(folio, {})
+            per_folio_stats[folio] = {
+                'language': meta.get('language', 'A'),
+                'section': meta.get('section', 'unknown'),
+                'scribe': meta.get('scribe', 0),
+                'top_words': top_words,
+                'max_repeat': max_repeat,
+                'word_count': len(text.split()),
+                'remaining_brackets': _count_brackets(text),
+            }
+
+        if verbose and total_char_ngram_resolved > 0:
+            print(f'\n[8/8] Character N-Gram Fallback Pass...')
+            print(f'  → Char n-gram resolved: {total_char_ngram_resolved} additional tokens')
 
     # ================================================================
     # Save & Report

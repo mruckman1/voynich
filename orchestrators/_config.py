@@ -54,6 +54,17 @@ ENABLE_POS_BACKOFF = True
 POS_BACKOFF_WEIGHT = 0.1            # Scale POS scores relative to word-level
 POS_BACKOFF_MIN_CONFIDENCE = 5.0    # Match word-level ratio to prevent random text resolution
 
+# Improvement 7: Character-level n-gram fallback scoring
+# Post-processing pass that scores unresolved tokens by Latin character
+# trigram plausibility when all higher-level scorers returned zero.
+ENABLE_CHAR_NGRAM_FALLBACK = True
+CHAR_NGRAM_ORDER = 3                     # Trigram model
+CHAR_NGRAM_SMOOTHING = 0.01             # Laplace smoothing alpha
+CHAR_NGRAM_MIN_SCORE_GAP = 0.5          # Min avg-log-prob gap (best - second)
+CHAR_NGRAM_MIN_SEGMENTS = 3             # Skeleton segment minimum (unicity gate)
+CHAR_NGRAM_MAX_CONTEXT_DISTANCE = 4     # Max positions to nearest resolved neighbor
+CHAR_NGRAM_REQUIRE_CONTEXT = True       # Require at least one resolved neighbor
+
 # ── Cross-Folio Consistency Engine ────────────────────────────────
 ENABLE_CROSS_FOLIO_CONSISTENCY = True
 CROSS_FOLIO_MIN_AGREEMENT = 0.6     # Minimum fraction of folios agreeing on mapping
