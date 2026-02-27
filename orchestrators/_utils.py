@@ -54,8 +54,9 @@ PHASE_DESCRIPTIONS = {
     9:  'Syllabic & Sigla Translation Engine',
     10: 'Dictionary-Guided Trigram Decoder',
     11: 'Phonetic Constraint Satisfaction Decoder',
-    12: 'Contextual Reconstruction & Deterministic Mask Solving',
-    13: 'Scholarly Synthesis & Presentation',
+    12:    'Contextual Reconstruction & Deterministic Mask Solving',
+    '12.5': 'Adversarial Defense Suite',
+    13:    'Scholarly Synthesis & Presentation',
 }
 
 
@@ -67,7 +68,8 @@ def build_combined_report(phase_results: Dict[int, Dict], output_dir: str) -> st
     """
     ensure_output_dir(output_dir)
 
-    phases_run = sorted(phase_results.keys())
+    phases_run = sorted(phase_results.keys(),
+                        key=lambda x: (isinstance(x, str), str(x)))
     total_elapsed = sum(
         r.get('elapsed_seconds', 0) for r in phase_results.values()
     )

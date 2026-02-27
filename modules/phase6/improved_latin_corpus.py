@@ -39,6 +39,9 @@ from modules.phase5.latin_corpus_expanded import (
     CIRCA_INSTANS_ENTRIES, MACER_FLORIDUS_ENTRIES,
     TEMPLATE_GENERATORS as PHASE5_TEMPLATES,
 )
+from data.expanded_medical_vocabulary import (
+    ALL_MEDICAL_CATEGORIES, CATEGORY_WEIGHTS,
+)
 
 
 # ============================================================================
@@ -366,6 +369,40 @@ class ImprovedLatinCorpus:
                 f'contra {word} valet {rng.choice(EXPANDED_PLANT_NAMES)}',
             ])
             parts.append(context)
+
+        # Source 3b: Expanded medieval medical vocabulary injection
+        # Each surface form is injected `weight` times in contextual sentences
+        # to shape the transition matrix appropriately by category.
+        # Filter: skip forms whose Latin consonant skeleton has ≤2 segments
+        # to prevent spurious matches on random text (unicity protection).
+        from modules.phase11.phonetic_skeletonizer import LATIN_CONSONANT_CLASSES as _LCC
+        def _skeleton_segments(word):
+            skel, last = [], ''
+            for ch in word.lower():
+                if ch in _LCC:
+                    m = _LCC[ch]
+                    if m != last:
+                        skel.append(m)
+                        last = m
+            return len(skel)
+
+        _medical_templates = [
+            lambda rng, w: f'{w} est {rng.choice(["utilis", "necessarius", "efficax", "probatus"])}',
+            lambda rng, w: f'recipe {w} {rng.choice(DOSAGE_WORDS)}',
+            lambda rng, w: f'contra {rng.choice(CONDITION_WORDS)} valet {w}',
+            lambda rng, w: f'{w} cum {rng.choice(EXPANDED_SUBSTANCE_WORDS)}',
+            lambda rng, w: f'accipe {w} et {rng.choice(PREPARATION_WORDS)}',
+            lambda rng, w: f'{w} habet virtutem {rng.choice(EXPANDED_PROPERTY_WORDS)}',
+        ]
+        for cat_name, category in ALL_MEDICAL_CATEGORIES.items():
+            weight = CATEGORY_WEIGHTS.get(cat_name, 1)
+            for lemma, forms in category.items():
+                for form in forms:
+                    if _skeleton_segments(form) < 3:
+                        continue  # Skip short-skeleton forms (unicity protection)
+                    for _ in range(weight):
+                        tpl = rng.choice(_medical_templates)
+                        parts.append(tpl(rng, form))
 
         # Source 4: Synthetic generation with ALL templates (Phase 5 + new)
         current_text = ' '.join(parts)

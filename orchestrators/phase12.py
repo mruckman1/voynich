@@ -24,15 +24,28 @@ from typing import Dict
 
 from orchestrators._utils import ensure_output_dir
 from orchestrators._config import (
-    LATIN_CORPUS_TOKENS_LARGE, FOLIO_LIMIT_DEFAULT, MIN_CONFIDENCE_RATIO,
+    LATIN_CORPUS_TOKENS_LARGE, PHASE12_FOLIO_LIMIT, VOYNICH_SECTIONS,
+    MIN_CONFIDENCE_RATIO,
+    MIN_CONFIDENCE_RATIO_LONG, LONG_SKELETON_SEGMENTS, ENABLE_LENGTH_SCALED_RATIO,
+    ENABLE_BIDIRECTIONAL_SOLVING, MAX_SOLVING_PASSES,
+    ENABLE_FUNCTION_WORD_RECOVERY, FUNCTION_WORD_TRIGRAM_THRESHOLD,
+    DUAL_CONTEXT_RATIO_FACTOR, DUAL_CONTEXT_MAX_DISTANCE,
+    ENABLE_UNIGRAM_BACKOFF, UNIGRAM_BACKOFF_RATIO_FACTOR, UNIGRAM_BACKOFF_MIN_SEGMENTS,
+    # Resolution recovery improvements
+    ENABLE_CROSS_FOLIO_CONSISTENCY, CROSS_FOLIO_MIN_AGREEMENT, CROSS_FOLIO_MIN_OCCURRENCES,
+    ENABLE_GRADUATED_CSP, CSP_HIGH_CONFIDENCE_THRESHOLD, CSP_MEDIUM_CONFIDENCE_THRESHOLD,
+    ENABLE_SELECTIVE_FUNCTION_WORDS, FUNCTION_WORD_MAX_DENSITY, FUNCTION_WORD_WINDOW_SIZE,
 )
 from orchestrators._foundation import build_morphological_context
 
 from modules.phase11.phonetic_skeletonizer import LatinPhoneticSkeletonizer
 from modules.phase12.fuzzy_skeletonizer import FuzzySkeletonizer
 from modules.phase12.budgeted_csp import BudgetedCSPDecoder, HUMORAL_VOCAB
-from modules.phase12.syntactic_scaffolder import SyntacticScaffolder
+from modules.phase12.syntactic_scaffolder import (
+    SyntacticScaffolder, build_pos_transition_matrix,
+)
 from modules.phase12.ngram_mask_solver import NgramMaskSolver
+from modules.phase12.cross_folio_consistency import CrossFolioConsistencyEngine
 
 from data.botanical_identifications import PLANT_IDS
 
@@ -47,6 +60,26 @@ def _count_word_repetitions(text: str) -> Dict[str, int]:
     words = [w for w in text.split() if not w.startswith('[') and not w.startswith('<')]
     from collections import Counter
     return dict(Counter(words).most_common(10))
+
+
+def _get_folio_metadata(folio: str, page=None) -> Dict:
+    """Return language, section, and scribe for a folio.
+
+    Uses VoynichPage metadata if available (IVTFF path), falls back to
+    inference from folio number (SAMPLE_CORPUS path).
+    """
+    from data.voynich_corpus import _infer_section, _infer_language, _infer_scribe
+
+    if page is not None:
+        section = getattr(page, 'section', None) or _infer_section(folio)
+        language = getattr(page, 'language', None) or _infer_language(folio)
+        scribe = getattr(page, 'hand', None) or _infer_scribe(folio)
+    else:
+        section = _infer_section(folio)
+        language = _infer_language(folio)
+        scribe = _infer_scribe(folio)
+
+    return {'language': language, 'section': section, 'scribe': scribe}
 
 
 def run_phase12_reconstruction(
@@ -68,7 +101,7 @@ def run_phase12_reconstruction(
         Results dict with translations and metrics
     """
     ensure_output_dir(output_dir)
-    all_phases = ['load', 'build', 'decode', 'scaffold', 'solve']
+    all_phases = ['load', 'build', 'decode', 'scaffold', 'solve', 'consistency']
     run_phases = set(phases or all_phases)
     t0 = time.time()
 
@@ -86,6 +119,10 @@ def run_phase12_reconstruction(
             'suffered from hora/quae/oleo repetition due to flat frequency scoring.'
         ),
     }
+
+    # Populated in sub-phase 3 (decode), used across sub-phases 5-6
+    by_folio: Dict[str, list] = {}
+    folio_metadata: Dict[str, Dict] = {}
 
     # ================================================================
     # SUB-PHASE 1: Load Dependencies
@@ -124,20 +161,68 @@ def run_phase12_reconstruction(
 
         fuzzy_skel = FuzzySkeletonizer(v_morph)
         budgeted_decoder = BudgetedCSPDecoder(
-            latin_skel, fuzzy_skel, l_tokens, PLANT_IDS
+            latin_skel, fuzzy_skel, l_tokens, PLANT_IDS,
+            # Graduated CSP scoring
+            enable_graduated_csp=ENABLE_GRADUATED_CSP,
+            high_threshold=CSP_HIGH_CONFIDENCE_THRESHOLD,
+            medium_threshold=CSP_MEDIUM_CONFIDENCE_THRESHOLD,
+            # Selective function word reintroduction
+            enable_selective_function_words=ENABLE_SELECTIVE_FUNCTION_WORDS,
+            function_word_max_density=FUNCTION_WORD_MAX_DENSITY,
+            function_word_window_size=FUNCTION_WORD_WINDOW_SIZE,
         )
         scaffolder = SyntacticScaffolder(v_morph)
+
+        # Build POS transition matrix for syntactic veto (Academic Fortification)
+        pos_matrix, pos_vocab, pos_tagger = build_pos_transition_matrix(l_tokens)
+
         ngram_solver = NgramMaskSolver(
             trans_matrix, trans_vocab, latin_skel, fuzzy_skel,
             humoral_vocab=HUMORAL_VOCAB,
             min_confidence_ratio=min_confidence_ratio,
+            pos_tagger=pos_tagger,
+            pos_transition_matrix=pos_matrix,
+            pos_vocab=pos_vocab,
+            # Improvement 3: Length-scaled confidence ratio
+            min_confidence_ratio_long=MIN_CONFIDENCE_RATIO_LONG,
+            long_skeleton_segments=LONG_SKELETON_SEGMENTS,
+            enable_length_scaled_ratio=ENABLE_LENGTH_SCALED_RATIO,
+            # Improvement 2: Bidirectional solving
+            enable_bidirectional=ENABLE_BIDIRECTIONAL_SOLVING,
+            max_solving_passes=MAX_SOLVING_PASSES,
+            # Improvement 1: Contextual function word recovery
+            enable_function_word_recovery=ENABLE_FUNCTION_WORD_RECOVERY,
+            function_word_trigram_threshold=FUNCTION_WORD_TRIGRAM_THRESHOLD,
+            # Improvement 4: Dual-context confidence reduction
+            dual_context_ratio_factor=DUAL_CONTEXT_RATIO_FACTOR,
+            dual_context_max_distance=DUAL_CONTEXT_MAX_DISTANCE,
+            # Improvement 5: Unigram frequency backoff
+            enable_unigram_backoff=ENABLE_UNIGRAM_BACKOFF,
+            unigram_backoff_ratio_factor=UNIGRAM_BACKOFF_RATIO_FACTOR,
+            unigram_backoff_min_segments=UNIGRAM_BACKOFF_MIN_SEGMENTS,
         )
+        ngram_solver.set_corpus_frequencies(l_tokens)
 
         if verbose:
             print('  → FuzzySkeletonizer: y/o branching enabled')
-            print('  → BudgetedCSPDecoder: frequency budgets + humoral cribs')
+            csp_features = ['frequency budgets', 'humoral cribs']
+            if ENABLE_GRADUATED_CSP:
+                csp_features.append(f'graduated scoring (HIGH={CSP_HIGH_CONFIDENCE_THRESHOLD}, MED={CSP_MEDIUM_CONFIDENCE_THRESHOLD})')
+            if ENABLE_SELECTIVE_FUNCTION_WORDS:
+                csp_features.append(f'selective FW (density={FUNCTION_WORD_MAX_DENSITY}x, window={FUNCTION_WORD_WINDOW_SIZE})')
+            print(f'  → BudgetedCSPDecoder: {", ".join(csp_features)}')
             print('  → SyntacticScaffolder: suffix→POS mapping')
-            print(f'  → NgramMaskSolver: confidence threshold = {min_confidence_ratio}x')
+            print(f'  → POS Transition Matrix: {pos_matrix.shape[0]}x{pos_matrix.shape[1]} '
+                  f'({len(pos_vocab)} categories)')
+            features = ['syntactic veto']
+            if ENABLE_LENGTH_SCALED_RATIO:
+                features.append(f'length-scaled ratio ({MIN_CONFIDENCE_RATIO_LONG}x for {LONG_SKELETON_SEGMENTS}+ segs)')
+            if ENABLE_BIDIRECTIONAL_SOLVING:
+                features.append(f'bidirectional (max {MAX_SOLVING_PASSES} passes)')
+            if ENABLE_FUNCTION_WORD_RECOVERY:
+                features.append(f'function word recovery (threshold {FUNCTION_WORD_TRIGRAM_THRESHOLD})')
+            print(f'  → NgramMaskSolver: confidence threshold = {min_confidence_ratio}x '
+                  f'+ {", ".join(features)}')
 
     # ================================================================
     # SUB-PHASE 3: Decode Folios with Budgeted CSP
@@ -146,20 +231,65 @@ def run_phase12_reconstruction(
         if verbose:
             print('\n[3/5] Running Budgeted CSP Decoding...')
 
-        by_folio = extractor.extract_lang_a_by_folio()
+        # Extract ALL folios (Language A and B)
+        if extractor._source == 'ivtff' and extractor._corpus is not None:
+            for fid, page in extractor._corpus.pages.items():
+                tokens = page.paragraph_text.split()
+                if tokens:
+                    by_folio[fid] = tokens
+                    folio_metadata[fid] = _get_folio_metadata(fid, page=page)
+        else:
+            from data.voynich_corpus import SAMPLE_CORPUS
+            for fid, data in SAMPLE_CORPUS.items():
+                text = ' '.join(data.get('text', []))
+                tokens = text.split()
+                if tokens:
+                    by_folio[fid] = tokens
+                    folio_metadata[fid] = {
+                        'language': data.get('lang', 'A'),
+                        'section': data.get('section', 'unknown'),
+                        'scribe': data.get('scribe', 0),
+                    }
+
+        # Apply configurable folio limit
+        folio_items = list(by_folio.items())
+        if PHASE12_FOLIO_LIMIT is not None:
+            folio_items = folio_items[:PHASE12_FOLIO_LIMIT]
+
         csp_translations = {}
+        folio_medium_candidates = {}  # Graduated CSP: position -> candidates per folio
         total_bracket_count = 0
         total_word_count = 0
+        total_medium_count = 0
 
-        for folio, tokens in list(by_folio.items())[:FOLIO_LIMIT_DEFAULT]:
+        for folio, tokens in folio_items:
             if len(tokens) < 5:
                 continue
             decoded = budgeted_decoder.decode_folio(tokens, folio_id=folio)
             csp_translations[folio] = decoded
 
+            # Capture medium-confidence candidates for n-gram solver
+            if ENABLE_GRADUATED_CSP and budgeted_decoder.medium_candidates:
+                folio_medium_candidates[folio] = dict(budgeted_decoder.medium_candidates)
+                total_medium_count += len(budgeted_decoder.medium_candidates)
+
             brackets = _count_brackets(decoded)
             total_bracket_count += brackets
             total_word_count += len(decoded.split())
+
+        # Compute per-language CSP metrics
+        lang_a_words, lang_a_brackets = 0, 0
+        lang_b_words, lang_b_brackets = 0, 0
+        for folio in csp_translations:
+            meta = folio_metadata.get(folio, {})
+            wc = len(csp_translations[folio].split())
+            bc = _count_brackets(csp_translations[folio])
+            if meta.get('language') == 'B':
+                lang_b_words += wc
+                lang_b_brackets += bc
+            else:
+                lang_a_words += wc
+                lang_a_brackets += bc
 
         results['budgeted_csp_translations'] = csp_translations
         results['csp_metrics'] = {
@@ -167,13 +297,30 @@ def run_phase12_reconstruction(
             'total_words': total_word_count,
             'total_brackets': total_bracket_count,
             'bracket_rate': total_bracket_count / max(1, total_word_count),
+            'medium_confidence_tokens': total_medium_count if ENABLE_GRADUATED_CSP else 0,
+            'lang_a': {
+                'folios': sum(1 for f in csp_translations if folio_metadata.get(f, {}).get('language') != 'B'),
+                'words': lang_a_words,
+                'brackets': lang_a_brackets,
+                'bracket_rate': lang_a_brackets / max(1, lang_a_words),
+            },
+            'lang_b': {
+                'folios': sum(1 for f in csp_translations if folio_metadata.get(f, {}).get('language') == 'B'),
+                'words': lang_b_words,
+                'brackets': lang_b_brackets,
+                'bracket_rate': lang_b_brackets / max(1, lang_b_words),
+            },
         }
 
         if verbose:
-            print(f'  → Decoded {len(csp_translations)} folios')
+            n_a = results['csp_metrics']['lang_a']['folios']
+            n_b = results['csp_metrics']['lang_b']['folios']
+            print(f'  → Decoded {len(csp_translations)} folios ({n_a} Lang A, {n_b} Lang B)')
             print(f'  → Total words: {total_word_count}')
             print(f'  → Remaining brackets: {total_bracket_count} '
                   f'({100 * total_bracket_count / max(1, total_word_count):.1f}%)')
+            if ENABLE_GRADUATED_CSP:
+                print(f'  → Medium-confidence tokens (with candidates): {total_medium_count}')
 
     # ================================================================
     # SUB-PHASE 4: Syntactic Scaffolding
@@ -212,12 +359,19 @@ def run_phase12_reconstruction(
         total_resolved = 0
         total_unresolved = 0
         all_confidence_scores = []
+        folio_solve_stats = {}
 
         for folio, scaffolded_text in scaffolded_translations.items():
+            medium_cands = folio_medium_candidates.get(folio) if ENABLE_GRADUATED_CSP else None
             resolved_text, stats = ngram_solver.solve_folio(
-                scaffolded_text, folio_id=folio
+                scaffolded_text, folio_id=folio,
+                medium_candidates=medium_cands,
             )
             final_translations[folio] = resolved_text
+            folio_solve_stats[folio] = {
+                'resolved': stats['resolved'],
+                'unresolved': stats['unresolved'],
+            }
 
             total_resolved += stats['resolved']
             total_unresolved += stats['unresolved']
@@ -225,8 +379,27 @@ def run_phase12_reconstruction(
 
         results['final_translations'] = final_translations
 
-        # Compute overall metrics
+        # Compute overall and per-language metrics
         initial_brackets = results['csp_metrics']['total_brackets']
+        lang_a_initial = results['csp_metrics']['lang_a']['brackets']
+        lang_b_initial = results['csp_metrics']['lang_b']['brackets']
+        lang_a_resolved = sum(
+            folio_solve_stats[f]['resolved'] for f in folio_solve_stats
+            if folio_metadata.get(f, {}).get('language') != 'B'
+        )
+        lang_a_unresolved = sum(
+            folio_solve_stats[f]['unresolved'] for f in folio_solve_stats
+            if folio_metadata.get(f, {}).get('language') != 'B'
+        )
+        lang_b_resolved = sum(
+            folio_solve_stats[f]['resolved'] for f in folio_solve_stats
+            if folio_metadata.get(f, {}).get('language') == 'B'
+        )
+        lang_b_unresolved = sum(
+            folio_solve_stats[f]['unresolved'] for f in folio_solve_stats
+            if folio_metadata.get(f, {}).get('language') == 'B'
+        )
+
         results['ngram_metrics'] = {
             'initial_brackets': initial_brackets,
             'resolved_by_ngram': total_resolved,
@@ -234,14 +407,30 @@ def run_phase12_reconstruction(
             'ngram_resolution_rate': total_resolved / max(1, initial_brackets),
             'final_unresolved_rate': total_unresolved / max(1, total_word_count),
             'min_confidence_ratio': min_confidence_ratio,
+            'lang_a': {
+                'initial_brackets': lang_a_initial,
+                'resolved': lang_a_resolved,
+                'unresolved': lang_a_unresolved,
+                'resolution_rate': lang_a_resolved / max(1, lang_a_initial),
+            },
+            'lang_b': {
+                'initial_brackets': lang_b_initial,
+                'resolved': lang_b_resolved,
+                'unresolved': lang_b_unresolved,
+                'resolution_rate': lang_b_resolved / max(1, lang_b_initial),
+            },
         }
 
-        # Per-folio repetition analysis
+        # Per-folio repetition analysis (with metadata tags)
         per_folio_stats = {}
         for folio, text in final_translations.items():
             top_words = _count_word_repetitions(text)
             max_repeat = max(top_words.values()) if top_words else 0
+            meta = folio_metadata.get(folio, {})
             per_folio_stats[folio] = {
+                'language': meta.get('language', 'A'),
+                'section': meta.get('section', 'unknown'),
+                'scribe': meta.get('scribe', 0),
                 'top_words': top_words,
                 'max_repeat': max_repeat,
                 'word_count': len(text.split()),
@@ -254,20 +443,125 @@ def run_phase12_reconstruction(
             print(f'  → Still unresolved: {total_unresolved} '
                   f'(honestly left as [UNRESOLVED])')
             print(f'  → Resolution rate: {100 * total_resolved / max(1, initial_brackets):.1f}%')
+            if lang_a_initial or lang_b_initial:
+                print(f'  → Lang A: {lang_a_resolved}/{lang_a_initial} resolved '
+                      f'({100 * lang_a_resolved / max(1, lang_a_initial):.1f}%)')
+                print(f'  → Lang B: {lang_b_resolved}/{lang_b_initial} resolved '
+                      f'({100 * lang_b_resolved / max(1, lang_b_initial):.1f}%)')
+
+    # ================================================================
+    # SUB-PHASE 6: Cross-Folio Consistency (Post-Pipeline)
+    # ================================================================
+    if 'consistency' in run_phases and ENABLE_CROSS_FOLIO_CONSISTENCY and 'solve' in run_phases:
+        if verbose:
+            print('\n[6/6] Applying Cross-Folio Consistency...')
+
+        consistency_engine = CrossFolioConsistencyEngine(
+            fuzzy_skel,
+            min_agreement=CROSS_FOLIO_MIN_AGREEMENT,
+            min_occurrences=CROSS_FOLIO_MIN_OCCURRENCES,
+        )
+
+        # Pass 1: Collect skeleton->word mappings from all resolved folios
+        for folio, tokens in by_folio.items():
+            if folio in final_translations:
+                consistency_engine.collect_folio(
+                    final_translations[folio], tokens, folio
+                )
+
+        # Compute consistent mappings
+        consistent_mappings = consistency_engine.compute_consistent_mappings()
+
+        # Pass 2: Apply consistency to fill remaining brackets
+        consistency_per_folio = {}
+        total_consistency_applied = 0
+        for folio, tokens in by_folio.items():
+            if folio in final_translations:
+                updated_text, cstats = consistency_engine.apply_consistency(
+                    final_translations[folio], tokens
+                )
+                final_translations[folio] = updated_text
+                consistency_per_folio[folio] = cstats
+                total_consistency_applied += cstats['applied']
+
+        results['consistency_stats'] = {
+            'total_applied': total_consistency_applied,
+            'unique_consistent_mappings': len(consistent_mappings),
+            'top_mappings': dict(list(consistent_mappings.items())[:10]),
+            'per_folio': consistency_per_folio,
+        }
+
+        # Update per-folio stats to reflect consistency pass
+        for folio, text in final_translations.items():
+            top_words = _count_word_repetitions(text)
+            max_repeat = max(top_words.values()) if top_words else 0
+            meta = folio_metadata.get(folio, {})
+            per_folio_stats[folio] = {
+                'language': meta.get('language', 'A'),
+                'section': meta.get('section', 'unknown'),
+                'scribe': meta.get('scribe', 0),
+                'top_words': top_words,
+                'max_repeat': max_repeat,
+                'word_count': len(text.split()),
+                'remaining_brackets': _count_brackets(text),
+            }
+
+        if verbose:
+            print(f'  → Consistent mappings found: {len(consistent_mappings)}')
+            print(f'  → Tokens resolved by consistency: {total_consistency_applied}')
+            if consistent_mappings:
+                top_5 = list(consistent_mappings.items())[:5]
+                for skel, word in top_5:
+                    print(f'    {skel} → {word}')
 
     # ================================================================
     # Save & Report
     # ================================================================
     elapsed = time.time() - t0
 
+    # Section-level breakdown
+    if 'per_folio_stats' in results:
+        from collections import defaultdict
+        section_agg = defaultdict(lambda: {
+            'folios': 0, 'words': 0, 'remaining_brackets': 0, 'language': '?',
+        })
+        for folio, stats in results['per_folio_stats'].items():
+            sec = stats.get('section', 'unknown')
+            section_agg[sec]['folios'] += 1
+            section_agg[sec]['words'] += stats['word_count']
+            section_agg[sec]['remaining_brackets'] += stats['remaining_brackets']
+            section_agg[sec]['language'] = stats.get('language', '?')
+
+        section_breakdown = {}
+        for sec, s in section_agg.items():
+            resolved = s['words'] - s['remaining_brackets']
+            section_breakdown[sec] = {
+                'language': s['language'],
+                'folios': s['folios'],
+                'total_words': s['words'],
+                'remaining_brackets': s['remaining_brackets'],
+                'resolution_rate': resolved / max(1, s['words']),
+            }
+
+        results['section_breakdown'] = section_breakdown
+        results['total_folios_decoded'] = sum(
+            s['folios'] for s in section_breakdown.values()
+        )
+
     results['elapsed_seconds'] = round(elapsed, 2)
     results['conclusion'] = (
-        'Phase 12 applied four deterministic corrections to Phase 11: '
+        'Phase 12 applied deterministic corrections to Phase 11: '
         '(1) y/o semi-consonant branching resolved additional stems, '
         '(2) frequency budgeting eliminated hora/quae repetition, '
         '(3) POS scaffolding constrained bracket types, '
         '(4) n-gram transition matrix resolved brackets where mathematically '
-        'provable. All remaining brackets are honestly marked [UNRESOLVED]. '
+        'provable, (5) graduated CSP scoring passed medium-confidence candidates '
+        'to the n-gram solver, (6) selective function word reintroduction '
+        'with density gating, (7) cross-folio consistency resolved brackets '
+        'using globally consistent skeleton mappings. '
+        f'Processed {results.get("total_folios_decoded", "?")} folios across all '
+        'manuscript sections. Language A and Language B results reported separately. '
+        'All remaining brackets are honestly marked [UNRESOLVED]. '
         'Every decoded word is traceable and reproducible.'
     )
 
@@ -280,12 +574,54 @@ def run_phase12_reconstruction(
         print('PHASE 12: FINAL RECONSTRUCTED TRANSLATIONS')
         print('=' * 70)
         for folio, text in final_translations.items():
-            print(f'\n[Folio {folio}]:')
+            meta = folio_metadata.get(folio, {})
+            lang_tag = f' [Lang {meta.get("language", "?")}]'
+            print(f'\n[Folio {folio}]{lang_tag}:')
             print(f'  {text[:400]}')
             stats = per_folio_stats[folio]
             print(f'  → {stats["word_count"]} words, '
                   f'{stats["remaining_brackets"]} unresolved, '
                   f'max repeat: {stats["max_repeat"]}')
+
+        # Section summary table
+        if 'section_breakdown' in results:
+            print(f'\n{"=" * 70}')
+            print('SECTION BREAKDOWN:')
+            print(f'{"Section":<20} {"Lang":<6} {"Folios":>7} {"Words":>8} '
+                  f'{"Unresolved":>11} {"Resolution":>11}')
+            print('-' * 70)
+            for sec in sorted(results['section_breakdown'],
+                              key=lambda s: results['section_breakdown'][s]['resolution_rate'],
+                              reverse=True):
+                sb = results['section_breakdown'][sec]
+                print(f'{sec:<20} {sb["language"]:<6} {sb["folios"]:>7} '
+                      f'{sb["total_words"]:>8} {sb["remaining_brackets"]:>11} '
+                      f'{100 * sb["resolution_rate"]:>10.1f}%')
+
+            # Language A vs B summary
+            lang_a_tw = sum(
+                sb['total_words'] for sb in results['section_breakdown'].values()
+                if sb['language'] == 'A'
+            )
+            lang_a_ub = sum(
+                sb['remaining_brackets'] for sb in results['section_breakdown'].values()
+                if sb['language'] == 'A'
+            )
+            lang_b_tw = sum(
+                sb['total_words'] for sb in results['section_breakdown'].values()
+                if sb['language'] == 'B'
+            )
+            lang_b_ub = sum(
+                sb['remaining_brackets'] for sb in results['section_breakdown'].values()
+                if sb['language'] == 'B'
+            )
+            print('-' * 70)
+            la_rate = (lang_a_tw - lang_a_ub) / max(1, lang_a_tw)
+            lb_rate = (lang_b_tw - lang_b_ub) / max(1, lang_b_tw)
+            print(f'{"Language A (total)":<20} {"A":<6} {"":>7} '
+                  f'{lang_a_tw:>8} {lang_a_ub:>11} {100 * la_rate:>10.1f}%')
+            print(f'{"Language B (total)":<20} {"B":<6} {"":>7} '
+                  f'{lang_b_tw:>8} {lang_b_ub:>11} {100 * lb_rate:>10.1f}%')
 
         print(f'\n{"=" * 70}')
         print(f'Total time: {elapsed:.1f}s')

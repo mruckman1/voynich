@@ -52,12 +52,10 @@ def dynamic_levenshtein_threshold(skeleton: str) -> int:
     if not skeleton:
         return 0
     n_segments = len(skeleton.split('-'))
-    if n_segments <= 2:
-        return 0  # Exact match only
-    elif n_segments <= 4:
-        return 1
+    if n_segments <= 4:
+        return 0  # Strict bijection — eliminates false positives for short skeletons
     else:
-        return 2
+        return 1  # Minor flex for scribal abbreviation (e.g., suspension marks)
 
 
 def _is_vowel_position(stem: str, idx: int) -> bool:

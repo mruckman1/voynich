@@ -8,9 +8,19 @@ Usage:
   uv run cli.py --phase 2                # Run phase 2 only
   uv run cli.py --phase 7                # Run phase 7 only
   uv run cli.py --phase 5 --quick        # Run phase 5 in quick mode
+  uv run cli.py --phase 12.5             # Run adversarial defense suite
   uv run cli.py --all                    # Run all 13 phases sequentially
   uv run cli.py --output-dir ./results   # Custom output directory
   uv run cli.py --list                   # List all available phases
+
+Phase 12.5 sub-phase flags:
+  uv run cli.py --phase 12.5 --unicity       # Unicity distance test only
+  uv run cli.py --phase 12.5 --domain-swap   # Domain swap test only
+  uv run cli.py --phase 12.5 --polyglot      # Polyglot dictionary test only
+  uv run cli.py --phase 12.5 --eva-collapse  # EVA collapse test only
+  uv run cli.py --phase 12.5 --ablation            # Ablation study only
+  uv run cli.py --phase 12.5 --compositionality    # Compositionality proof only
+  uv run cli.py --phase 12.5 --dictionary-diagnostic  # Dictionary coverage audit
 
 Phase 13 sub-phase flags:
   uv run cli.py --phase 13 --html        # HTML viewer only
@@ -30,12 +40,47 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 
-def _parse_subphase_flags(phase_num, remaining_args):
+def _parse_subphase_flags(phase_key, remaining_args):
     """Parse sub-phase flags from remaining CLI args for a given phase.
+
+    Args:
+        phase_key: Phase number (int) or key (str, e.g. '12.5')
+        remaining_args: Unparsed CLI arguments
 
     Returns kwargs dict to pass to the phase runner.
     """
     kwargs = {}
+
+    if phase_key == '12.5':
+        phases = []
+        if '--unicity' in remaining_args:
+            phases.append('unicity')
+        if '--domain-swap' in remaining_args:
+            phases.append('domain_swap')
+        if '--polyglot' in remaining_args:
+            phases.append('polyglot')
+        if '--eva-collapse' in remaining_args:
+            phases.append('eva_collapse')
+        if '--ablation' in remaining_args:
+            phases.append('ablation')
+        if '--compositionality' in remaining_args:
+            phases.append('compositionality')
+        if '--dictionary-diagnostic' in remaining_args:
+            phases.append('dictionary_diagnostic')
+        if phases:
+            kwargs['phases'] = phases
+        # --folios N flag
+        if '--folios' in remaining_args:
+            idx = remaining_args.index('--folios')
+            if idx + 1 < len(remaining_args):
+                try:
+                    kwargs['folio_limit'] = int(remaining_args[idx + 1])
+                except ValueError:
+                    pass
+        return kwargs
+
+    # Convert to int for standard phase comparisons
+    phase_num = int(phase_key) if isinstance(phase_key, str) else phase_key
 
     if phase_num == 2:
         phases = []
@@ -162,8 +207,8 @@ def main():
         description='Voynich Manuscript Convergence Attack',
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    parser.add_argument('--phase', type=int, metavar='N',
-                        help='Run a specific phase (2-13)')
+    parser.add_argument('--phase', type=str, metavar='N',
+                        help='Run a specific phase (2-13, or 12.5)')
     parser.add_argument('--phased', action='store_true',
                         help='Run the full phased attack (phases 1-4)')
     parser.add_argument('--all', action='store_true',
@@ -182,20 +227,23 @@ def main():
         from orchestrators import list_phases
         print('Available phases:')
         for num, path in list_phases().items():
-            print(f'  Phase {num:2d}: {path}')
+            label = f'{num:>5}' if isinstance(num, int) else f'{num:>5s}'
+            print(f'  Phase {label}: {path}')
         return
 
     verbose = not args.quiet
     output_root = args.output_dir  # None means use each phase's default
     report_dir = output_root or './output'
 
-    def _phase_dir(phase_num):
+    def _phase_dir(phase_key):
         """Derive per-phase output dir from --output-dir, or None for default."""
         if output_root is None:
             return {}
-        if phase_num == 1:
+        if phase_key == 1:
             return {'output_dir': output_root}
-        return {'output_dir': os.path.join(output_root, f'phase{phase_num}')}
+        # Handle fractional phases like '12.5' -> 'phase12_5'
+        dir_suffix = str(phase_key).replace('.', '_')
+        return {'output_dir': os.path.join(output_root, f'phase{dir_suffix}')}
 
     phase_results = {}
 
@@ -212,14 +260,25 @@ def main():
 
     elif args.phase:
         from orchestrators import get_phase_runner
-        runner = get_phase_runner(args.phase)
+
+        # Normalize phase key: try int first, keep string for fractional
+        phase_key = args.phase
+        try:
+            phase_key_parsed = int(phase_key)
+            phase_key = phase_key_parsed
+        except ValueError:
+            pass  # Keep as string (e.g. '12.5')
+
+        runner = get_phase_runner(phase_key)
 
         # Build kwargs from sub-phase flags
         kwargs = {'verbose': verbose}
-        kwargs.update(_phase_dir(args.phase))
-        kwargs.update(_parse_subphase_flags(args.phase, remaining))
+        kwargs.update(_phase_dir(phase_key))
+        # Pass original string for '12.5', int for standard phases
+        sub_key = args.phase if isinstance(phase_key, str) else phase_key
+        kwargs.update(_parse_subphase_flags(sub_key, remaining))
 
-        phase_results[args.phase] = runner(**kwargs)
+        phase_results[phase_key] = runner(**kwargs)
 
     elif args.phased:
         from convergence_attack import run_phased_attack
