@@ -1,22 +1,33 @@
 """
 Robustness Test Orchestrator
 ============================
-Runs Tier 1 validation tests to preemptively close peer review attack vectors.
+Runs Tier 1 + Tier 2 validation tests to preemptively close peer review
+attack vectors.
 
-Tests:
+Tier 1 Tests:
   3a  Skeleton Length Analysis    — resolution rate by skeleton segment count
   1a  Reversed Text              — word-order sensitivity test
   4c  Consistency Significance   — per-mapping p-values + bidirectional check
   5a  Parameter Sensitivity      — sweep key params across ranges
   5b  Bootstrap Confidence       — jitter all params ±10%, 50 runs
 
+Tier 2 Tests:
+  4b  Bidirectional Consistency  — reverse p-values, cipher character analysis
+  1a+ Multiple Baselines         — 5 null text types x 10 trials
+  5c  Ablation Cascade           — individual + cumulative ablation
+  8a  Cardan Grille              — Rugg's grille hoax hypothesis test
+  2a  Leave-One-Out              — circularity test via matrix depletion
+
 Usage:
   uv run cli.py --robustness              # all tests
+  uv run cli.py --robustness tier1        # Tier 1 only
+  uv run cli.py --robustness tier2        # Tier 2 only
   uv run cli.py --robustness skeleton     # Test 3a only
-  uv run cli.py --robustness reversed     # Test 1a only
-  uv run cli.py --robustness consistency  # Test 4c only
-  uv run cli.py --robustness sensitivity  # Test 5a only
-  uv run cli.py --robustness bootstrap    # Test 5b only
+  uv run cli.py --robustness bidirectional # Test 4b only
+  uv run cli.py --robustness baselines    # Test 1a+ only
+  uv run cli.py --robustness ablation     # Test 5c only
+  uv run cli.py --robustness grille       # Test 8a only
+  uv run cli.py --robustness loo          # Test 2a only
 """
 import json
 import os
@@ -246,23 +257,109 @@ def build_pipeline_components(verbose=True):
     }
 
 
+def _compute_content_metrics(final_translations, latin_skel):
+    """Compute content-quality metrics for resolved words.
+
+    Returns dict with:
+      medical_vocab_rate: fraction of resolved words in medical dictionary
+      function_word_frac: fraction that are Latin function words
+      unique_resolved_types: count of distinct resolved Latin words
+      mean_skeleton_segments: average consonant-segment count of resolved words
+    """
+    from data.expanded_medical_vocabulary import ALL_MEDICAL_CATEGORIES
+    from modules.phase11.csp_decoder import FUNCTION_WORDS
+
+    # Build flat set of all medical forms
+    medical_set = set()
+    for category in ALL_MEDICAL_CATEGORIES.values():
+        for forms in category.values():
+            medical_set.update(f.lower() for f in forms)
+
+    func_set = set(FUNCTION_WORDS.values())
+
+    resolved_words = []
+    for text in final_translations.values():
+        for w in text.split():
+            if not (w.startswith('[') or w.startswith('<')):
+                resolved_words.append(w.lower())
+
+    if not resolved_words:
+        return {
+            'medical_vocab_rate': 0.0,
+            'function_word_frac': 0.0,
+            'unique_resolved_types': 0,
+            'mean_skeleton_segments': 0.0,
+        }
+
+    n = len(resolved_words)
+    medical_count = sum(1 for w in resolved_words if w in medical_set)
+    func_count = sum(1 for w in resolved_words if w in func_set)
+    unique_types = len(set(resolved_words))
+
+    # Mean skeleton segments
+    seg_counts = []
+    for w in resolved_words:
+        skel = latin_skel.get_skeleton(w)
+        if skel:
+            seg_counts.append(len(skel.split('-')))
+    mean_segs = sum(seg_counts) / len(seg_counts) if seg_counts else 0.0
+
+    return {
+        'medical_vocab_rate': round(medical_count / n, 4),
+        'function_word_frac': round(func_count / n, 4),
+        'unique_resolved_types': unique_types,
+        'mean_skeleton_segments': round(mean_segs, 2),
+    }
+
+
+def run_single_pass_pipeline(components, by_folio_override=None, verbose=False):
+    """Run CSP + scaffold + solve only — no consistency, no iterative refinement.
+
+    Matches the pipeline depth of the Phase 12.5 unicity test for fair comparison.
+    """
+    return run_full_pipeline(
+        components,
+        by_folio_override=by_folio_override,
+        disabled_features={
+            'cross_folio_consistency', 'relaxed_consistency',
+            'iterative_refinement',
+        },
+        verbose=verbose,
+    )
+
+
 def run_full_pipeline(
     components, by_folio_override=None, solver_override=None,
     decoder_override=None, consistency_min_agreement=None,
-    verbose=False,
+    disabled_features=None, verbose=False,
+    compute_content_metrics=False,
 ):
     """Run the full Phase 12 pipeline and return final_translations + resolution rate.
 
     Reuses shared components. Allows overriding by_folio (for reversed text),
     solver (for parameter sweeps), decoder (for CSP threshold sweeps),
     and consistency params.
+
+    Args:
+        disabled_features: Optional set of feature names to disable. Valid names:
+            'cross_folio_consistency', 'relaxed_consistency', 'graduated_csp',
+            'pos_backoff', 'char_ngram', 'iterative_refinement'.
+        compute_content_metrics: If True, include medical_vocab_rate etc. in result.
     """
+    disabled = disabled_features or set()
     by_folio = by_folio_override or components['by_folio']
     folio_metadata = components['folio_metadata']
     decoder = decoder_override or components['decoder']
     scaffolder = components['scaffolder']
     solver = solver_override or components['solver']
     fuzzy_skel = components['fuzzy_skel']
+
+    use_graduated_csp = ENABLE_GRADUATED_CSP and 'graduated_csp' not in disabled
+    use_consistency = ENABLE_CROSS_FOLIO_CONSISTENCY and 'cross_folio_consistency' not in disabled
+    use_relaxed = ENABLE_RELAXED_CONSISTENCY and 'relaxed_consistency' not in disabled
+    use_pos_backoff = ENABLE_POS_BACKOFF and 'pos_backoff' not in disabled
+    use_char_ngram = ENABLE_CHAR_NGRAM_FALLBACK and 'char_ngram' not in disabled
+    use_iterative = ENABLE_ITERATIVE_REFINEMENT and 'iterative_refinement' not in disabled
 
     # CSP decode
     csp_translations = {}
@@ -272,7 +369,7 @@ def run_full_pipeline(
             continue
         decoded = decoder.decode_folio(tokens, folio_id=folio)
         csp_translations[folio] = decoded
-        if ENABLE_GRADUATED_CSP and decoder.medium_candidates:
+        if use_graduated_csp and decoder.medium_candidates:
             folio_medium_candidates[folio] = dict(decoder.medium_candidates)
 
     # Scaffold
@@ -283,14 +380,14 @@ def run_full_pipeline(
     # Solve
     final_translations = {}
     for folio, scaffolded_text in scaffolded_translations.items():
-        medium_cands = folio_medium_candidates.get(folio) if ENABLE_GRADUATED_CSP else None
+        medium_cands = folio_medium_candidates.get(folio) if use_graduated_csp else None
         resolved_text, stats = solver.solve_folio(
             scaffolded_text, folio_id=folio, medium_candidates=medium_cands,
         )
         final_translations[folio] = resolved_text
 
     # Cross-folio consistency
-    if ENABLE_CROSS_FOLIO_CONSISTENCY:
+    if use_consistency:
         min_agr = consistency_min_agreement or CROSS_FOLIO_MIN_AGREEMENT
         consistency_engine = CrossFolioConsistencyEngine(
             fuzzy_skel, min_agreement=min_agr,
@@ -309,7 +406,7 @@ def run_full_pipeline(
                 )
                 final_translations[folio] = updated_text
 
-        if ENABLE_RELAXED_CONSISTENCY:
+        if use_relaxed:
             consistency_engine.compute_relaxed_mappings(
                 min_occurrences_relaxed=CROSS_FOLIO_MIN_OCCURRENCES_RELAXED,
             )
@@ -321,7 +418,7 @@ def run_full_pipeline(
                     final_translations[folio] = updated_text
 
     # POS backoff
-    if ENABLE_POS_BACKOFF:
+    if use_pos_backoff:
         for folio in final_translations:
             updated_text, _ = solver.pos_backoff_pass(
                 final_translations[folio], folio_id=folio,
@@ -329,7 +426,7 @@ def run_full_pipeline(
             final_translations[folio] = updated_text
 
     # Char n-gram fallback
-    if ENABLE_CHAR_NGRAM_FALLBACK:
+    if use_char_ngram:
         for folio in final_translations:
             updated_text, _ = solver.char_ngram_pass(
                 final_translations[folio], folio_id=folio,
@@ -337,7 +434,7 @@ def run_full_pipeline(
             final_translations[folio] = updated_text
 
     # Iterative refinement
-    if ENABLE_ITERATIVE_REFINEMENT:
+    if use_iterative:
         for iteration in range(ITERATIVE_MAX_PASSES):
             total_refined = 0
             for folio in final_translations:
@@ -349,7 +446,7 @@ def run_full_pipeline(
                 final_translations[folio] = updated_text
                 total_refined += n
 
-            if ENABLE_CROSS_FOLIO_CONSISTENCY:
+            if use_consistency:
                 min_agr = consistency_min_agreement or CROSS_FOLIO_MIN_AGREEMENT
                 iter_consistency = CrossFolioConsistencyEngine(
                     fuzzy_skel, min_agreement=min_agr,
@@ -361,7 +458,7 @@ def run_full_pipeline(
                             final_translations[folio], tokens, folio,
                         )
                 iter_consistency.compute_consistent_mappings()
-                if ENABLE_RELAXED_CONSISTENCY:
+                if use_relaxed:
                     iter_consistency.compute_relaxed_mappings(
                         min_occurrences_relaxed=CROSS_FOLIO_MIN_OCCURRENCES_RELAXED,
                     )
@@ -373,7 +470,7 @@ def run_full_pipeline(
                         final_translations[folio] = updated
                         total_refined += cstats['applied']
 
-            if ENABLE_POS_BACKOFF:
+            if use_pos_backoff:
                 for folio in final_translations:
                     t, n = solver.pos_backoff_pass(
                         final_translations[folio], folio_id=folio,
@@ -381,7 +478,7 @@ def run_full_pipeline(
                     final_translations[folio] = t
                     total_refined += n
 
-            if ENABLE_CHAR_NGRAM_FALLBACK:
+            if use_char_ngram:
                 for folio in final_translations:
                     t, n = solver.char_ngram_pass(
                         final_translations[folio], folio_id=folio,
@@ -414,7 +511,7 @@ def run_full_pipeline(
     lang_a_rate = (lang_a_words - lang_a_brackets) / max(1, lang_a_words)
     lang_b_rate = (lang_b_words - lang_b_brackets) / max(1, lang_b_words)
 
-    return {
+    result = {
         'final_translations': final_translations,
         'overall_resolution': overall_rate,
         'lang_a_resolution': lang_a_rate,
@@ -423,34 +520,67 @@ def run_full_pipeline(
         'total_brackets': total_brackets,
     }
 
+    if compute_content_metrics:
+        result['content_metrics'] = _compute_content_metrics(
+            final_translations, components['latin_skel'],
+        )
+
+    return result
+
+
+TIER1_TESTS = ['skeleton', 'reversed', 'consistency', 'sensitivity', 'bootstrap']
+TIER2_TESTS = ['bidirectional', 'baselines', 'ablation', 'grille', 'loo']
+ALL_TESTS = TIER1_TESTS + TIER2_TESTS
+
 
 def run_robustness_tests(
     tests: Optional[List[str]] = None,
     verbose: bool = True,
     output_dir: str = './output/robustness',
 ) -> Dict:
-    """Run Tier 1 robustness validation tests.
+    """Run Tier 1 + Tier 2 robustness validation tests.
 
     Args:
         tests: List of test names to run, or None for all.
-               Valid: 'skeleton', 'reversed', 'consistency', 'sensitivity', 'bootstrap'
+               Also accepts 'tier1' or 'tier2' shortcuts.
         verbose: Print progress and results.
         output_dir: Output directory for JSON reports.
     """
     ensure_output_dir(output_dir)
     t0 = time.time()
 
-    all_tests = ['skeleton', 'reversed', 'consistency', 'sensitivity', 'bootstrap']
-    run_tests = tests or all_tests
+    # Expand tier shortcuts
+    run_tests = tests or ALL_TESTS
+    expanded = []
+    for t in run_tests:
+        if t == 'tier1':
+            expanded.extend(TIER1_TESTS)
+        elif t == 'tier2':
+            expanded.extend(TIER2_TESTS)
+        elif t == 'all':
+            expanded.extend(ALL_TESTS)
+        else:
+            expanded.append(t)
+    run_tests = expanded
+
+    tier1_running = any(t in TIER1_TESTS for t in run_tests)
+    tier2_running = any(t in TIER2_TESTS for t in run_tests)
 
     if verbose:
         print('=' * 70)
-        print('TIER 1 ROBUSTNESS VALIDATION TESTS')
+        tiers = []
+        if tier1_running:
+            tiers.append('TIER 1')
+        if tier2_running:
+            tiers.append('TIER 2')
+        print(f'{" + ".join(tiers)} ROBUSTNESS VALIDATION TESTS')
         print('=' * 70)
 
     components = build_pipeline_components(verbose=verbose)
 
     results = {}
+
+    # --- Tier 1 tests ---
 
     if 'skeleton' in run_tests:
         if verbose:
@@ -501,6 +631,58 @@ def run_robustness_tests(
         test = BootstrapConfidence(components, verbose=verbose)
         results['bootstrap'] = test.run()
         _save_result(output_dir, 'bootstrap_confidence.json', results['bootstrap'])
+
+    # --- Tier 2 tests ---
+
+    if 'bidirectional' in run_tests:
+        if verbose:
+            print(f'\n{"=" * 70}')
+            print('TEST 4b: Bidirectional Consistency (Strengthened)')
+            print('=' * 70)
+        from modules.robustness.consistency_significance import BidirectionalConsistency
+        test = BidirectionalConsistency(components, verbose=verbose)
+        results['bidirectional'] = test.run()
+        _save_result(output_dir, 'bidirectional_consistency.json', results['bidirectional'])
+
+    if 'baselines' in run_tests:
+        if verbose:
+            print(f'\n{"=" * 70}')
+            print('TEST 1a+: Multiple Random Baselines')
+            print('=' * 70)
+        from modules.robustness.multiple_baselines import MultipleBaselines
+        test = MultipleBaselines(components, verbose=verbose)
+        results['baselines'] = test.run()
+        _save_result(output_dir, 'multiple_baselines.json', results['baselines'])
+
+    if 'ablation' in run_tests:
+        if verbose:
+            print(f'\n{"=" * 70}')
+            print('TEST 5c: Ablation Cascade')
+            print('=' * 70)
+        from modules.robustness.ablation_cascade import AblationCascade
+        test = AblationCascade(components, verbose=verbose)
+        results['ablation'] = test.run()
+        _save_result(output_dir, 'ablation_cascade.json', results['ablation'])
+
+    if 'grille' in run_tests:
+        if verbose:
+            print(f'\n{"=" * 70}')
+            print('TEST 8a: Cardan Grille Test')
+            print('=' * 70)
+        from modules.robustness.cardan_grille_test import CardanGrilleTest
+        test = CardanGrilleTest(components, verbose=verbose)
+        results['grille'] = test.run()
+        _save_result(output_dir, 'cardan_grille_test.json', results['grille'])
+
+    if 'loo' in run_tests:
+        if verbose:
+            print(f'\n{"=" * 70}')
+            print('TEST 2a: Leave-One-Out Validation')
+            print('=' * 70)
+        from modules.robustness.leave_one_out import LeaveOneOutValidation
+        test = LeaveOneOutValidation(components, verbose=verbose)
+        results['loo'] = test.run()
+        _save_result(output_dir, 'leave_one_out.json', results['loo'])
 
     elapsed = time.time() - t0
     results['elapsed_seconds'] = round(elapsed, 2)

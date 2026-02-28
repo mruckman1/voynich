@@ -243,7 +243,9 @@ def main():
                         help='List all available phases')
     parser.add_argument('--robustness', type=str, nargs='?', const='all',
                         choices=['all', 'skeleton', 'reversed', 'consistency',
-                                 'sensitivity', 'bootstrap'],
+                                 'sensitivity', 'bootstrap',
+                                 'bidirectional', 'baselines', 'ablation',
+                                 'grille', 'loo', 'tier1', 'tier2'],
                         help='Run robustness validation tests')
     parser.add_argument('--quiet', '-q', action='store_true',
                         help='Suppress verbose output')
