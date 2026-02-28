@@ -25,7 +25,7 @@ The core insight: rather than attacking the cipher monolithically, multiple inde
 | 12 | Full-corpus contextual reconstruction | MODERATE | 224 folios, 41.4% Lang A / 40.5% Lang B resolution |
 | 12 | Content: Medieval Latin medical recipes | MODERATE | Recurring: *bibe, coque, oleo, aloe, bufo, aqua, hora* |
 | 12.5 | Adversarial defense suite | HIGH | 5 tests: unicity, domain swap, polyglot, EVA collapse, ablation |
-| 13 | Scholarly synthesis: 114 folios decoded | MODERATE | HTML viewer, English glosser, HITL console, whitepaper |
+| 13 | Illustration-text correlation: 114 folios decoded | MODERATE | Decode + botanical validation fitness function |
 | 13 | Illustration-text correlation: 2/22 folios match | LOW | *achillea* on f90r1, *ruta* on f96v; permutation p=0.081 |
 
 ## Architecture
@@ -43,7 +43,7 @@ voynich/
 │   ├── _utils.py                      # File I/O and output directory helpers
 │   ├── phase2..phase12.py             # Individual phase orchestrators
 │   ├── phase12_5.py                   # Adversarial defense suite (5 tests + diagnostics)
-│   └── phase13.py                     # Scholarly synthesis (HTML, glosser, HITL, whitepaper)
+│   └── phase13.py                     # Illustration-text correlation (decode + botanical validation)
 │
 ├── data/
 │   ├── voynich_corpus.py              # EVA transliterations, scribe mappings, zodiac labels
@@ -53,7 +53,6 @@ voynich/
 │   ├── glyph_alphabets.py            # EVA glyph properties, positional classes, ligatures
 │   ├── latin_syllables.py            # Medieval Latin syllabification rules
 │   ├── medieval_text_templates.py    # Latin herbal recipe templates
-│   ├── english_glossary.json         # Latin-to-English dictionary for Phase 13
 │   ├── Voynich_Botanicals.csv        # 91 botanical IDs: scientific name → medieval Latin
 │   ├── botanical_name_mapping.py     # Folio→species→medieval Latin lookup bridge
 │   ├── folio_illustration_priors.py  # Per-folio botanical word boost tables (3-tier prior)
@@ -99,7 +98,7 @@ voynich/
 │   ├── phase11/                      # Phonetic skeletonizer, CSP decoder
 │   ├── phase12/                      # Fuzzy skeletonizer, syntactic scaffold, n-gram mask solver, char n-gram model
 │   ├── phase12_5/                    # Adversarial tests (unicity, domain swap, polyglot, EVA collapse, ablation)
-│   └── phase13/                      # English glosser, HTML viewer, HITL console, whitepaper, illustration correlation
+│   └── phase13/                      # Illustration-text correlation (botanical validation)
 │
 └── output/
     ├── phase3/                       # Language B profile, hybrid model results
@@ -113,12 +112,12 @@ voynich/
     ├── phase11/                      # CSP phonetic translations
     ├── phase12/                      # Final contextual reconstruction
     ├── phase12_5/                    # Adversarial defense verdicts
-    └── phase13/                      # Full translations, English glosses, HTML viewer, whitepaper
+    └── phase13/                      # Full translations, illustration-text correlation
 ```
 
 ## The Phase Framework
 
-Each phase proves a specific hypothesis, unlocking the next phase's assumptions. Phases 1-12 form the core decoding pipeline, Phase 12.5 validates results adversarially, and Phase 13 produces scholarly output.
+Each phase proves a specific hypothesis, unlocking the next phase's assumptions. Phases 1-12 form the core decoding pipeline, Phase 12.5 validates results adversarially, and Phase 13 provides an objective fitness function via illustration-text correlation.
 
 ### Phase 1: Convergence Attack (5 Strategies)
 
@@ -369,16 +368,12 @@ Additional diagnostics:
 
 Each test produces a pass/fail verdict. The overall defense score is `tests_passed / 5`.
 
-### Phase 13: Scholarly Synthesis
+### Phase 13: Illustration-Text Correlation
 
-Transforms all decoding output into readable, publishable formats:
+Decodes the full corpus and validates the decipherment against independent botanical identifications -- the objective fitness function for parameter tuning:
 
 1. **Full-Corpus Decode** -- runs the Phase 12 pipeline on all 114 folios (10,791 words)
-2. **Interlinear HTML Viewer** -- 4-tier offline HTML (Voynich glyph / skeleton / Latin / English) with full traceability
-3. **Deterministic English Glosser** -- Latin-to-English dictionary + inflection rules; 26.9% gloss rate across 114 folios
-4. **HITL Console** -- interactive human-in-the-loop editor for manually resolving `[UNRESOLVED]` tokens
-5. **Academic Whitepaper** -- structured Markdown with matplotlib charts (bracket waterfall, folio frequency, resolution by folio, Zipf comparison)
-6. **Illustration-Text Correlation** -- cross-validates decoded text against independent botanical identifications from manuscript illustrations. For each of 28 herbal folios with published plant IDs (Tucker & Talbert, Bax, Sherwood), searches decoded Latin for medieval Latin names of the visually identified species. Matches (e.g., *achillea* decoded on f90r1 where yarrow was identified from the illustration) provide external physical validation. Statistical significance assessed via binomial and permutation tests (10,000 trials).
+2. **Illustration-Text Correlation** -- cross-validates decoded text against independent botanical identifications from manuscript illustrations. For each of 28 herbal folios with published plant IDs (Tucker & Talbert, Bax, Sherwood), searches decoded Latin for medieval Latin names of the visually identified species. Matches (e.g., *achillea* decoded on f90r1 where yarrow was identified from the illustration) provide external physical validation. Statistical significance assessed via binomial and permutation tests (10,000 trials). If a parameter tweak in Phase 5 or 12 causes the correlation p-value to rise from significant to random, the tweak broke the physical grounding.
 
 ## Sample Translation Output (Phase 12, folio f1r)
 
@@ -475,13 +470,9 @@ uv run cli.py --phase 12.5 --ablation             # Ablation study only
 uv run cli.py --phase 12.5 --compositionality     # Compositionality proof (opt-in)
 uv run cli.py --phase 12.5 --dictionary-diagnostic  # Dictionary coverage audit
 
-# Phase 13: scholarly synthesis
-uv run cli.py --phase 13                           # Full synthesis pipeline
-uv run cli.py --phase 13 --html                    # HTML viewer only
-uv run cli.py --phase 13 --gloss                   # English glosser only
-uv run cli.py --phase 13 --hitl                    # Interactive HITL console
-uv run cli.py --phase 13 --whitepaper              # Whitepaper generation only
-uv run cli.py --phase 13 --correlation             # Illustration-text correlation
+# Phase 13: illustration-text correlation
+uv run cli.py --phase 13                           # Decode + correlation (default)
+uv run cli.py --phase 13 --correlation             # Correlation only (uses cached decode)
 uv run cli.py --phase 13 --folios 20               # Limit decode to 20 folios
 ```
 
