@@ -90,6 +90,7 @@ class NgramMaskSolver:
         enable_illustration_prior: bool = False,
         illustration_prior: Optional[Dict[str, Dict[str, float]]] = None,
         illustration_boosted_ratio_factor: float = 0.5,
+        illustration_prior_min_segments: int = 2,
         enable_adaptive_confidence: bool = False,
         adaptive_confidence_2_cand_factor: float = 0.75,
         adaptive_confidence_few_cand_factor: float = 0.9,
@@ -203,6 +204,7 @@ class NgramMaskSolver:
         self.enable_illustration_prior = enable_illustration_prior
         self.illustration_prior = illustration_prior or {}
         self.illustration_boosted_ratio_factor = illustration_boosted_ratio_factor
+        self.illustration_prior_min_segments = illustration_prior_min_segments
         self._illustration_boosted_resolutions = 0
 
         self.enable_adaptive_confidence = enable_adaptive_confidence
@@ -555,7 +557,7 @@ class NgramMaskSolver:
 
                 if (illust_boosts and pos_filtered):
                     seg_count = self._get_skeleton_segment_count(voynich_token)
-                    if seg_count >= self.unigram_backoff_min_segments:
+                    if seg_count >= self.illustration_prior_min_segments:
                         illust_candidates = [
                             (illust_boosts[c], c) for c in pos_filtered
                             if c in illust_boosts and illust_boosts[c] >= 2.0

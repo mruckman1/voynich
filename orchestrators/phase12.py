@@ -38,13 +38,14 @@ from orchestrators._config import (
     ENABLE_CROSS_FOLIO_CONSISTENCY, CROSS_FOLIO_MIN_AGREEMENT, CROSS_FOLIO_MIN_OCCURRENCES,
     ENABLE_GRADUATED_CSP, CSP_HIGH_CONFIDENCE_THRESHOLD, CSP_MEDIUM_CONFIDENCE_THRESHOLD,
     ENABLE_SELECTIVE_FUNCTION_WORDS, FUNCTION_WORD_MAX_DENSITY, FUNCTION_WORD_WINDOW_SIZE,
-    ENABLE_ILLUSTRATION_PRIOR, ILLUSTRATION_BOOSTED_RATIO_FACTOR,
+    ENABLE_ILLUSTRATION_PRIOR, ILLUSTRATION_BOOSTED_RATIO_FACTOR, ILLUSTRATION_PRIOR_MIN_SEGMENTS,
     ENABLE_ADAPTIVE_CONFIDENCE, ADAPTIVE_CONFIDENCE_2_CAND_FACTOR,
     ADAPTIVE_CONFIDENCE_FEW_CAND_FACTOR,
     ENABLE_SINGLE_CAND_CHAR_RESCUE, SINGLE_CAND_MIN_SEGMENTS, SINGLE_CAND_MIN_CHAR_SCORE,
     ENABLE_RELAXED_CONSISTENCY, CROSS_FOLIO_MIN_OCCURRENCES_RELAXED,
     ENABLE_ITERATIVE_REFINEMENT, ITERATIVE_MAX_PASSES, ITERATIVE_MIN_IMPROVEMENT,
     ENABLE_SECTION_SOLVERS, SECTION_CORPUS_FRACTION,
+    ENABLE_ENSEMBLE_GENERIC_FALLBACK,
 )
 from orchestrators._foundation import build_morphological_context
 
@@ -79,6 +80,26 @@ def _count_word_repetitions(text: str) -> Dict[str, int]:
     words = [w for w in text.split() if not w.startswith('[') and not w.startswith('<')]
     from collections import Counter
     return dict(Counter(words).most_common(10))
+
+def _merge_resolved_texts(section_text: str, generic_text: str) -> str:
+    """Merge two resolved texts position-by-position, keeping resolved over bracketed.
+
+    When both resolve to different words, prefer section (domain expertise).
+    Generic solver is only a rescue for tokens the section solver couldn't resolve.
+    """
+    s_words = section_text.split()
+    g_words = generic_text.split()
+    if len(s_words) != len(g_words):
+        return section_text
+    merged = []
+    for sw, gw in zip(s_words, g_words):
+        s_bracket = sw.startswith('[') or sw.startswith('<')
+        g_bracket = gw.startswith('[') or gw.startswith('<')
+        if s_bracket and not g_bracket:
+            merged.append(gw)
+        else:
+            merged.append(sw)
+    return ' '.join(merged)
 
 def _normalize_section(section: str, folio: str) -> str:
     """Map IVTFF illustration-based section names to canonical section names."""
@@ -231,6 +252,7 @@ def run_phase12_reconstruction(
             enable_illustration_prior=ENABLE_ILLUSTRATION_PRIOR,
             illustration_prior=_build_illustration_prior_safe(),
             illustration_boosted_ratio_factor=ILLUSTRATION_BOOSTED_RATIO_FACTOR,
+            illustration_prior_min_segments=ILLUSTRATION_PRIOR_MIN_SEGMENTS,
             enable_adaptive_confidence=ENABLE_ADAPTIVE_CONFIDENCE,
             adaptive_confidence_2_cand_factor=ADAPTIVE_CONFIDENCE_2_CAND_FACTOR,
             adaptive_confidence_few_cand_factor=ADAPTIVE_CONFIDENCE_FEW_CAND_FACTOR,
@@ -419,6 +441,18 @@ def run_phase12_reconstruction(
                 scaffolded_text, folio_id=folio,
                 medium_candidates=medium_cands,
             )
+
+            # Ensemble: also run generic solver to rescue unresolved tokens
+            if ENABLE_ENSEMBLE_GENERIC_FALLBACK and solver is not section_solvers['_generic']:
+                generic_text, _g_stats = section_solvers['_generic'].solve_folio(
+                    scaffolded_text, folio_id=folio, medium_candidates=medium_cands,
+                )
+                merged = _merge_resolved_texts(resolved_text, generic_text)
+                rescued = _count_brackets(resolved_text) - _count_brackets(merged)
+                stats['resolved'] += rescued
+                stats['unresolved'] = max(0, stats['unresolved'] - rescued)
+                resolved_text = merged
+
             final_translations[folio] = resolved_text
             folio_solve_stats[folio] = {
                 'resolved': stats['resolved'],
@@ -645,6 +679,18 @@ def run_phase12_reconstruction(
                     by_folio.get(folio, []),
                     folio_id=folio,
                 )
+
+                # Ensemble: also try generic refine_pass to rescue tokens
+                if ENABLE_ENSEMBLE_GENERIC_FALLBACK and solver is not section_solvers['_generic']:
+                    g_text, _gn = section_solvers['_generic'].refine_pass(
+                        final_translations[folio],
+                        by_folio.get(folio, []),
+                        folio_id=folio,
+                    )
+                    before_brackets = _count_brackets(updated_text)
+                    updated_text = _merge_resolved_texts(updated_text, g_text)
+                    n += before_brackets - _count_brackets(updated_text)
+
                 final_translations[folio] = updated_text
                 total_refined += n
 

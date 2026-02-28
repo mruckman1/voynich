@@ -22,12 +22,12 @@ The core insight: rather than attacking the cipher monolithically, multiple inde
 | 9 | Syllabic constraints prevent hallucination | MODERATE | 538 syllables, 13 sigla rules, beam width 25 |
 | 10 | Dictionary-guided translation with humoral patterns | MODERATE | 914 vocabulary, 50,027 tokens; *calida et humida in primo gradu* |
 | 11 | CSP eliminates repetition; 36.5% bracketed | MODERATE | 655 skeletons; 481 brackets -> 97 resolved by n-gram -> 25.6% final |
-| 12 | Full-corpus contextual reconstruction | MODERATE | 224 folios, 50.7% Lang A / 53.6% Lang B resolution |
-| 12 | Section-specific decoding confirms topic variation | MODERATE | Cosmological 58.6%, astronomical 54.9%, biological 53.9%, pharmaceutical 53.0% |
+| 12 | Full-corpus contextual reconstruction | MODERATE | 224 folios, 52.9% Lang A / 55.6% Lang B resolution |
+| 12 | Section-specific decoding confirms topic variation | MODERATE | Cosmological 61.4%, biological 58.1%, astronomical 57.1%, pharmaceutical 55.9% |
 | 12 | Content: Medieval Latin medical recipes | MODERATE | Recurring: *bibe, coque, oleo, aloe, bufo, aqua, hora* |
 | 12.5 | Adversarial defense suite | HIGH | 5 tests: unicity, domain swap, polyglot, EVA collapse, ablation |
 | 13 | Illustration-text correlation: 114 folios decoded | MODERATE | Decode + botanical validation fitness function |
-| 13 | Illustration-text correlation: 2/22 folios match | LOW | *achillea* on f90r1, *ruta* on f96v; permutation p=0.081 |
+| 13 | Illustration-text correlation: 2/22 folios match | LOW | *achillea* on f90r1, *ruta* on f96v; permutation p=0.094 |
 | 14 | Medical vocabulary significantly above random | HIGH | 77.3% medical; p=0.0225 vs 50/50 general Latin baseline |
 | 14 | Structural coherence not yet detectable | EXPECTED | Entropy, templates, collocations not significant at 50% resolution |
 
@@ -349,28 +349,30 @@ Full-corpus decoding combining CSP, syntactic scaffolding, n-gram mask solving, 
 4. **Budgeted CSP Decoding** -- frequency budgeting + humoral crib injection across all 224 folios
 5. **Syntactic Scaffolding** -- POS-tag remaining brackets via Latin suffix patterns
 6. **Deterministic N-Gram Mask Solving** -- word-level bigram scoring with bidirectional multi-pass, function word recovery, dual-context confidence reduction, unigram frequency backoff, adaptive candidate-count confidence ratios, single-candidate char n-gram rescue, illustration-guided disambiguation. Each folio is routed to its section-specific solver.
-7. **Cross-Folio Consistency** -- skeleton→word mappings agreed across 3+ folios override local ambiguity, plus a relaxed pass accepting 2+ occurrences with 100% agreement. Runs globally across all sections.
-8. **POS Backoff Pass** -- when word-level P(candidate|prev) = 0, falls back to POS transition probability (8×8 matrix) as a coarser discriminator. Runs post-consistency to avoid poisoning cross-folio agreement. Illustration boost applied to POS-scored candidates on botanical folios.
-9. **Character N-Gram Fallback** -- for remaining unresolved tokens, scores candidates by Latin character trigram plausibility. Unlike word-level and POS-level scoring, does not require resolved neighbors. Uses average log-probability with score gap thresholding. Score gap threshold relaxed for illustration-boosted candidates.
-10. **Illustration-Guided Disambiguation** -- per-folio multiplicative boost for candidates semantically related to the plant depicted in each folio's illustration. Three tiers: Tier 1 (exact plant names + inflections, 2.0×), Tier 2 (medicinal properties + humoral terms, 1.3×), Tier 3 (generic botanical vocabulary, 1.1×). Boost is multiplicative on transition scores (0 × boost = 0), so the prior alone cannot create resolutions -- it only disambiguates when multiple candidates are competitive. Confidence ratio reduced to 2.5× for boosted winners. Covers 25 testable botanical folios with ~60-94 boosted words each. Built from independent botanical identifications (Tucker & Talbert, Bax, Sherwood) via `build_illustration_prior()`.
-11. **Iterative Refinement** -- after the initial solve + consistency + fallback passes, re-attempts all UNRESOLVED tokens using the newly resolved context as bigram anchors. Runs up to 3 iterations of (refine → consistency → POS backoff → char n-gram), converging when fewer than 10 new tokens are resolved per iteration. Each iteration creates new resolved neighbors that unlock previously unresolvable positions.
+7. **Ensemble Generic Fallback** -- after the section-specific solver processes each folio, the generic solver also decodes it. Results are merged position-by-position: if the section solver left a token unresolved but the generic solver resolved it, the generic resolution is kept. When both resolve a token to different words, the section solver's domain expertise is preferred. This ensures section-specific tuning never regresses resolutions achievable by the generic corpus.
+8. **Cross-Folio Consistency** -- skeleton→word mappings agreed across 3+ folios override local ambiguity, plus a relaxed pass accepting 2+ occurrences with 100% agreement. Runs globally across all sections.
+9. **POS Backoff Pass** -- when word-level P(candidate|prev) = 0, falls back to POS transition probability (8×8 matrix) as a coarser discriminator. Runs post-consistency to avoid poisoning cross-folio agreement. Illustration boost applied to POS-scored candidates on botanical folios.
+10. **Character N-Gram Fallback** -- for remaining unresolved tokens, scores candidates by Latin character trigram plausibility. Unlike word-level and POS-level scoring, does not require resolved neighbors. Uses average log-probability with score gap thresholding. Score gap threshold relaxed for illustration-boosted candidates.
+11. **Illustration-Guided Disambiguation** -- per-folio multiplicative boost for candidates semantically related to the plant depicted in each folio's illustration. Three tiers: Tier 1 (exact plant names + inflections, 2.0×), Tier 2 (medicinal properties + humoral terms, 1.3×), Tier 3 (generic botanical vocabulary, 1.1×). Boost is multiplicative on transition scores (0 × boost = 0), so the prior alone cannot create resolutions -- it only disambiguates when multiple candidates are competitive. When bigram scores are zero, illustration-boosted candidates can resolve via a dedicated fallback pass (minimum 2 skeleton segments for Tier 1 candidates, ensuring short-skeleton plant names like *achillea* are not blocked). Confidence ratio reduced to 2.5× for boosted winners. Covers 25 testable botanical folios with ~60-94 boosted words each. Built from independent botanical identifications (Tucker & Talbert, Bax, Sherwood) via `build_illustration_prior()`.
+12. **Iterative Refinement** -- after the initial solve + consistency + fallback passes, re-attempts all UNRESOLVED tokens using the newly resolved context as bigram anchors. Runs up to 3 iterations of (refine → consistency → POS backoff → char n-gram), converging when fewer than 10 new tokens are resolved per iteration. Each iteration also applies ensemble generic fallback to rescue tokens the section solver still cannot resolve. Each iteration creates new resolved neighbors that unlock previously unresolvable positions.
 
 **Current results (224 folios):**
-- Language A: 50.7% resolution (12,969 words, 6,395 unresolved)
-- Language B: 53.6% resolution (23,265 words, 10,806 unresolved)
+- Language A: 52.9% resolution (12,969 words, 6,105 unresolved)
+- Language B: 55.6% resolution (23,265 words, 10,333 unresolved)
 
 **Per-section resolution:**
 
 | Section | Folios | Resolution |
 |---------|--------|-----------|
-| Cosmological | 10 | 58.6% |
-| Astronomical | 20 | 54.9% |
-| Biological | 19 | 53.9% |
-| Pharmaceutical | 30 | 53.0% |
-| Recipes | 31 | 52.3% |
-| Herbal A | 109 | 49.7% |
+| Cosmological | 10 | 61.4% |
+| Herbal B | 2 | 58.6% |
+| Biological | 19 | 58.1% |
+| Astronomical | 20 | 57.1% |
+| Pharmaceutical | 30 | 55.9% |
+| Recipes | 31 | 53.2% |
+| Herbal A | 109 | 51.7% |
 
-Non-herbal sections show the largest gains from section-specific corpora, consistent with the hypothesis that these sections discuss different topics (astrological medicine, compound preparations, bathing/humoral theory) that are underserved by the herbal-dominated generic corpus.
+Non-herbal sections show the largest gains from section-specific corpora and ensemble fallback, consistent with the hypothesis that these sections discuss different topics (astrological medicine, compound preparations, bathing/humoral theory) that are underserved by the herbal-dominated generic corpus. The ensemble generic fallback ensures that section-specific tuning never regresses resolutions achievable by the broader corpus.
 
 ### Phase 12.5: Adversarial Defense Suite
 
