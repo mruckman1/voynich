@@ -181,6 +181,37 @@ def _parse_subphase_flags(phase_key, remaining_args):
                 except ValueError:
                     pass
 
+    elif phase_num == 14:
+        phases = []
+        if '--vocabulary' in remaining_args:
+            phases.append('vocabulary')
+        if '--concentration' in remaining_args:
+            phases.append('concentration')
+        if '--templates' in remaining_args:
+            phases.append('templates')
+        if '--collocations' in remaining_args:
+            phases.append('collocations')
+        if '--significance' in remaining_args:
+            phases.append('significance')
+        if '--langb' in remaining_args:
+            phases.append('langb')
+        if phases:
+            kwargs['phases'] = phases
+        if '--folios' in remaining_args:
+            idx = remaining_args.index('--folios')
+            if idx + 1 < len(remaining_args):
+                try:
+                    kwargs['folio_limit'] = int(remaining_args[idx + 1])
+                except ValueError:
+                    pass
+        if '--trials' in remaining_args:
+            idx = remaining_args.index('--trials')
+            if idx + 1 < len(remaining_args):
+                try:
+                    kwargs['n_trials'] = int(remaining_args[idx + 1])
+                except ValueError:
+                    pass
+
     return kwargs
 
 def main():

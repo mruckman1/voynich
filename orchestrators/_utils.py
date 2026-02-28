@@ -58,6 +58,7 @@ PHASE_DESCRIPTIONS = {
     12:    'Contextual Reconstruction & Deterministic Mask Solving',
     '12.5': 'Adversarial Defense Suite',
     13:    'Scholarly Synthesis & Presentation',
+    14:    'Semantic Coherence Analysis',
 }
 
 def _resolution_rate(decoded_text: str) -> float:
