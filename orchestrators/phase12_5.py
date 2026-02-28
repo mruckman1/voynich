@@ -35,6 +35,9 @@ from orchestrators._config import (
     CHAR_NGRAM_MIN_SCORE_GAP, CHAR_NGRAM_MIN_SEGMENTS,
     CHAR_NGRAM_MAX_CONTEXT_DISTANCE, CHAR_NGRAM_REQUIRE_CONTEXT,
     ENABLE_ILLUSTRATION_PRIOR, ILLUSTRATION_BOOSTED_RATIO_FACTOR,
+    ENABLE_ADAPTIVE_CONFIDENCE, ADAPTIVE_CONFIDENCE_2_CAND_FACTOR,
+    ADAPTIVE_CONFIDENCE_FEW_CAND_FACTOR,
+    ENABLE_SINGLE_CAND_CHAR_RESCUE, SINGLE_CAND_MIN_SEGMENTS, SINGLE_CAND_MIN_CHAR_SCORE,
 )
 from orchestrators._foundation import build_morphological_context
 
@@ -168,6 +171,12 @@ def run_phase12_5_adversarial(
         enable_illustration_prior=ENABLE_ILLUSTRATION_PRIOR,
         illustration_prior=_build_illustration_prior_safe(),
         illustration_boosted_ratio_factor=ILLUSTRATION_BOOSTED_RATIO_FACTOR,
+        enable_adaptive_confidence=ENABLE_ADAPTIVE_CONFIDENCE,
+        adaptive_confidence_2_cand_factor=ADAPTIVE_CONFIDENCE_2_CAND_FACTOR,
+        adaptive_confidence_few_cand_factor=ADAPTIVE_CONFIDENCE_FEW_CAND_FACTOR,
+        enable_single_cand_char_rescue=ENABLE_SINGLE_CAND_CHAR_RESCUE,
+        single_cand_min_segments=SINGLE_CAND_MIN_SEGMENTS,
+        single_cand_min_char_score=SINGLE_CAND_MIN_CHAR_SCORE,
     )
     ngram_solver.set_corpus_frequencies(l_tokens)
 

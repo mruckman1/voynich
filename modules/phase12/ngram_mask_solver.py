@@ -90,6 +90,12 @@ class NgramMaskSolver:
         enable_illustration_prior: bool = False,
         illustration_prior: Optional[Dict[str, Dict[str, float]]] = None,
         illustration_boosted_ratio_factor: float = 0.5,
+        enable_adaptive_confidence: bool = False,
+        adaptive_confidence_2_cand_factor: float = 0.75,
+        adaptive_confidence_few_cand_factor: float = 0.9,
+        enable_single_cand_char_rescue: bool = False,
+        single_cand_min_segments: int = 4,
+        single_cand_min_char_score: float = -6.0,
     ):
         """
         Args:
@@ -198,6 +204,13 @@ class NgramMaskSolver:
         self.illustration_prior = illustration_prior or {}
         self.illustration_boosted_ratio_factor = illustration_boosted_ratio_factor
         self._illustration_boosted_resolutions = 0
+
+        self.enable_adaptive_confidence = enable_adaptive_confidence
+        self.adaptive_confidence_2_cand_factor = adaptive_confidence_2_cand_factor
+        self.adaptive_confidence_few_cand_factor = adaptive_confidence_few_cand_factor
+        self.enable_single_cand_char_rescue = enable_single_cand_char_rescue
+        self.single_cand_min_segments = single_cand_min_segments
+        self.single_cand_min_char_score = single_cand_min_char_score
 
     def set_corpus_frequencies(self, corpus_tokens: List[str]) -> None:
         """
@@ -367,6 +380,7 @@ class NgramMaskSolver:
         folio_id: str = None,
         reverse: bool = False,
         mark_unresolved: bool = True,
+        attempt_unresolved: bool = False,
     ) -> Tuple[List[str], List[Dict], int]:
         """
         Single directional pass of the n-gram mask solver.
@@ -416,7 +430,9 @@ class NgramMaskSolver:
                 bracket_type = 'angle'
 
             if pos_tag == 'UNRESOLVED':
-                continue
+                if not attempt_unresolved:
+                    continue
+                pos_tag = 'UNK'
 
             w_prev = None
             w_prev_dist = 0
@@ -564,6 +580,26 @@ class NgramMaskSolver:
                                 })
                                 continue
 
+                if (self.enable_single_cand_char_rescue
+                        and self.char_ngram_model is not None
+                        and len(candidates) == 1):
+                    seg_count_sc = self._get_skeleton_segment_count(voynich_token)
+                    if seg_count_sc >= self.single_cand_min_segments:
+                        cn_score = self.char_ngram_model.score_word(candidates[0])
+                        if cn_score is not None and cn_score > self.single_cand_min_char_score:
+                            result[i] = candidates[0]
+                            new_resolutions += 1
+                            self._word_level_resolutions += 1
+                            log.append({
+                                'position': i, 'token': voynich_token,
+                                'pos': pos_tag, 'status': 'resolved',
+                                'resolved': candidates[0],
+                                'resolution_type': 'single_cand_char_rescue',
+                                'score': round(cn_score, 4),
+                                'ratio': 'sole_candidate',
+                            })
+                            continue
+
                 if mark_unresolved:
                     tag = f"[{voynich_token}_UNRESOLVED]" if bracket_type == 'square' else f"<{voynich_token}_UNRESOLVED>"
                     result[i] = tag
@@ -578,6 +614,13 @@ class NgramMaskSolver:
             second_score = scored[1][0] if len(scored) > 1 else 0.0
 
             effective_ratio = self._effective_confidence_ratio(voynich_token)
+
+            if self.enable_adaptive_confidence:
+                n_nonzero = sum(1 for s, _ in scored if s > 0)
+                if n_nonzero == 2:
+                    effective_ratio *= self.adaptive_confidence_2_cand_factor
+                elif n_nonzero <= 5:
+                    effective_ratio *= self.adaptive_confidence_few_cand_factor
 
             if (self.dual_context_ratio_factor < 1.0
                     and w_prev is not None and w_next is not None
@@ -1024,3 +1067,23 @@ class NgramMaskSolver:
                         self._illustration_boosted_resolutions += 1
 
         return ' '.join(result), num_resolved
+
+    def refine_pass(
+        self,
+        resolved_text: str,
+        original_tokens: List[str],
+        folio_id: str = None,
+    ) -> Tuple[str, int]:
+        """
+        Re-attempt UNRESOLVED tokens using updated context from
+        consistency/POS-backoff/char-ngram passes.
+
+        Calls _solve_single_pass() with attempt_unresolved=True,
+        so all the same scoring and confidence gates apply.
+        """
+        words = resolved_text.split()
+        result, log, new_resolutions = self._solve_single_pass(
+            words, folio_id=folio_id, reverse=False,
+            mark_unresolved=True, attempt_unresolved=True,
+        )
+        return ' '.join(result), new_resolutions

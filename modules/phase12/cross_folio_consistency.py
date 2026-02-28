@@ -126,6 +126,39 @@ class CrossFolioConsistencyEngine:
 
         return dict(self._consistent_mappings)
 
+    def compute_relaxed_mappings(
+        self, min_occurrences_relaxed: int = 2,
+    ) -> Dict[str, str]:
+        """
+        Compute additional consistent mappings with a lower occurrence
+        threshold. Uses already-collected data from collect_folio().
+
+        Requires 100% agreement to compensate for the lower occurrence
+        count. Only adds skeletons NOT already in the standard mappings.
+
+        Args:
+            min_occurrences_relaxed: Lower threshold (default 2)
+
+        Returns:
+            Dict of skeleton -> latin_word for newly found consistent mappings
+        """
+        relaxed = {}
+
+        for skeleton, word_counts in self._skeleton_mappings.items():
+            if skeleton in self._consistent_mappings:
+                continue
+
+            total = sum(word_counts.values())
+            if total < min_occurrences_relaxed:
+                continue
+
+            best_word, best_count = word_counts.most_common(1)[0]
+            if best_count == total:  # 100% agreement
+                relaxed[skeleton] = best_word
+                self._consistent_mappings[skeleton] = best_word
+
+        return relaxed
+
     def apply_consistency(
         self,
         resolved_text: str,

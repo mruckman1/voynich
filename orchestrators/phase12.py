@@ -39,6 +39,11 @@ from orchestrators._config import (
     ENABLE_GRADUATED_CSP, CSP_HIGH_CONFIDENCE_THRESHOLD, CSP_MEDIUM_CONFIDENCE_THRESHOLD,
     ENABLE_SELECTIVE_FUNCTION_WORDS, FUNCTION_WORD_MAX_DENSITY, FUNCTION_WORD_WINDOW_SIZE,
     ENABLE_ILLUSTRATION_PRIOR, ILLUSTRATION_BOOSTED_RATIO_FACTOR,
+    ENABLE_ADAPTIVE_CONFIDENCE, ADAPTIVE_CONFIDENCE_2_CAND_FACTOR,
+    ADAPTIVE_CONFIDENCE_FEW_CAND_FACTOR,
+    ENABLE_SINGLE_CAND_CHAR_RESCUE, SINGLE_CAND_MIN_SEGMENTS, SINGLE_CAND_MIN_CHAR_SCORE,
+    ENABLE_RELAXED_CONSISTENCY, CROSS_FOLIO_MIN_OCCURRENCES_RELAXED,
+    ENABLE_ITERATIVE_REFINEMENT, ITERATIVE_MAX_PASSES, ITERATIVE_MIN_IMPROVEMENT,
 )
 from orchestrators._foundation import build_morphological_context
 
@@ -214,6 +219,12 @@ def run_phase12_reconstruction(
             enable_illustration_prior=ENABLE_ILLUSTRATION_PRIOR,
             illustration_prior=_build_illustration_prior_safe(),
             illustration_boosted_ratio_factor=ILLUSTRATION_BOOSTED_RATIO_FACTOR,
+            enable_adaptive_confidence=ENABLE_ADAPTIVE_CONFIDENCE,
+            adaptive_confidence_2_cand_factor=ADAPTIVE_CONFIDENCE_2_CAND_FACTOR,
+            adaptive_confidence_few_cand_factor=ADAPTIVE_CONFIDENCE_FEW_CAND_FACTOR,
+            enable_single_cand_char_rescue=ENABLE_SINGLE_CAND_CHAR_RESCUE,
+            single_cand_min_segments=SINGLE_CAND_MIN_SEGMENTS,
+            single_cand_min_char_score=SINGLE_CAND_MIN_CHAR_SCORE,
         )
         ngram_solver.set_corpus_frequencies(l_tokens)
 
@@ -510,6 +521,24 @@ def run_phase12_reconstruction(
                 for skel, word in top_5:
                     print(f'    {skel} → {word}')
 
+        if ENABLE_RELAXED_CONSISTENCY:
+            relaxed_mappings = consistency_engine.compute_relaxed_mappings(
+                min_occurrences_relaxed=CROSS_FOLIO_MIN_OCCURRENCES_RELAXED,
+            )
+
+            relaxed_applied = 0
+            for folio, tokens in by_folio.items():
+                if folio in final_translations:
+                    updated_text, cstats = consistency_engine.apply_consistency(
+                        final_translations[folio], tokens
+                    )
+                    final_translations[folio] = updated_text
+                    relaxed_applied += cstats['applied']
+
+            if verbose and relaxed_applied > 0:
+                print(f'  → Relaxed consistency: {len(relaxed_mappings)} new mappings, '
+                      f'{relaxed_applied} additional tokens')
+
     if 'solve' in run_phases and ENABLE_POS_BACKOFF:
         total_pos_resolved = 0
         for folio in final_translations:
@@ -563,6 +592,81 @@ def run_phase12_reconstruction(
         if verbose and total_char_ngram_resolved > 0:
             print(f'\n[8/8] Character N-Gram Fallback Pass...')
             print(f'  → Char n-gram resolved: {total_char_ngram_resolved} additional tokens')
+
+    if 'solve' in run_phases and ENABLE_ITERATIVE_REFINEMENT:
+        for iteration in range(ITERATIVE_MAX_PASSES):
+            total_refined = 0
+
+            for folio in final_translations:
+                updated_text, n = ngram_solver.refine_pass(
+                    final_translations[folio],
+                    by_folio.get(folio, []),
+                    folio_id=folio,
+                )
+                final_translations[folio] = updated_text
+                total_refined += n
+
+            if ENABLE_CROSS_FOLIO_CONSISTENCY:
+                iter_consistency = CrossFolioConsistencyEngine(
+                    fuzzy_skel,
+                    min_agreement=CROSS_FOLIO_MIN_AGREEMENT,
+                    min_occurrences=CROSS_FOLIO_MIN_OCCURRENCES,
+                )
+                for folio, tokens in by_folio.items():
+                    if folio in final_translations:
+                        iter_consistency.collect_folio(
+                            final_translations[folio], tokens, folio
+                        )
+                iter_consistency.compute_consistent_mappings()
+                if ENABLE_RELAXED_CONSISTENCY:
+                    iter_consistency.compute_relaxed_mappings(
+                        min_occurrences_relaxed=CROSS_FOLIO_MIN_OCCURRENCES_RELAXED,
+                    )
+                for folio, tokens in by_folio.items():
+                    if folio in final_translations:
+                        updated, cstats = iter_consistency.apply_consistency(
+                            final_translations[folio], tokens
+                        )
+                        final_translations[folio] = updated
+                        total_refined += cstats['applied']
+
+            if ENABLE_POS_BACKOFF:
+                for folio in final_translations:
+                    t, n = ngram_solver.pos_backoff_pass(
+                        final_translations[folio], folio_id=folio
+                    )
+                    final_translations[folio] = t
+                    total_refined += n
+
+            if ENABLE_CHAR_NGRAM_FALLBACK:
+                for folio in final_translations:
+                    t, n = ngram_solver.char_ngram_pass(
+                        final_translations[folio], folio_id=folio
+                    )
+                    final_translations[folio] = t
+                    total_refined += n
+
+            if verbose:
+                print(f'\n[Iter {iteration + 1}] Refinement: +{total_refined} resolutions')
+
+            if total_refined < ITERATIVE_MIN_IMPROVEMENT:
+                if verbose:
+                    print(f'  → Converged (below threshold of {ITERATIVE_MIN_IMPROVEMENT})')
+                break
+
+        for folio, text in final_translations.items():
+            top_words = _count_word_repetitions(text)
+            max_repeat = max(top_words.values()) if top_words else 0
+            meta = folio_metadata.get(folio, {})
+            per_folio_stats[folio] = {
+                'language': meta.get('language', 'A'),
+                'section': meta.get('section', 'unknown'),
+                'scribe': meta.get('scribe', 0),
+                'top_words': top_words,
+                'max_repeat': max_repeat,
+                'word_count': len(text.split()),
+                'remaining_brackets': _count_brackets(text),
+            }
 
     elapsed = time.time() - t0
 
