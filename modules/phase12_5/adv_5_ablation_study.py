@@ -27,16 +27,9 @@ from modules.phase12.syntactic_scaffolder import SyntacticScaffolder
 from modules.phase12.ngram_mask_solver import NgramMaskSolver
 
 from data.botanical_identifications import PLANT_IDS
+from orchestrators._utils import _resolution_rate
 
 ABLATION_SET = {'et', 'in', 'est', 'cum', 'ad', 'per', 'sed', 'quae', 'non', 'da'}
-
-def _resolution_rate(decoded_text: str) -> float:
-    """Compute the fraction of words that are NOT bracketed."""
-    words = decoded_text.split()
-    if not words:
-        return 0.0
-    brackets = sum(1 for w in words if w.startswith('[') or w.startswith('<'))
-    return 1.0 - (brackets / len(words))
 
 def _is_bracket(word: str) -> bool:
     """Check if a word is bracketed (unresolved)."""

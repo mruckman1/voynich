@@ -4,6 +4,7 @@ import random
 import math
 from modules.phase7.voynich_morphemer import VoynichMorphemer
 from modules.phase7.latin_morphology import LatinMorphologyParser
+from modules.statistical_analysis import word_transition_matrix
 
 class StemSAA:
     """Transition matrix matching applied only to semantic stems."""
@@ -12,23 +13,9 @@ class StemSAA:
         self.v_seq = v_morphemer.stem_sequence
         self.l_seq = l_parser.stem_sequence
 
-    def _build_matrix(self, sequence: list, top_n: int = 150):
-        vocab = [w for w, _ in Counter(sequence).most_common(top_n)]
-        w2i = {w: i for i, w in enumerate(vocab)}
-
-        matrix = np.zeros((top_n, top_n))
-        for i in range(len(sequence)-1):
-            w1, w2 = sequence[i], sequence[i+1]
-            if w1 in w2i and w2 in w2i:
-                matrix[w2i[w1]][w2i[w2]] += 1
-
-        row_sums = matrix.sum(axis=1, keepdims=True)
-        row_sums[row_sums == 0] = 1
-        return matrix / row_sums, vocab
-
     def run(self, n_iter=50000, seed=42, verbose=True):
-        v_mat, v_voc = self._build_matrix(self.v_seq, 150)
-        l_mat, l_voc = self._build_matrix(self.l_seq, 150)
+        v_mat, v_voc = word_transition_matrix(self.v_seq, top_n=150)
+        l_mat, l_voc = word_transition_matrix(self.l_seq, top_n=150)
 
         n_v, n_l = len(v_voc), len(l_voc)
         rng = random.Random(seed)

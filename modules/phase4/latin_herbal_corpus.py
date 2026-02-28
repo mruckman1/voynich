@@ -19,6 +19,7 @@ from typing import Dict, List, Tuple, Optional
 
 from modules.statistical_analysis import (
     word_conditional_entropy, zipf_analysis, full_statistical_profile,
+    word_transition_matrix,
 )
 from data.voynich_corpus import HARTLIEB_MEDICAL_VOCAB, LATIN_RECIPE_FORMULAS
 from data.botanical_identifications import (
@@ -186,18 +187,7 @@ class LatinHerbalCorpus:
 
     def build_word_transition_matrix(self) -> Tuple[np.ndarray, List[str]]:
         """Build word-level transition probability matrix."""
-        tokens = self.get_tokens()
-        vocab = sorted(set(tokens))
-        word_to_idx = {w: i for i, w in enumerate(vocab)}
-        n = len(vocab)
-        counts = np.zeros((n, n), dtype=float)
-        for i in range(len(tokens) - 1):
-            w1, w2 = tokens[i], tokens[i + 1]
-            counts[word_to_idx[w1]][word_to_idx[w2]] += 1
-        row_sums = counts.sum(axis=1, keepdims=True)
-        row_sums[row_sums == 0] = 1
-        matrix = counts / row_sums
-        return matrix, vocab
+        return word_transition_matrix(self.get_tokens())
 
     def run(self, verbose: bool = True) -> Dict:
         """Run corpus construction and compute all metrics."""

@@ -16,10 +16,10 @@ Phase 6  ·  Voynich Convergence Attack
 import math
 import random
 import numpy as np
-from collections import Counter
 from typing import Dict, List, Tuple, Optional, Set
 
 from modules.phase5.nmf_scaffold import NMFScaffold
+from modules.phase5.constrained_saa import ConstrainedSAA
 
 RECOGNIZABLE_PHRASES = [
     'calida et sicca', 'frigida et humida', 'calida et humida',
@@ -30,7 +30,7 @@ RECOGNIZABLE_PHRASES = [
     'da bibere', 'et coque', 'contra venenum',
 ]
 
-class FixedSAA:
+class FixedSAA(ConstrainedSAA):
     """
     Bijection-enforced SAA with inverted cost weights and top-N locking.
 
@@ -55,37 +55,11 @@ class FixedSAA:
         gamma: float = 1.0,
         delta: float = 0.2,
     ):
-        self.v_matrix = voynich_matrix
-        self.v_vocab = voynich_vocab
-        self.l_matrix = latin_matrix
-        self.l_vocab = latin_vocab
-        self.rank_pairs = rank_pairs
-        self.nmf_scaffold = nmf_scaffold
+        super().__init__(
+            voynich_matrix, voynich_vocab, latin_matrix, latin_vocab,
+            rank_pairs, nmf_scaffold, alpha, beta, gamma, delta,
+        )
         self.n_locked = n_locked
-        self.alpha = alpha
-        self.beta = beta
-        self.gamma = gamma
-        self.delta = delta
-
-        self.n_v = len(voynich_vocab)
-        self.n_l = len(latin_vocab)
-        self.v_word_to_idx = {w: i for i, w in enumerate(voynich_vocab)}
-        self.l_word_to_idx = {w: i for i, w in enumerate(latin_vocab)}
-
-        self._candidate_indices: Dict[int, Set[int]] = {}
-        for v_word, candidates in rank_pairs.items():
-            if v_word in self.v_word_to_idx:
-                v_idx = self.v_word_to_idx[v_word]
-                l_indices = set()
-                for c in candidates:
-                    if c in self.l_word_to_idx:
-                        l_indices.add(self.l_word_to_idx[c])
-                if l_indices:
-                    self._candidate_indices[v_idx] = l_indices
-
-        self._topic_matrix = None
-        if nmf_scaffold is not None:
-            self._topic_matrix = nmf_scaffold.build_topic_coherence_matrix(voynich_vocab)
 
     def _initialize_bijective(self, rng: random.Random) -> Tuple[List[int], Set[int]]:
         """
@@ -154,66 +128,6 @@ class FixedSAA:
                 perm[v_idx] = v_idx % self.n_l
 
         return perm, locked_indices
-
-    def cost(self, perm: List[int]) -> float:
-        """Compute full multi-component cost."""
-        c = 0.0
-        if self.alpha > 0:
-            c += self.alpha * self._matrix_distance(perm)
-        if self.beta > 0:
-            c += self.beta * self._crib_violations(perm)
-        if self.gamma > 0:
-            c += self.gamma * self._rank_deviation(perm)
-        if self.delta > 0 and self._topic_matrix is not None:
-            c += self.delta * self._topic_incoherence(perm)
-        return c
-
-    def _matrix_distance(self, perm: List[int]) -> float:
-        """Frobenius norm of V_matrix - permuted L_matrix."""
-        perm_arr = np.clip(np.array(perm), 0, self.n_l - 1)
-        l_permuted = self.l_matrix[perm_arr][:, perm_arr]
-        diff = self.v_matrix[:self.n_v, :self.n_v] - l_permuted[:self.n_v, :self.n_v]
-        return float(np.sum(diff ** 2))
-
-    def _crib_violations(self, perm: List[int]) -> float:
-        """Count violated crib constraints."""
-        violations = 0
-        for v_idx, valid_l_indices in self._candidate_indices.items():
-            if v_idx < len(perm) and perm[v_idx] not in valid_l_indices:
-                violations += 1
-        return float(violations)
-
-    def _rank_deviation(self, perm: List[int]) -> float:
-        """Mean absolute rank deviation."""
-        total = 0.0
-        for v_idx in range(self.n_v):
-            total += abs(v_idx - perm[v_idx])
-        return total / max(self.n_v, 1)
-
-    def _topic_incoherence(self, perm: List[int]) -> float:
-        """NMF topic violation penalty."""
-        if self._topic_matrix is None or self.nmf_scaffold is None:
-            return 0.0
-
-        latin_cooc = self.nmf_scaffold.build_latin_cooccurrence_set()
-        penalty = 0.0
-        n_checked = 0
-
-        for i in range(self.n_v):
-            for j in range(i + 1, min(i + 20, self.n_v)):
-                if self._topic_matrix[i][j] > 0:
-                    l_i, l_j = perm[i], perm[j]
-                    if l_i < self.n_l and l_j < self.n_l:
-                        l_word_i = self.l_vocab[l_i]
-                        l_word_j = self.l_vocab[l_j]
-                        if l_word_i in latin_cooc:
-                            if l_word_j not in latin_cooc[l_word_i]:
-                                penalty += 1.0
-                        else:
-                            penalty += 1.0
-                        n_checked += 1
-
-        return penalty / max(n_checked, 1)
 
     def _delta_cost_swap(self, perm: List[int], i: int, j: int) -> float:
         """
@@ -402,10 +316,6 @@ class FixedSAA:
             'passes_threshold': best_count >= 3,
             'n_pages_tested': len(page_tokens),
         }
-
-    def decode_text(self, mapping: Dict, tokens: List[str]) -> str:
-        """Apply mapping to token sequence."""
-        return ' '.join(mapping.get(t, f'[{t}]') for t in tokens)
 
     def evaluate_crib_satisfaction(self, mapping: Dict) -> Dict:
         """Check crib constraint satisfaction."""

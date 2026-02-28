@@ -18,6 +18,7 @@ from collections import Counter, defaultdict
 from typing import Dict, List, Tuple
 
 from modules.statistical_analysis import word_conditional_entropy
+from modules.nmf_analysis import simple_nmf
 from modules.phase4.lang_a_extractor import LanguageAExtractor
 
 class SemanticCompressionModel:
@@ -226,7 +227,7 @@ class SemanticCompressionModel:
         all_results = []
 
         for k in range(n_topics_range[0], min(n_topics_range[1] + 1, len(vocab))):
-            W, H, error = self._simple_nmf(matrix, k)
+            W, H, error = simple_nmf(matrix, k)
             all_results.append({'k': k, 'reconstruction_error': error})
 
             if error < best_error:
@@ -252,27 +253,6 @@ class SemanticCompressionModel:
             'topic_sizes': {k: len(v) for k, v in topics.items()},
             'in_target_range': 5 <= best_k <= 8,
         }
-
-    def _simple_nmf(self, V: np.ndarray, k: int,
-                     max_iter: int = 200, seed: int = 42) -> Tuple[np.ndarray, np.ndarray, float]:
-        """Simple multiplicative-update NMF."""
-        rng = np.random.RandomState(seed)
-        n, m = V.shape
-
-        W = rng.rand(n, k) + 0.1
-        H = rng.rand(k, m) + 0.1
-
-        for _ in range(max_iter):
-            numerator = W.T @ V
-            denominator = W.T @ W @ H + 1e-10
-            H *= numerator / denominator
-
-            numerator = V @ H.T
-            denominator = W @ H @ H.T + 1e-10
-            W *= numerator / denominator
-
-        error = float(np.linalg.norm(V - W @ H, 'fro'))
-        return W, H, error
 
     def evaluate_cluster_coherence(self, clusters: Dict[int, List[str]]) -> Dict:
         """

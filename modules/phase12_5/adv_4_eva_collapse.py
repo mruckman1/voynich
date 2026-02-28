@@ -26,6 +26,7 @@ from modules.phase12.budgeted_csp import BudgetedCSPDecoder
 from modules.phase12.syntactic_scaffolder import SyntacticScaffolder
 from modules.phase12.ngram_mask_solver import NgramMaskSolver
 from modules.phase7.voynich_morphemer import VoynichMorphemer
+from orchestrators._utils import _resolution_rate
 
 COLLAPSE_MAP = {
     'cth': 'X',
@@ -57,14 +58,6 @@ def _collapse_token(token: str) -> str:
 def _collapse_tokens(tokens: List[str]) -> List[str]:
     """Apply ligature collapse to all tokens."""
     return [_collapse_token(t) for t in tokens]
-
-def _resolution_rate(decoded_text: str) -> float:
-    """Compute the fraction of words that are NOT bracketed."""
-    words = decoded_text.split()
-    if not words:
-        return 0.0
-    brackets = sum(1 for w in words if w.startswith('[') or w.startswith('<'))
-    return 1.0 - (brackets / len(words))
 
 class CollapsedFuzzySkeletonizer(FuzzySkeletonizer):
     """

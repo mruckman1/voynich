@@ -23,16 +23,9 @@ from modules.phase12.fuzzy_skeletonizer import FuzzySkeletonizer
 from modules.phase12.budgeted_csp import BudgetedCSPDecoder
 from modules.phase12.syntactic_scaffolder import SyntacticScaffolder
 from modules.phase12.ngram_mask_solver import NgramMaskSolver
+from orchestrators._utils import _resolution_rate
 
 EVA_CHARS = list('oainedylrsktchpfqmgx')
-
-def _resolution_rate(decoded_text: str) -> float:
-    """Compute the fraction of words that are NOT bracketed."""
-    words = decoded_text.split()
-    if not words:
-        return 0.0
-    brackets = sum(1 for w in words if w.startswith('[') or w.startswith('<'))
-    return 1.0 - (brackets / len(words))
 
 def _scramble_tokens(tokens: List[str], seed: int) -> List[str]:
     """Shuffle characters within each token, preserving word lengths."""

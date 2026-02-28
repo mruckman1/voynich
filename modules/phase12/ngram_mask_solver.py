@@ -34,6 +34,7 @@ from modules.phase12.syntactic_scaffolder import LatinPOSTagger
 import Levenshtein
 
 from data.botanical_identifications import PLANT_IDS
+from orchestrators._config import TAGGED_BRACKET_RE
 
 LATIN_POS_ENDINGS: Dict[str, List[str]] = {
     'VERB_3P': ['t', 'nt', 'it', 'at', 'et', 'ut', 'unt', 'ent', 'ant'],
@@ -46,8 +47,6 @@ LATIN_POS_ENDINGS: Dict[str, List[str]] = {
     'NOUN_PL': ['es', 'as', 'os', 'us', 'i', 'ae', 'ia', 'a'],
     'UNK': [],
 }
-
-TAGGED_BRACKET_RE = re.compile(r'\[([^_\]]+)_([A-Z_]+)\]|<([^_>]+)_([A-Z_]+)>')
 
 class NgramMaskSolver:
     """

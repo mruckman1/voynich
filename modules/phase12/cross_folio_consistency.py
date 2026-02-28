@@ -18,8 +18,7 @@ from collections import Counter, defaultdict
 from typing import Dict, List, Optional, Tuple
 
 from modules.phase12.fuzzy_skeletonizer import FuzzySkeletonizer
-
-UNRESOLVED_RE = re.compile(r'\[([^_\]]+)_UNRESOLVED\]|<([^_>]+)_UNRESOLVED>')
+from orchestrators._config import UNRESOLVED_RE
 
 class CrossFolioConsistencyEngine:
     """

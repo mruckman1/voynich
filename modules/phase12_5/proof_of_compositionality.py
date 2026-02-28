@@ -30,14 +30,7 @@ from modules.phase12_5.adv_4_eva_collapse import (
     CollapsedMorphemer,
     _collapse_tokens,
 )
-
-def _resolution_rate(decoded_text: str) -> float:
-    """Compute the fraction of words that are NOT bracketed."""
-    words = decoded_text.split()
-    if not words:
-        return 0.0
-    brackets = sum(1 for w in words if w.startswith('[') or w.startswith('<'))
-    return 1.0 - (brackets / len(words))
+from orchestrators._utils import _resolution_rate
 
 def _count_unique_resolved(decoded_text: str) -> int:
     """Count unique resolved (non-bracketed) word types."""

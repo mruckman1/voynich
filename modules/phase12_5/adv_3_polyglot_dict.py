@@ -23,6 +23,7 @@ from modules.phase12.fuzzy_skeletonizer import FuzzySkeletonizer
 from modules.phase12.budgeted_csp import BudgetedCSPDecoder, HUMORAL_VOCAB
 from modules.phase12.syntactic_scaffolder import SyntacticScaffolder
 from modules.phase12.ngram_mask_solver import NgramMaskSolver
+from orchestrators._utils import _resolution_rate
 
 _DICT_DIR = os.path.join(os.path.dirname(__file__), '..', '..', 'data', 'dictionaries')
 LATIN_DICT_PATH = os.path.join(_DICT_DIR, 'phase5_latin_dict.json')
@@ -40,14 +41,6 @@ def _load_dict(filepath: str) -> List[str]:
             seen.add(w)
             unique.append(w)
     return unique
-
-def _resolution_rate(decoded_text: str) -> float:
-    """Compute the fraction of words that are NOT bracketed."""
-    words = decoded_text.split()
-    if not words:
-        return 0.0
-    brackets = sum(1 for w in words if w.startswith('[') or w.startswith('<'))
-    return 1.0 - (brackets / len(words))
 
 class PolyglotDictTest:
     """

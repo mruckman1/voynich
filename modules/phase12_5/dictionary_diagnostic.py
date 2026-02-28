@@ -23,7 +23,7 @@ from modules.phase12.ngram_mask_solver import NgramMaskSolver
 
 import Levenshtein
 
-UNRESOLVED_RE = re.compile(r'\[([^_\]]+)_UNRESOLVED\]|<([^_>]+)_UNRESOLVED>')
+from orchestrators._config import UNRESOLVED_RE
 
 class DictionaryDiagnostic:
     """

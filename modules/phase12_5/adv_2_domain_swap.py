@@ -24,6 +24,8 @@ from modules.phase12.fuzzy_skeletonizer import FuzzySkeletonizer
 from modules.phase12.budgeted_csp import BudgetedCSPDecoder, HUMORAL_VOCAB
 from modules.phase12.syntactic_scaffolder import SyntacticScaffolder
 from modules.phase12.ngram_mask_solver import NgramMaskSolver
+from modules.statistical_analysis import word_transition_matrix
+from orchestrators._utils import _resolution_rate
 
 _DATA_DIR = os.path.join(os.path.dirname(__file__), '..', '..', 'data', 'corpora')
 VULGATE_PATH = os.path.join(_DATA_DIR, 'latin_vulgate_sample.txt')
@@ -54,44 +56,6 @@ def _load_and_tile_corpus(filepath: str, target_tokens: int = 30012) -> List[str
     while len(tiled) < target_tokens:
         tiled.extend(base_tokens)
     return tiled[:target_tokens]
-
-def build_transition_matrix_from_tokens(
-    tokens: List[str], top_n: int = 1001,
-) -> Tuple[np.ndarray, List[str]]:
-    """
-    Build a word-level transition probability matrix P(w_j | w_i).
-
-    Args:
-        tokens: Corpus token list
-        top_n: Number of most-frequent words to include
-
-    Returns:
-        (matrix[n x n], vocab[n])
-    """
-    freqs = Counter(tokens)
-    vocab = [w for w, _ in freqs.most_common(top_n)]
-    word_to_idx = {w: i for i, w in enumerate(vocab)}
-    n = len(vocab)
-
-    counts = np.zeros((n, n), dtype=float)
-    for i in range(len(tokens) - 1):
-        w1, w2 = tokens[i], tokens[i + 1]
-        if w1 in word_to_idx and w2 in word_to_idx:
-            counts[word_to_idx[w1]][word_to_idx[w2]] += 1
-
-    row_sums = counts.sum(axis=1, keepdims=True)
-    row_sums[row_sums == 0] = 1
-    matrix = counts / row_sums
-
-    return matrix, vocab
-
-def _resolution_rate(decoded_text: str) -> float:
-    """Compute the fraction of words that are NOT bracketed."""
-    words = decoded_text.split()
-    if not words:
-        return 0.0
-    brackets = sum(1 for w in words if w.startswith('[') or w.startswith('<'))
-    return 1.0 - (brackets / len(words))
 
 class DomainSwapTest:
     """
@@ -197,8 +161,8 @@ class DomainSwapTest:
         bible_tokens = _load_and_tile_corpus(VULGATE_PATH)
         legal_tokens = _load_and_tile_corpus(LEGAL_PATH)
 
-        bible_matrix, bible_vocab = build_transition_matrix_from_tokens(bible_tokens)
-        legal_matrix, legal_vocab = build_transition_matrix_from_tokens(legal_tokens)
+        bible_matrix, bible_vocab = word_transition_matrix(bible_tokens, top_n=1001)
+        legal_matrix, legal_vocab = word_transition_matrix(legal_tokens, top_n=1001)
 
         if verbose:
             print(f'    Bible corpus: {len(bible_tokens)} tokens, '

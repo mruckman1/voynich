@@ -16,7 +16,7 @@ from typing import Dict, List, Tuple, Optional
 
 from modules.statistical_analysis import (
     full_statistical_profile, compute_all_entropy, zipf_analysis,
-    word_conditional_entropy,
+    word_conditional_entropy, word_transition_matrix,
 )
 from modules.phase3.lang_a_reprofiling import LANG_A_TARGETS
 
@@ -156,21 +156,7 @@ class LanguageAExtractor:
         Returns:
             (matrix, vocabulary) where matrix[i][j] = P(word_j | word_i)
         """
-        tokens = self.extract_lang_a_tokens()
-        vocab = sorted(set(tokens))
-        word_to_idx = {w: i for i, w in enumerate(vocab)}
-        n = len(vocab)
-
-        counts = np.zeros((n, n), dtype=float)
-        for i in range(len(tokens) - 1):
-            w1, w2 = tokens[i], tokens[i + 1]
-            counts[word_to_idx[w1]][word_to_idx[w2]] += 1
-
-        row_sums = counts.sum(axis=1, keepdims=True)
-        row_sums[row_sums == 0] = 1
-        matrix = counts / row_sums
-
-        return matrix, vocab
+        return word_transition_matrix(self.extract_lang_a_tokens())
 
     def separate_frequent_and_singleton(self, threshold: int = 2) -> Dict:
         """

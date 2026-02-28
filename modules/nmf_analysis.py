@@ -58,6 +58,32 @@ def nmf_multiplicative_update(
     final_error = float(np.linalg.norm(V - W @ H, 'fro'))
     return W, H, final_error
 
+def simple_nmf(V: np.ndarray, k: int,
+               max_iter: int = 200, seed: int = 42) -> Tuple[np.ndarray, np.ndarray, float]:
+    """Simple multiplicative-update NMF without early termination.
+
+    Used by Phase 4 semantic compression and Phase 5 NMF scaffold.
+    Differs from nmf_multiplicative_update() in initialization (0.1 vs eps)
+    and convergence (always runs full max_iter iterations).
+    """
+    rng = np.random.RandomState(seed)
+    n, m = V.shape
+
+    W = rng.rand(n, k) + 0.1
+    H = rng.rand(k, m) + 0.1
+
+    for _ in range(max_iter):
+        numerator = W.T @ V
+        denominator = W.T @ W @ H + 1e-10
+        H *= numerator / denominator
+
+        numerator = V @ H.T
+        denominator = W @ H @ H.T + 1e-10
+        W *= numerator / denominator
+
+    error = float(np.linalg.norm(V - W @ H, 'fro'))
+    return W, H, error
+
 class BigramNMF:
     """Applies NMF to bigram transition matrices to find character classes."""
 

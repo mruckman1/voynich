@@ -17,6 +17,7 @@ from typing import Dict, List, Tuple, Optional
 
 from modules.phase4.lang_a_extractor import LanguageAExtractor
 from modules.phase5.latin_corpus_expanded import ExpandedLatinHerbalCorpus
+from modules.nmf_analysis import simple_nmf
 
 class NMFScaffold:
     """
@@ -61,27 +62,6 @@ class NMFScaffold:
 
         return matrix, vocab
 
-    def _simple_nmf(self, V: np.ndarray, k: int,
-                     max_iter: int = 200, seed: int = 42) -> Tuple[np.ndarray, np.ndarray, float]:
-        """Simple multiplicative-update NMF."""
-        rng = np.random.RandomState(seed)
-        n, m = V.shape
-
-        W = rng.rand(n, k) + 0.1
-        H = rng.rand(k, m) + 0.1
-
-        for _ in range(max_iter):
-            numerator = W.T @ V
-            denominator = W.T @ W @ H + 1e-10
-            H *= numerator / denominator
-
-            numerator = V @ H.T
-            denominator = W @ H @ H.T + 1e-10
-            W *= numerator / denominator
-
-        error = float(np.linalg.norm(V - W @ H, 'fro'))
-        return W, H, error
-
     def extract_voynich_topics(self) -> Dict:
         """
         Extract NMF topics from the Voynich Language A corpus.
@@ -107,7 +87,7 @@ class NMFScaffold:
             }
             return self._voynich_topics
 
-        W, H, error = self._simple_nmf(matrix, k)
+        W, H, error = simple_nmf(matrix, k)
 
         assignments = np.argmax(W, axis=1)
         topics = defaultdict(list)
@@ -152,7 +132,7 @@ class NMFScaffold:
             }
             return self._latin_topics
 
-        W, H, error = self._simple_nmf(matrix, k)
+        W, H, error = simple_nmf(matrix, k)
 
         assignments = np.argmax(W, axis=1)
         topics = defaultdict(list)

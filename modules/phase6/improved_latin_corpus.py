@@ -26,7 +26,7 @@ from typing import Dict, List, Tuple, Optional
 
 from modules.statistical_analysis import (
     word_conditional_entropy, zipf_analysis, conditional_entropy,
-    first_order_entropy,
+    first_order_entropy, word_transition_matrix,
 )
 from modules.phase5.latin_corpus_expanded import (
     ExpandedLatinHerbalCorpus,
@@ -626,23 +626,7 @@ class ImprovedLatinCorpus:
 
         CRITICAL: top_n should match len(voynich_vocab) for bijection in FixedSAA.
         """
-        tokens = self.get_tokens()
-        freqs = Counter(tokens)
-        vocab = [w for w, _ in freqs.most_common(top_n)]
-        word_to_idx = {w: i for i, w in enumerate(vocab)}
-        n = len(vocab)
-
-        counts = np.zeros((n, n), dtype=float)
-        for i in range(len(tokens) - 1):
-            w1, w2 = tokens[i], tokens[i + 1]
-            if w1 in word_to_idx and w2 in word_to_idx:
-                counts[word_to_idx[w1]][word_to_idx[w2]] += 1
-
-        row_sums = counts.sum(axis=1, keepdims=True)
-        row_sums[row_sums == 0] = 1
-        matrix = counts / row_sums
-
-        return matrix, vocab
+        return word_transition_matrix(self.get_tokens(), top_n=top_n)
 
     def compute_word_bigram_h2(self) -> float:
         """Compute word-level bigram conditional entropy."""

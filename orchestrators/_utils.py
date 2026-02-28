@@ -60,6 +60,14 @@ PHASE_DESCRIPTIONS = {
     13:    'Scholarly Synthesis & Presentation',
 }
 
+def _resolution_rate(decoded_text: str) -> float:
+    """Compute the fraction of words that are NOT bracketed."""
+    words = decoded_text.split()
+    if not words:
+        return 0.0
+    brackets = sum(1 for w in words if w.startswith('[') or w.startswith('<'))
+    return 1.0 - (brackets / len(words))
+
 def build_combined_report(phase_results: Dict[int, Dict], output_dir: str) -> str:
     """Build and save a combined report from all phases that were run.
 

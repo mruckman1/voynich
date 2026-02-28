@@ -23,6 +23,7 @@ from typing import Dict, List, Tuple, Optional
 
 from modules.statistical_analysis import (
     word_conditional_entropy, zipf_analysis, full_statistical_profile,
+    word_transition_matrix,
 )
 from modules.phase4.latin_herbal_corpus import CIRCA_INSTANS_ENTRIES
 
@@ -263,20 +264,7 @@ class ExpandedLatinHerbalCorpus:
 
     def build_transition_matrix(self, top_n: int = 1000) -> Tuple[np.ndarray, List[str]]:
         """Build word-level transition matrix restricted to the top N most frequent words."""
-        tokens = self.get_tokens()
-        freqs = Counter(tokens)
-        vocab = [w for w, _ in freqs.most_common(top_n)]
-        word_to_idx = {w: i for i, w in enumerate(vocab)}
-        n = len(vocab)
-        counts = np.zeros((n, n), dtype=float)
-        for i in range(len(tokens) - 1):
-            w1, w2 = tokens[i], tokens[i + 1]
-            if w1 in word_to_idx and w2 in word_to_idx:
-                counts[word_to_idx[w1]][word_to_idx[w2]] += 1
-        row_sums = counts.sum(axis=1, keepdims=True)
-        row_sums[row_sums == 0] = 1
-        matrix = counts / row_sums
-        return matrix, vocab
+        return word_transition_matrix(self.get_tokens(), top_n=top_n)
 
     def compute_word_bigram_h2(self) -> float:
         """Compute word-level bigram conditional entropy."""

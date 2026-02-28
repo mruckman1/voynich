@@ -184,6 +184,34 @@ def bigram_transition_matrix(text: str) -> Tuple[np.ndarray, List[str]]:
 
     return matrix, alphabet
 
+def word_transition_matrix(tokens: list, top_n: int = None) -> Tuple[np.ndarray, List[str]]:
+    """
+    Build a word-level bigram transition probability matrix.
+
+    Args:
+        tokens: List of word tokens.
+        top_n:  If provided, restrict vocabulary to the N most frequent words.
+                If None, use all unique tokens (sorted alphabetically).
+
+    Returns:
+        (matrix, vocab) where matrix[i][j] = P(word_j | word_i)
+    """
+    freqs = Counter(tokens)
+    if top_n:
+        vocab = [w for w, _ in freqs.most_common(top_n)]
+    else:
+        vocab = sorted(set(tokens))
+    word_to_idx = {w: i for i, w in enumerate(vocab)}
+    n = len(vocab)
+    counts = np.zeros((n, n), dtype=float)
+    for i in range(len(tokens) - 1):
+        w1, w2 = tokens[i], tokens[i + 1]
+        if w1 in word_to_idx and w2 in word_to_idx:
+            counts[word_to_idx[w1]][word_to_idx[w2]] += 1
+    row_sums = counts.sum(axis=1, keepdims=True)
+    row_sums[row_sums == 0] = 1
+    return counts / row_sums, vocab
+
 def compare_bigram_matrices(mat_a: np.ndarray, mat_b: np.ndarray,
                             alph_a: List[str], alph_b: List[str]) -> float:
     """

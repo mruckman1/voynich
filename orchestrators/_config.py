@@ -4,6 +4,11 @@ Every hardcoded value previously scattered across 12 files is now
 defined in one place. Individual phases import what they need.
 """
 
+import re
+
+UNRESOLVED_RE = re.compile(r'\[([^_\]]+)_UNRESOLVED\]|<([^_>]+)_UNRESOLVED>')
+TAGGED_BRACKET_RE = re.compile(r'\[([^_\]]+)_([A-Z_]+)\]|<([^_>]+)_([A-Z_]+)>')
+
 SAA_ITERATIONS_DEFAULT = 100_000
 SAA_ITERATIONS_QUICK = 1_000
 
