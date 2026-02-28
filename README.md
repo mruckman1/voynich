@@ -26,6 +26,7 @@ The core insight: rather than attacking the cipher monolithically, multiple inde
 | 12 | Content: Medieval Latin medical recipes | MODERATE | Recurring: *bibe, coque, oleo, aloe, bufo, aqua, hora* |
 | 12.5 | Adversarial defense suite | HIGH | 5 tests: unicity, domain swap, polyglot, EVA collapse, ablation |
 | 13 | Scholarly synthesis: 114 folios decoded | MODERATE | HTML viewer, English glosser, HITL console, whitepaper |
+| 13 | Illustration-text correlation: 2/22 folios match | LOW | *achillea* on f90r1, *ruta* on f96v; permutation p=0.081 |
 
 ## Architecture
 
@@ -53,6 +54,8 @@ voynich/
 │   ├── latin_syllables.py            # Medieval Latin syllabification rules
 │   ├── medieval_text_templates.py    # Latin herbal recipe templates
 │   ├── english_glossary.json         # Latin-to-English dictionary for Phase 13
+│   ├── Voynich_Botanicals.csv        # 91 botanical IDs: scientific name → medieval Latin
+│   ├── botanical_name_mapping.py     # Folio→species→medieval Latin lookup bridge
 │   ├── corpora/                      # Reference Latin text corpora
 │   │   ├── latin_vulgate_sample.txt  # Vulgate Bible sample (5K tokens)
 │   │   └── corpus_juris_civilis.txt  # Medieval legal Latin
@@ -95,7 +98,7 @@ voynich/
 │   ├── phase11/                      # Phonetic skeletonizer, CSP decoder
 │   ├── phase12/                      # Fuzzy skeletonizer, syntactic scaffold, n-gram mask solver, char n-gram model
 │   ├── phase12_5/                    # Adversarial tests (unicity, domain swap, polyglot, EVA collapse, ablation)
-│   └── phase13/                      # English glosser, HTML viewer, HITL console, whitepaper generator
+│   └── phase13/                      # English glosser, HTML viewer, HITL console, whitepaper, illustration correlation
 │
 └── output/
     ├── phase3/                       # Language B profile, hybrid model results
@@ -373,6 +376,7 @@ Transforms all decoding output into readable, publishable formats:
 3. **Deterministic English Glosser** -- Latin-to-English dictionary + inflection rules; 26.9% gloss rate across 114 folios
 4. **HITL Console** -- interactive human-in-the-loop editor for manually resolving `[UNRESOLVED]` tokens
 5. **Academic Whitepaper** -- structured Markdown with matplotlib charts (bracket waterfall, folio frequency, resolution by folio, Zipf comparison)
+6. **Illustration-Text Correlation** -- cross-validates decoded text against independent botanical identifications from manuscript illustrations. For each of 28 herbal folios with published plant IDs (Tucker & Talbert, Bax, Sherwood), searches decoded Latin for medieval Latin names of the visually identified species. Matches (e.g., *achillea* decoded on f90r1 where yarrow was identified from the illustration) provide external physical validation. Statistical significance assessed via binomial and permutation tests (10,000 trials).
 
 ## Sample Translation Output (Phase 12, folio f1r)
 
@@ -475,6 +479,7 @@ uv run cli.py --phase 13 --html                    # HTML viewer only
 uv run cli.py --phase 13 --gloss                   # English glosser only
 uv run cli.py --phase 13 --hitl                    # Interactive HITL console
 uv run cli.py --phase 13 --whitepaper              # Whitepaper generation only
+uv run cli.py --phase 13 --correlation             # Illustration-text correlation
 uv run cli.py --phase 13 --folios 20               # Limit decode to 20 folios
 ```
 

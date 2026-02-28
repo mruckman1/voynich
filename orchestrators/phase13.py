@@ -9,6 +9,7 @@ formats. First decodes ALL folios (configurable), then generates:
   13.2  Deterministic English Glosser — Latin→English dictionary + inflection rules
   13.3  HITL Console              — interactive resolution of [UNRESOLVED] tokens
   13.4  Academic Whitepaper       — structured Markdown with matplotlib charts
+  13.5  Illustration-Text Correlation — botanical ID vs decoded text validation
 
 February 2026  ·  Voynich Convergence Attack  ·  Phase 13
 """
@@ -235,7 +236,7 @@ def run_phase13_synthesis(
     if 'decode' in run_phases:
         if verbose:
             limit_str = f'first {folio_limit}' if folio_limit else 'ALL'
-            print(f'\n[0/4] Running Full-Corpus Decode ({limit_str} folios)...')
+            print(f'\n[0/5] Running Full-Corpus Decode ({limit_str} folios)...')
 
         ctx = build_morphological_context(
             verbose=False, latin_corpus_tokens=LATIN_CORPUS_TOKENS_LARGE
@@ -266,7 +267,7 @@ def run_phase13_synthesis(
         cached_path = os.path.join(output_dir, 'phase13_full_translations.json')
         if os.path.exists(cached_path):
             if verbose:
-                print(f'\n[0/4] Loading cached decode from {cached_path}...')
+                print(f'\n[0/5] Loading cached decode from {cached_path}...')
             with open(cached_path, 'r') as f:
                 decode_data = json.load(f)
         else:
@@ -274,7 +275,7 @@ def run_phase13_synthesis(
             try:
                 p12_path = _find_phase_output(12, 'phase12_reconstruction.json')
                 if verbose:
-                    print(f'\n[0/4] Loading Phase 12 output from {p12_path}...')
+                    print(f'\n[0/5] Loading Phase 12 output from {p12_path}...')
                 with open(p12_path, 'r') as f:
                     decode_data = json.load(f)
             except FileNotFoundError:
@@ -287,7 +288,7 @@ def run_phase13_synthesis(
     english_translations = {}
     if 'gloss' in run_phases:
         if verbose:
-            print('\n[1/4] Running Deterministic English Glosser...')
+            print('\n[1/5] Running Deterministic English Glosser...')
 
         from modules.phase13.english_glosser import run_english_glosser
 
@@ -314,7 +315,7 @@ def run_phase13_synthesis(
     # ================================================================
     if 'html' in run_phases:
         if verbose:
-            print('\n[2/4] Generating Interlinear HTML Viewer...')
+            print('\n[2/5] Generating Interlinear HTML Viewer...')
 
         from modules.phase13.html_viewer import generate_interlinear_html
 
@@ -358,7 +359,7 @@ def run_phase13_synthesis(
     # ================================================================
     if 'hitl' in run_phases:
         if verbose:
-            print('\n[3/4] Starting HITL Console...')
+            print('\n[3/5] Starting HITL Console...')
 
         from modules.phase13.hitl_console import run_hitl_console
 
@@ -383,7 +384,7 @@ def run_phase13_synthesis(
         results['hitl_console'] = hitl_metrics
     else:
         if verbose:
-            print('\n[3/4] HITL Console skipped (use --hitl to enable)')
+            print('\n[3/5] HITL Console skipped (use --hitl to enable)')
         results['hitl_console'] = {'skipped': True}
 
     # ================================================================
@@ -391,7 +392,7 @@ def run_phase13_synthesis(
     # ================================================================
     if 'whitepaper' in run_phases:
         if verbose:
-            print('\n[4/4] Generating Academic Whitepaper...')
+            print('\n[4/5] Generating Academic Whitepaper...')
 
         from modules.phase13.whitepaper_gen import run_whitepaper_generator
 
@@ -411,6 +412,36 @@ def run_phase13_synthesis(
                 verbose=verbose,
             )
             results['whitepaper'] = wp_metrics
+
+    # ================================================================
+    # SUB-PHASE 5: Illustration-Text Correlation
+    # ================================================================
+    if 'correlation' in run_phases:
+        if verbose:
+            print('\n[5/5] Running Illustration-Text Correlation...')
+
+        from modules.phase13.illustration_correlation import run_illustration_correlation
+
+        corr_metrics = run_illustration_correlation(
+            phase12_data=decode_data,
+            output_dir=output_dir,
+            verbose=verbose,
+        )
+        results['illustration_correlation'] = corr_metrics
+
+        if verbose:
+            matched = corr_metrics.get('matched_folios', 0)
+            testable = corr_metrics.get('testable_folios', 0)
+            rate = corr_metrics.get('match_rate_testable', 0)
+            bp = corr_metrics.get('binomial_p', 1.0)
+            pp = corr_metrics.get('permutation_p', 1.0)
+            print(f'  => {matched}/{testable} testable folios matched ({rate:.1%})')
+            print(f'  => Binomial p={bp:.4f}, Permutation p={pp:.4f}')
+    else:
+        if verbose:
+            print('\n[5/5] Illustration-Text Correlation skipped '
+                  '(use --correlation)')
+        results['illustration_correlation'] = {'skipped': True}
 
     # ================================================================
     # Save & Report
@@ -444,5 +475,9 @@ def run_phase13_synthesis(
             if wp.get('markdown_path'):
                 print(f'    Whitepaper:  {wp["markdown_path"]}')
                 print(f'    Charts:      {output_dir}/charts/')
+        if 'correlation' in run_phases:
+            corr = results.get('illustration_correlation', {})
+            if corr.get('output_path'):
+                print(f'    Correlation: {corr["output_path"]}')
 
     return results

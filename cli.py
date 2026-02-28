@@ -23,11 +23,12 @@ Phase 12.5 sub-phase flags:
   uv run cli.py --phase 12.5 --dictionary-diagnostic  # Dictionary coverage audit
 
 Phase 13 sub-phase flags:
-  uv run cli.py --phase 13 --html        # HTML viewer only
-  uv run cli.py --phase 13 --gloss       # English glosser only
-  uv run cli.py --phase 13 --hitl        # Interactive HITL console
-  uv run cli.py --phase 13 --whitepaper  # Whitepaper only
-  uv run cli.py --phase 13 --folios 20   # Limit decode to 20 folios
+  uv run cli.py --phase 13 --html           # HTML viewer only
+  uv run cli.py --phase 13 --gloss          # English glosser only
+  uv run cli.py --phase 13 --hitl           # Interactive HITL console
+  uv run cli.py --phase 13 --whitepaper     # Whitepaper only
+  uv run cli.py --phase 13 --correlation    # Illustration-text correlation
+  uv run cli.py --phase 13 --folios 20      # Limit decode to 20 folios
 
 Sub-phase flags are forwarded to the phase orchestrator:
   uv run cli.py --phase 2 --discrimination
@@ -183,6 +184,8 @@ def _parse_subphase_flags(phase_key, remaining_args):
             phases.append('hitl')
         if '--whitepaper' in remaining_args:
             phases.append('whitepaper')
+        if '--correlation' in remaining_args:
+            phases.append('correlation')
         if phases:
             kwargs['phases'] = phases
         # --folios N flag
