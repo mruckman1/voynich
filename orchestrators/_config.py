@@ -83,9 +83,6 @@ VOYNICH_SECTIONS = {
     'recipes':        {'currier_lang': 'B', 'primary_scribe': 5},
 }
 
-HITL_OVERRIDES_FILE = 'hitl_overrides.json'
-HITL_MAX_CANDIDATES = 10
-WHITEPAPER_CHART_DPI = 150
 
 ADV_UNICITY_TRIALS = 10
 ADV_RANDOM_BASELINE_THRESHOLD = 0.15

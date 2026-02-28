@@ -1,15 +1,15 @@
 """
-Phase 13 Orchestrator: Scholarly Synthesis & Presentation
-==========================================================
-Transforms the Voynich Convergence Attack output into readable, publishable
-formats. First decodes ALL folios (configurable), then generates:
+Phase 13 Orchestrator: Illustration-Text Correlation
+=====================================================
+Decodes ALL folios via the Phase 12 pipeline, then validates the
+decipherment against independent botanical identifications:
 
-  13.0  Full-Corpus Decode        — run Phase 12 pipeline on all folios
-  13.1  Interlinear HTML Viewer   — 4-tier offline HTML with traceability
-  13.2  Deterministic English Glosser — Latin→English dictionary + inflection rules
-  13.3  HITL Console              — interactive resolution of [UNRESOLVED] tokens
-  13.4  Academic Whitepaper       — structured Markdown with matplotlib charts
-  13.5  Illustration-Text Correlation — botanical ID vs decoded text validation
+  13.0  Full-Corpus Decode              — run Phase 12 pipeline on all folios
+  13.5  Illustration-Text Correlation   — botanical ID vs decoded text validation
+
+The correlation module is the objective fitness function: it checks
+whether decoded Latin plant names match the physical drawings on each
+page, with strict binomial and permutation p-values.
 
 February 2026  ·  Voynich Convergence Attack  ·  Phase 13
 """
@@ -18,14 +18,11 @@ import os
 import json
 import re
 import time
-from datetime import datetime
+from collections import Counter
 from typing import Dict, List, Optional
 
 from orchestrators._utils import save_json, ensure_output_dir, make_results_header
-from orchestrators._config import (
-    LATIN_CORPUS_TOKENS_LARGE, MIN_CONFIDENCE_RATIO,
-    HITL_OVERRIDES_FILE, HITL_MAX_CANDIDATES, WHITEPAPER_CHART_DPI,
-)
+from orchestrators._config import LATIN_CORPUS_TOKENS_LARGE, MIN_CONFIDENCE_RATIO
 from orchestrators._foundation import build_morphological_context
 
 from modules.phase11.phonetic_skeletonizer import LatinPhoneticSkeletonizer
@@ -51,19 +48,6 @@ def _find_phase_output(phase_num: int, filename: str) -> str:
     raise FileNotFoundError(
         f'Cannot find {filename} for phase {phase_num}. '
         f'Searched: {candidates}. Run phase {phase_num} first.'
-    )
-
-def _find_combined_report() -> str:
-    """Locate the combined report JSON."""
-    candidates = [
-        './output/combined_report.json',
-        './2nd_run_results/combined_report.json',
-    ]
-    for path in candidates:
-        if os.path.exists(path):
-            return path
-    raise FileNotFoundError(
-        f'Cannot find combined_report.json. Searched: {candidates}'
     )
 
 def _run_full_decode(
@@ -143,7 +127,6 @@ def _run_full_decode(
               f'still unresolved: {total_unresolved}')
 
     per_folio_stats = {}
-    from collections import Counter
     for folio, text in final_translations.items():
         words_clean = [w for w in text.split()
                        if not w.startswith('[') and not w.startswith('<')]
@@ -175,61 +158,48 @@ def _run_full_decode(
             'min_confidence_ratio': MIN_CONFIDENCE_RATIO,
         },
         'per_folio_stats': per_folio_stats,
-        '_fuzzy_skel': fuzzy_skel,
-        '_latin_skel': latin_skel,
     }
 
 def run_phase13_synthesis(
     phases: Optional[List[str]] = None,
     verbose: bool = True,
     output_dir: str = './output/phase13',
-    folio: Optional[str] = None,
     folio_limit: Optional[int] = None,
+    **_kwargs,
 ) -> Dict:
-    """Run the full Phase 13 pipeline.
+    """Run Phase 13: decode + illustration-text correlation.
 
     Args:
-        phases: Sub-phases to run: 'decode', 'html', 'gloss', 'hitl', 'whitepaper'
-                Default: decode + html + gloss + whitepaper (HITL excluded)
+        phases: Sub-phases to run: 'decode', 'correlation'.
+                Default: both.
         verbose: Print progress
         output_dir: Output directory
-        folio: Optional folio filter for HITL console
         folio_limit: Max folios to decode (None = all)
     """
     ensure_output_dir(output_dir)
-    all_phases = ['decode', 'html', 'gloss', 'whitepaper']
+    all_phases = ['decode', 'correlation']
     run_phases = set(phases or all_phases)
     t0 = time.time()
 
     if verbose:
         print('=' * 70)
         print('VOYNICH CONVERGENCE ATTACK — PHASE 13')
-        print('Scholarly Synthesis & Presentation')
+        print('Illustration-Text Correlation')
         print('=' * 70)
 
     results = make_results_header()
 
-    glossary_path = os.path.join(
-        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-        'data', 'english_glossary.json'
-    )
-
     decode_data = None
-    ctx = None
-    fuzzy_skel = None
-    latin_skel = None
 
     if 'decode' in run_phases:
         if verbose:
             limit_str = f'first {folio_limit}' if folio_limit else 'ALL'
-            print(f'\n[0/5] Running Full-Corpus Decode ({limit_str} folios)...')
+            print(f'\n[1/2] Running Full-Corpus Decode ({limit_str} folios)...')
 
         ctx = build_morphological_context(
             verbose=False, latin_corpus_tokens=LATIN_CORPUS_TOKENS_LARGE
         )
         decode_data = _run_full_decode(ctx, folio_limit, verbose)
-        fuzzy_skel = decode_data.pop('_fuzzy_skel')
-        latin_skel = decode_data.pop('_latin_skel')
 
         results['decode_metrics'] = {
             'folios_decoded': decode_data['csp_metrics']['folios_decoded'],
@@ -251,137 +221,23 @@ def run_phase13_synthesis(
         cached_path = os.path.join(output_dir, 'phase13_full_translations.json')
         if os.path.exists(cached_path):
             if verbose:
-                print(f'\n[0/5] Loading cached decode from {cached_path}...')
+                print(f'\n[1/2] Loading cached decode from {cached_path}...')
             with open(cached_path, 'r') as f:
                 decode_data = json.load(f)
         else:
             try:
                 p12_path = _find_phase_output(12, 'phase12_reconstruction.json')
                 if verbose:
-                    print(f'\n[0/5] Loading Phase 12 output from {p12_path}...')
+                    print(f'\n[1/2] Loading Phase 12 output from {p12_path}...')
                 with open(p12_path, 'r') as f:
                     decode_data = json.load(f)
             except FileNotFoundError:
                 print('ERROR: No decoded translations found. Run with --decode or run Phase 12 first.')
                 return results
 
-    english_translations = {}
-    if 'gloss' in run_phases:
-        if verbose:
-            print('\n[1/5] Running Deterministic English Glosser...')
-
-        from modules.phase13.english_glosser import run_english_glosser
-
-        gloss_output = os.path.join(output_dir, 'english_translations.json')
-        gloss_metrics = run_english_glosser(
-            phase12_data=decode_data,
-            glossary_path=glossary_path,
-            output_path=gloss_output,
-            verbose=verbose,
-        )
-        results['english_glosser'] = gloss_metrics
-
-        with open(gloss_output, 'r') as f:
-            english_data = json.load(f)
-        english_translations = english_data.get('english_translations', {})
-
-        if verbose:
-            print(f'  → Glossed {gloss_metrics.get("folios_glossed", 0)} folios')
-            print(f'  → Coverage: {gloss_metrics.get("glossed_rate", 0):.1%}')
-
-    if 'html' in run_phases:
-        if verbose:
-            print('\n[2/5] Generating Interlinear HTML Viewer...')
-
-        from modules.phase13.html_viewer import generate_interlinear_html
-
-        try:
-            p7_path = _find_phase_output(7, 'phase7_report.json')
-            with open(p7_path, 'r') as f:
-                phase7_data = json.load(f)
-        except FileNotFoundError:
-            phase7_data = {}
-
-        eva_by_folio = {}
-        if ctx is not None:
-            by_folio = ctx.extractor.extract_lang_a_by_folio()
-            eva_by_folio = {f: tokens for f, tokens in by_folio.items()}
-        else:
-            from modules.phase4.lang_a_extractor import LanguageAExtractor
-            ext = LanguageAExtractor(verbose=False)
-            by_folio = ext.extract_lang_a_by_folio()
-            eva_by_folio = {f: tokens for f, tokens in by_folio.items()}
-
-        html_path = os.path.join(output_dir, 'interlinear_viewer.html')
-        html_metrics = generate_interlinear_html(
-            phase7_data=phase7_data,
-            phase12_data=decode_data,
-            english_translations=english_translations,
-            eva_by_folio=eva_by_folio,
-            output_path=html_path,
-            verbose=verbose,
-        )
-        results['html_viewer'] = html_metrics
-        results['html_viewer']['path'] = html_path
-
-        if verbose:
-            print(f'  → HTML saved: {html_path}')
-
-    if 'hitl' in run_phases:
-        if verbose:
-            print('\n[3/5] Starting HITL Console...')
-
-        from modules.phase13.hitl_console import run_hitl_console
-
-        if fuzzy_skel is None or latin_skel is None:
-            if ctx is None:
-                ctx = build_morphological_context(
-                    verbose=False, latin_corpus_tokens=LATIN_CORPUS_TOKENS_LARGE
-                )
-            latin_skel = LatinPhoneticSkeletonizer(ctx.latin_tokens)
-            fuzzy_skel = FuzzySkeletonizer(ctx.voynich_morphemer)
-
-        overrides_path = os.path.join(output_dir, HITL_OVERRIDES_FILE)
-        hitl_metrics = run_hitl_console(
-            phase12_data=decode_data,
-            overrides_path=overrides_path,
-            fuzzy_skeletonizer=fuzzy_skel,
-            latin_skeletonizer=latin_skel,
-            verbose=verbose,
-            folio=folio,
-        )
-        results['hitl_console'] = hitl_metrics
-    else:
-        if verbose:
-            print('\n[3/5] HITL Console skipped (use --hitl to enable)')
-        results['hitl_console'] = {'skipped': True}
-
-    if 'whitepaper' in run_phases:
-        if verbose:
-            print('\n[4/5] Generating Academic Whitepaper...')
-
-        from modules.phase13.whitepaper_gen import run_whitepaper_generator
-
-        try:
-            combined_path = _find_combined_report()
-        except FileNotFoundError:
-            if verbose:
-                print('  → Combined report not found, skipping whitepaper.')
-            combined_path = None
-
-        if combined_path:
-            wp_metrics = run_whitepaper_generator(
-                combined_report_path=combined_path,
-                phase12_data=decode_data,
-                output_dir=output_dir,
-                dpi=WHITEPAPER_CHART_DPI,
-                verbose=verbose,
-            )
-            results['whitepaper'] = wp_metrics
-
     if 'correlation' in run_phases:
         if verbose:
-            print('\n[5/5] Running Illustration-Text Correlation...')
+            print('\n[2/2] Running Illustration-Text Correlation...')
 
         from modules.phase13.illustration_correlation import run_illustration_correlation
 
@@ -400,17 +256,12 @@ def run_phase13_synthesis(
             pp = corr_metrics.get('permutation_p', 1.0)
             print(f'  => {matched}/{testable} testable folios matched ({rate:.1%})')
             print(f'  => Binomial p={bp:.4f}, Permutation p={pp:.4f}')
-    else:
-        if verbose:
-            print('\n[5/5] Illustration-Text Correlation skipped '
-                  '(use --correlation)')
-        results['illustration_correlation'] = {'skipped': True}
 
     elapsed = time.time() - t0
     results['elapsed_seconds'] = round(elapsed, 2)
     results['conclusion'] = (
-        'Phase 13 decoded the full manuscript corpus and produced scholarly '
-        'presentation materials. All outputs preserve the mathematical chain '
+        'Phase 13 decoded the full manuscript corpus and validated against '
+        'botanical illustrations. All outputs preserve the mathematical chain '
         'of evidence: every word traces from Voynich glyph through consonant '
         'skeleton to dictionary match to transition probability.'
     )
@@ -425,19 +276,10 @@ def run_phase13_synthesis(
         print(f'  Report: {report_path}')
         print(f'  Outputs:')
         if 'decode' in run_phases:
-            print(f'    Full decode: {output_dir}/phase13_full_translations.json')
-        if 'gloss' in run_phases:
-            print(f'    English:     {output_dir}/english_translations.json')
-        if 'html' in run_phases:
-            print(f'    HTML Viewer: {output_dir}/interlinear_viewer.html')
-        if 'whitepaper' in run_phases:
-            wp = results.get('whitepaper', {})
-            if wp.get('markdown_path'):
-                print(f'    Whitepaper:  {wp["markdown_path"]}')
-                print(f'    Charts:      {output_dir}/charts/')
+            print(f'    Full decode:  {output_dir}/phase13_full_translations.json')
         if 'correlation' in run_phases:
             corr = results.get('illustration_correlation', {})
             if corr.get('output_path'):
-                print(f'    Correlation: {corr["output_path"]}')
+                print(f'    Correlation:  {corr["output_path"]}')
 
     return results
