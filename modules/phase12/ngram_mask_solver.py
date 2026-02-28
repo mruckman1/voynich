@@ -100,6 +100,10 @@ class NgramMaskSolver:
         char_ngram_min_segments: int = 3,
         char_ngram_max_context_distance: int = 4,
         char_ngram_require_context: bool = True,
+        # Improvement 8: Illustration-guided disambiguation
+        enable_illustration_prior: bool = False,
+        illustration_prior: Optional[Dict[str, Dict[str, float]]] = None,
+        illustration_boosted_ratio_factor: float = 0.5,
     ):
         """
         Args:
@@ -211,6 +215,12 @@ class NgramMaskSolver:
         self.char_ngram_max_context_distance = char_ngram_max_context_distance
         self.char_ngram_require_context = char_ngram_require_context
         self._char_ngram_resolutions = 0
+
+        # Improvement 8: Illustration-guided disambiguation
+        self.enable_illustration_prior = enable_illustration_prior
+        self.illustration_prior = illustration_prior or {}
+        self.illustration_boosted_ratio_factor = illustration_boosted_ratio_factor
+        self._illustration_boosted_resolutions = 0
 
     def set_corpus_frequencies(self, corpus_tokens: List[str]) -> None:
         """
@@ -420,6 +430,11 @@ class NgramMaskSolver:
             if humoral_cat in self.humoral_vocab:
                 humoral_boost_words = set(self.humoral_vocab[humoral_cat])
 
+        # Illustration prior boost table for this folio
+        illust_boosts: Dict[str, float] = {}
+        if self.enable_illustration_prior and folio_id and folio_id in self.illustration_prior:
+            illust_boosts = self.illustration_prior[folio_id]
+
         result = list(current_words)
         log = []
         new_resolutions = 0
@@ -533,6 +548,10 @@ class NgramMaskSolver:
                 if candidate in humoral_boost_words:
                     score *= 3.0
 
+                # Improvement 8: Illustration prior multiplier
+                if candidate in illust_boosts:
+                    score *= illust_boosts[candidate]
+
                 scored.append((score, candidate))
 
             # Sort descending
@@ -561,11 +580,14 @@ class NgramMaskSolver:
                     if (seg_count >= self.unigram_backoff_min_segments
                             and has_close_context):
                         # Count candidates with sufficient corpus frequency
-                        viable = [
-                            (self._unigram_freq.get(c, 0), c)
-                            for c in pos_filtered
-                            if self._unigram_freq.get(c, 0) >= 20
-                        ]
+                        viable = []
+                        for c in pos_filtered:
+                            freq = self._unigram_freq.get(c, 0)
+                            if freq >= 20:
+                                # Improvement 8: illustration boost on frequency
+                                if c in illust_boosts:
+                                    freq *= illust_boosts[c]
+                                viable.append((freq, c))
                         viable.sort(key=lambda x: (-x[0], x[1]))
 
                         if viable:
@@ -588,6 +610,41 @@ class NgramMaskSolver:
                                     'resolution_type': 'unigram_backoff',
                                     'score': best_freq,
                                     'ratio': round(ratio, 2) if ratio != float('inf') else 'inf',
+                                })
+                                continue
+
+                # Improvement 8: Illustration prior fallback
+                # When bigram and unigram both give zero, check if any candidate
+                # matches a Tier 1 illustration prior. This creates signal from
+                # external (art-historical) evidence. Gates:
+                #   1. Folio must have an illustration prior
+                #   2. Only Tier 1 (exact plant names, boost >= 2.0)
+                #   3. Sole Tier-1 candidate OR clear boost gap
+                #   4. Skeleton >= 3 segments (short skeletons match too many)
+                if (illust_boosts and pos_filtered):
+                    seg_count = self._get_skeleton_segment_count(voynich_token)
+                    if seg_count >= self.unigram_backoff_min_segments:
+                        illust_candidates = [
+                            (illust_boosts[c], c) for c in pos_filtered
+                            if c in illust_boosts and illust_boosts[c] >= 2.0
+                        ]
+                        if illust_candidates:
+                            illust_candidates.sort(key=lambda x: (-x[0], x[1]))
+                            best_ib, best_iw = illust_candidates[0]
+                            second_ib = illust_candidates[1][0] if len(illust_candidates) > 1 else 0.0
+                            if second_ib == 0.0 or best_ib / second_ib >= 1.5:
+                                result[i] = best_iw
+                                new_resolutions += 1
+                                self._word_level_resolutions += 1
+                                self._illustration_boosted_resolutions += 1
+                                log.append({
+                                    'position': i, 'token': voynich_token,
+                                    'pos': pos_tag,
+                                    'status': 'resolved',
+                                    'resolved': best_iw,
+                                    'resolution_type': 'illustration_prior',
+                                    'score': best_ib,
+                                    'ratio': 'illustration_sole' if second_ib == 0 else round(best_ib / second_ib, 2),
                                 })
                                 continue
 
@@ -619,6 +676,15 @@ class NgramMaskSolver:
                     and w_next_dist <= self.dual_context_max_distance):
                 effective_ratio *= self.dual_context_ratio_factor
 
+            # Improvement 8: illustration prior confidence reduction
+            if (self.enable_illustration_prior
+                    and best_word in illust_boosts
+                    and self.illustration_boosted_ratio_factor < 1.0):
+                effective_ratio *= self.illustration_boosted_ratio_factor
+
+            # Safety floor: never go below 1.5x regardless of stacked reductions
+            effective_ratio = max(1.5, effective_ratio)
+
             if second_score > 0 and best_score / second_score < effective_ratio:
                 # Ambiguous — scores too close
                 if mark_unresolved:
@@ -638,6 +704,8 @@ class NgramMaskSolver:
                 result[i] = best_word
                 new_resolutions += 1
                 self._word_level_resolutions += 1
+                if best_word in illust_boosts:
+                    self._illustration_boosted_resolutions += 1
                 ratio = best_score / second_score if second_score > 0 else float('inf')
                 log.append({
                     'position': i, 'token': voynich_token, 'pos': pos_tag,
@@ -797,6 +865,7 @@ class NgramMaskSolver:
         self._word_level_resolutions = 0
         self._pos_backoff_resolutions = 0
         self._char_ngram_resolutions = 0
+        self._illustration_boosted_resolutions = 0
 
         words = decoded_text.split()
         resolved_words, log = self.solve(
@@ -825,6 +894,7 @@ class NgramMaskSolver:
             'word_level_resolutions': self._word_level_resolutions,
             'pos_backoff_resolutions': self._pos_backoff_resolutions,
             'char_ngram_resolutions': self._char_ngram_resolutions,
+            'illustration_boosted_resolutions': self._illustration_boosted_resolutions,
             'confidence_scores': [
                 {
                     'token': entry['token'],
@@ -838,7 +908,7 @@ class NgramMaskSolver:
 
         return ' '.join(resolved_words), stats
 
-    def pos_backoff_pass(self, resolved_text: str) -> Tuple[str, int]:
+    def pos_backoff_pass(self, resolved_text: str, folio_id: str = None) -> Tuple[str, int]:
         """
         Post-consistency POS backoff pass.
 
@@ -939,20 +1009,41 @@ class NgramMaskSolver:
                 pos_scored.append((ps, candidate))
             pos_scored.sort(key=lambda x: (-x[0], x[1]))
 
+            # Improvement 8: Illustration prior boost on POS-scored candidates
+            illust_boosts = {}
+            if self.enable_illustration_prior and folio_id and folio_id in self.illustration_prior:
+                illust_boosts = self.illustration_prior[folio_id]
+                boosted_pos_scored = []
+                for ps, cand in pos_scored:
+                    if cand in illust_boosts:
+                        ps *= illust_boosts[cand]
+                    boosted_pos_scored.append((ps, cand))
+                pos_scored = boosted_pos_scored
+                pos_scored.sort(key=lambda x: (-x[0], x[1]))
+
             if not pos_scored or pos_scored[0][0] == 0.0:
                 continue
 
             best_ps, best_pw = pos_scored[0]
             second_ps = pos_scored[1][0] if len(pos_scored) > 1 else 0.0
 
-            if second_ps == 0 or best_ps / second_ps >= self.pos_backoff_min_confidence:
+            # Illustration prior: reduce confidence ratio for boosted winners
+            pos_min_conf = self.pos_backoff_min_confidence
+            if (self.enable_illustration_prior
+                    and best_pw in illust_boosts
+                    and self.illustration_boosted_ratio_factor < 1.0):
+                pos_min_conf = max(1.5, pos_min_conf * self.illustration_boosted_ratio_factor)
+
+            if second_ps == 0 or best_ps / second_ps >= pos_min_conf:
                 result[i] = best_pw
                 num_resolved += 1
                 self._pos_backoff_resolutions += 1
+                if best_pw in illust_boosts:
+                    self._illustration_boosted_resolutions += 1
 
         return ' '.join(result), num_resolved
 
-    def char_ngram_pass(self, resolved_text: str) -> Tuple[str, int]:
+    def char_ngram_pass(self, resolved_text: str, folio_id: str = None) -> Tuple[str, int]:
         """
         Post-consistency character n-gram fallback pass.
 
@@ -1029,18 +1120,34 @@ class NgramMaskSolver:
             best_score, best_word = scored[0]
             second_score = scored[1][0] if len(scored) > 1 else -float('inf')
 
+            # Improvement 8: Illustration prior adjusts thresholds
+            illust_boosts = {}
+            if self.enable_illustration_prior and folio_id and folio_id in self.illustration_prior:
+                illust_boosts = self.illustration_prior[folio_id]
+            is_boosted = best_word in illust_boosts
+
             # Confidence: score gap threshold
             if len(scored) == 1:
                 # Single candidate — resolve if score is above empirical threshold
-                if best_score > -8.0:
+                threshold = -10.0 if is_boosted else -8.0
+                if best_score > threshold:
                     result[i] = best_word
                     num_resolved += 1
                     self._char_ngram_resolutions += 1
+                    if is_boosted:
+                        self._illustration_boosted_resolutions += 1
             else:
+                effective_gap = self.char_ngram_min_score_gap
+                if is_boosted:
+                    second_word = scored[1][1]
+                    if second_word not in illust_boosts:
+                        effective_gap *= self.illustration_boosted_ratio_factor
                 gap = best_score - second_score
-                if gap >= self.char_ngram_min_score_gap:
+                if gap >= effective_gap:
                     result[i] = best_word
                     num_resolved += 1
                     self._char_ngram_resolutions += 1
+                    if is_boosted:
+                        self._illustration_boosted_resolutions += 1
 
         return ' '.join(result), num_resolved

@@ -39,6 +39,8 @@ from orchestrators._config import (
     ENABLE_CROSS_FOLIO_CONSISTENCY, CROSS_FOLIO_MIN_AGREEMENT, CROSS_FOLIO_MIN_OCCURRENCES,
     ENABLE_GRADUATED_CSP, CSP_HIGH_CONFIDENCE_THRESHOLD, CSP_MEDIUM_CONFIDENCE_THRESHOLD,
     ENABLE_SELECTIVE_FUNCTION_WORDS, FUNCTION_WORD_MAX_DENSITY, FUNCTION_WORD_WINDOW_SIZE,
+    # Improvement 8: Illustration-guided disambiguation
+    ENABLE_ILLUSTRATION_PRIOR, ILLUSTRATION_BOOSTED_RATIO_FACTOR,
 )
 from orchestrators._foundation import build_morphological_context
 
@@ -53,6 +55,17 @@ from modules.phase12.char_ngram_model import LatinCharNgramModel
 from modules.phase12.cross_folio_consistency import CrossFolioConsistencyEngine
 
 from data.botanical_identifications import PLANT_IDS
+
+
+def _build_illustration_prior_safe():
+    """Build illustration prior dict, returning None if data is unavailable."""
+    if not ENABLE_ILLUSTRATION_PRIOR:
+        return None
+    try:
+        from data.folio_illustration_priors import build_illustration_prior
+        return build_illustration_prior()
+    except (ImportError, FileNotFoundError):
+        return None
 
 
 def _count_brackets(text: str) -> int:
@@ -225,6 +238,10 @@ def run_phase12_reconstruction(
             char_ngram_min_segments=CHAR_NGRAM_MIN_SEGMENTS,
             char_ngram_max_context_distance=CHAR_NGRAM_MAX_CONTEXT_DISTANCE,
             char_ngram_require_context=CHAR_NGRAM_REQUIRE_CONTEXT,
+            # Improvement 8: Illustration-guided disambiguation
+            enable_illustration_prior=ENABLE_ILLUSTRATION_PRIOR,
+            illustration_prior=_build_illustration_prior_safe(),
+            illustration_boosted_ratio_factor=ILLUSTRATION_BOOSTED_RATIO_FACTOR,
         )
         ngram_solver.set_corpus_frequencies(l_tokens)
 
@@ -550,7 +567,7 @@ def run_phase12_reconstruction(
         total_pos_resolved = 0
         for folio in final_translations:
             updated_text, n_resolved = ngram_solver.pos_backoff_pass(
-                final_translations[folio]
+                final_translations[folio], folio_id=folio
             )
             final_translations[folio] = updated_text
             total_pos_resolved += n_resolved
@@ -581,7 +598,7 @@ def run_phase12_reconstruction(
         total_char_ngram_resolved = 0
         for folio in final_translations:
             updated_text, n_resolved = ngram_solver.char_ngram_pass(
-                final_translations[folio]
+                final_translations[folio], folio_id=folio
             )
             final_translations[folio] = updated_text
             total_char_ngram_resolved += n_resolved

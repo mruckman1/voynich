@@ -56,6 +56,7 @@ voynich/
 │   ├── english_glossary.json         # Latin-to-English dictionary for Phase 13
 │   ├── Voynich_Botanicals.csv        # 91 botanical IDs: scientific name → medieval Latin
 │   ├── botanical_name_mapping.py     # Folio→species→medieval Latin lookup bridge
+│   ├── folio_illustration_priors.py  # Per-folio botanical word boost tables (3-tier prior)
 │   ├── corpora/                      # Reference Latin text corpora
 │   │   ├── latin_vulgate_sample.txt  # Vulgate Bible sample (5K tokens)
 │   │   └── corpus_juris_civilis.txt  # Medieval legal Latin
@@ -333,16 +334,17 @@ Eliminated HMM hallucination but suffered from repetition in high-frequency deco
 
 ### Phase 12: Contextual Reconstruction
 
-Full-corpus decoding combining CSP, syntactic scaffolding, n-gram mask solving, cross-folio consistency, POS backoff, and character n-gram fallback scoring across an 8-sub-phase pipeline:
+Full-corpus decoding combining CSP, syntactic scaffolding, n-gram mask solving, cross-folio consistency, POS backoff, character n-gram fallback scoring, and illustration-guided disambiguation across a 9-sub-phase pipeline:
 
 1. **Load Dependencies** -- Latin corpus (50,027 tokens, 1,695 types), skeleton index (1,087 skeletons), transition matrix (1,001×1,001)
-2. **Build Components** -- FuzzySkeletonizer (y/o branching), BudgetedCSPDecoder (graduated scoring), SyntacticScaffolder (POS tagging), NgramMaskSolver (7 improvements), CharNgramModel (trigram fallback)
+2. **Build Components** -- FuzzySkeletonizer (y/o branching), BudgetedCSPDecoder (graduated scoring), SyntacticScaffolder (POS tagging), NgramMaskSolver (8 improvements), CharNgramModel (trigram fallback), Illustration Prior (per-folio botanical boosts)
 3. **Budgeted CSP Decoding** -- frequency budgeting + humoral crib injection across all 224 folios
 4. **Syntactic Scaffolding** -- POS-tag remaining brackets via Latin suffix patterns
-5. **Deterministic N-Gram Mask Solving** -- word-level bigram scoring with bidirectional multi-pass, function word recovery, dual-context confidence reduction, unigram frequency backoff
+5. **Deterministic N-Gram Mask Solving** -- word-level bigram scoring with bidirectional multi-pass, function word recovery, dual-context confidence reduction, unigram frequency backoff, illustration-guided disambiguation
 6. **Cross-Folio Consistency** -- skeleton→word mappings agreed across 3+ folios override local ambiguity
-7. **POS Backoff Pass** -- when word-level P(candidate|prev) = 0, falls back to POS transition probability (8×8 matrix) as a coarser discriminator. Runs post-consistency to avoid poisoning cross-folio agreement.
-8. **Character N-Gram Fallback** -- for remaining unresolved tokens, scores candidates by Latin character trigram plausibility. Unlike word-level and POS-level scoring, does not require resolved neighbors. Uses average log-probability with score gap thresholding.
+7. **POS Backoff Pass** -- when word-level P(candidate|prev) = 0, falls back to POS transition probability (8×8 matrix) as a coarser discriminator. Runs post-consistency to avoid poisoning cross-folio agreement. Illustration boost applied to POS-scored candidates on botanical folios.
+8. **Character N-Gram Fallback** -- for remaining unresolved tokens, scores candidates by Latin character trigram plausibility. Unlike word-level and POS-level scoring, does not require resolved neighbors. Uses average log-probability with score gap thresholding. Score gap threshold relaxed for illustration-boosted candidates.
+9. **Illustration-Guided Disambiguation** -- per-folio multiplicative boost for candidates semantically related to the plant depicted in each folio's illustration. Three tiers: Tier 1 (exact plant names + inflections, 2.0×), Tier 2 (medicinal properties + humoral terms, 1.3×), Tier 3 (generic botanical vocabulary, 1.1×). Boost is multiplicative on transition scores (0 × boost = 0), so the prior alone cannot create resolutions -- it only disambiguates when multiple candidates are competitive. Confidence ratio reduced to 2.5× for boosted winners. Covers 25 testable botanical folios with ~60-94 boosted words each. Built from independent botanical identifications (Tucker & Talbert, Bax, Sherwood) via `build_illustration_prior()`.
 
 **Current results (224 folios):**
 - Language A: 41.4% resolution (5,468 / 13,204 words)

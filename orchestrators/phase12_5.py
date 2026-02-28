@@ -34,6 +34,8 @@ from orchestrators._config import (
     ENABLE_CHAR_NGRAM_FALLBACK, CHAR_NGRAM_ORDER, CHAR_NGRAM_SMOOTHING,
     CHAR_NGRAM_MIN_SCORE_GAP, CHAR_NGRAM_MIN_SEGMENTS,
     CHAR_NGRAM_MAX_CONTEXT_DISTANCE, CHAR_NGRAM_REQUIRE_CONTEXT,
+    # Improvement 8: Illustration-guided disambiguation
+    ENABLE_ILLUSTRATION_PRIOR, ILLUSTRATION_BOOSTED_RATIO_FACTOR,
 )
 from orchestrators._foundation import build_morphological_context
 
@@ -54,6 +56,17 @@ from modules.phase12_5.adv_5_ablation_study import AblationStudyTest
 from modules.phase12_5.proof_of_compositionality import CompositionalityProof
 
 from data.botanical_identifications import PLANT_IDS
+
+
+def _build_illustration_prior_safe():
+    """Build illustration prior dict, returning None if data is unavailable."""
+    if not ENABLE_ILLUSTRATION_PRIOR:
+        return None
+    try:
+        from data.folio_illustration_priors import build_illustration_prior
+        return build_illustration_prior()
+    except (ImportError, FileNotFoundError):
+        return None
 
 
 def run_phase12_5_adversarial(
@@ -164,6 +177,10 @@ def run_phase12_5_adversarial(
         char_ngram_min_segments=CHAR_NGRAM_MIN_SEGMENTS,
         char_ngram_max_context_distance=CHAR_NGRAM_MAX_CONTEXT_DISTANCE,
         char_ngram_require_context=CHAR_NGRAM_REQUIRE_CONTEXT,
+        # Improvement 8: Illustration-guided disambiguation
+        enable_illustration_prior=ENABLE_ILLUSTRATION_PRIOR,
+        illustration_prior=_build_illustration_prior_safe(),
+        illustration_boosted_ratio_factor=ILLUSTRATION_BOOSTED_RATIO_FACTOR,
     )
     ngram_solver.set_corpus_frequencies(l_tokens)
 

@@ -65,6 +65,17 @@ CHAR_NGRAM_MIN_SEGMENTS = 3             # Skeleton segment minimum (unicity gate
 CHAR_NGRAM_MAX_CONTEXT_DISTANCE = 4     # Max positions to nearest resolved neighbor
 CHAR_NGRAM_REQUIRE_CONTEXT = True       # Require at least one resolved neighbor
 
+# Improvement 8: Illustration-guided disambiguation
+# Per-folio multiplicative boost for candidates matching botanical
+# illustration identifications. Three tiers: plant names, semantic
+# associates (properties/humoral terms), generic botanical vocabulary.
+ENABLE_ILLUSTRATION_PRIOR = True
+ILLUSTRATION_TIER1_BOOST = 2.0          # Exact plant names + inflections
+ILLUSTRATION_TIER2_BOOST = 1.3          # Properties, humoral quality terms
+ILLUSTRATION_TIER3_BOOST = 1.1          # Generic botanical vocabulary
+ILLUSTRATION_BOOSTED_RATIO_FACTOR = 0.5 # Reduce confidence ratio when boosted
+                                        # 5.0x × 0.5 = 2.5x for boosted candidates
+
 # ── Cross-Folio Consistency Engine ────────────────────────────────
 ENABLE_CROSS_FOLIO_CONSISTENCY = True
 CROSS_FOLIO_MIN_AGREEMENT = 0.6     # Minimum fraction of folios agreeing on mapping
