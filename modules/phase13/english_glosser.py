@@ -17,8 +17,6 @@ import re
 import os
 from typing import Dict, List, Optional, Tuple
 
-
-# ── Function words with fixed English equivalents ────────────────────
 FUNCTION_GLOSS = {
     'et': 'and', 'sed': 'but', 'vel': 'or', 'aut': 'or',
     'quia': 'because', 'quae': 'which', 'quod': 'that',
@@ -35,24 +33,17 @@ FUNCTION_GLOSS = {
     'quoque': 'also', 'ideo': 'therefore',
 }
 
-# ── Preposition map for contextual ablative rendering ────────────────
 PREPOSITION_MAP = {
     'in': 'in', 'cum': 'with', 'per': 'through', 'ad': 'to',
     'de': 'of', 'pro': 'for', 'contra': 'against',
     'super': 'upon', 'sub': 'under', 'ex': 'from', 'ab': 'from',
 }
 
-# ── Latin suffix rules for inflection detection ─────────────────────
-# Each rule: (suffix, base_suffix_replacement, role)
-# Ordered longest-first for greedy matching
 INFLECTION_RULES: List[Tuple[str, str, str]] = [
-    # Genitive plural
     ('orum', 'us',  'gen_pl'),
     ('arum', 'a',   'gen_pl'),
     ('ium',  'is',  'gen_pl'),
-    # Dative/ablative plural
     ('ibus', 'is',  'abl_pl'),
-    # Genitive singular
     ('onis', 'o',   'gen'),
     ('inis', 'en',  'gen'),
     ('icis', 'ix',  'gen'),
@@ -62,18 +53,14 @@ INFLECTION_RULES: List[Tuple[str, str, str]] = [
     ('is',   'is',  'gen_3rd'),
     ('ae',   'a',   'gen_fem'),
     ('i',    'us',  'gen_masc'),
-    # Accusative singular
     ('am',   'a',   'acc_fem'),
     ('um',   'us',  'acc'),
     ('em',   'is',  'acc_3rd'),
-    # Ablative singular
     ('o',    'us',  'abl_masc'),
     ('e',    'is',  'abl_3rd'),
-    # Nominative plural
     ('es',   'is',  'nom_pl'),
     ('a',    'um',  'nom_pl_neut'),
 ]
-
 
 class LatinInflectionEngine:
     """Lightweight Latin morphological analysis for glossing.
@@ -96,21 +83,17 @@ class LatinInflectionEngine:
         """
         word = latin_word.lower().strip()
 
-        # 1. Direct glossary hit
         if word in self.glossary:
             return (self.glossary[word]['en'], 'direct')
 
-        # 2. Function word hit
         if word in FUNCTION_GLOSS:
             return (FUNCTION_GLOSS[word], 'function')
 
-        # 3. Try inflection stripping
         for suffix, replacement, role in INFLECTION_RULES:
             if word.endswith(suffix) and len(word) > len(suffix) + 1:
                 base = word[:-len(suffix)] + replacement
                 if base in self.glossary:
                     return (self.glossary[base]['en'], role)
-                # Also try without replacement (stem only)
                 stem = word[:-len(suffix)]
                 for candidate_base, entry in self.glossary.items():
                     if candidate_base.startswith(stem) and len(candidate_base) <= len(stem) + 3:
@@ -128,7 +111,6 @@ class LatinInflectionEngine:
         For accusative: just the noun
         For unresolved brackets: pass through unchanged
         """
-        # Pass through brackets unchanged
         if latin_word.startswith('[') or latin_word.startswith('<'):
             return latin_word
 
@@ -138,12 +120,9 @@ class LatinInflectionEngine:
 
         english, role = result
 
-        # Apply contextual rendering based on grammatical role
         if role.startswith('gen'):
-            # Check if previous word is already a preposition rendering
             return f'of-{english}'
         elif role.startswith('abl'):
-            # If preceded by a preposition, the preposition handles it
             if prev_word and prev_word.lower() in PREPOSITION_MAP:
                 return english
             return f'in/with-{english}'
@@ -151,7 +130,6 @@ class LatinInflectionEngine:
             return english
         else:
             return english
-
 
 class EnglishGlosser:
     """Translates Phase 12 decoded Latin text into literal English.
@@ -184,7 +162,6 @@ class EnglishGlosser:
             for folio, text in final_translations.items()
         }
 
-
 def run_english_glosser(
     phase12_data: Dict,
     glossary_path: str,
@@ -206,7 +183,6 @@ def run_english_glosser(
 
     english = glosser.gloss_all(final_translations)
 
-    # Compute metrics
     total_words = 0
     glossed_words = 0
     for text in english.values():
@@ -216,7 +192,6 @@ def run_english_glosser(
 
     glossed_rate = glossed_words / max(1, total_words)
 
-    # Save output
     output = {
         'english_translations': english,
         'metrics': {
@@ -230,7 +205,6 @@ def run_english_glosser(
         json.dump(output, f, indent=2)
 
     if verbose:
-        # Show a sample
         for folio, text in list(english.items())[:2]:
             print(f'  [{folio}]: {text[:200]}...')
 

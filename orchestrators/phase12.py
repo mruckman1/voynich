@@ -35,11 +35,9 @@ from orchestrators._config import (
     ENABLE_CHAR_NGRAM_FALLBACK, CHAR_NGRAM_ORDER, CHAR_NGRAM_SMOOTHING,
     CHAR_NGRAM_MIN_SCORE_GAP, CHAR_NGRAM_MIN_SEGMENTS,
     CHAR_NGRAM_MAX_CONTEXT_DISTANCE, CHAR_NGRAM_REQUIRE_CONTEXT,
-    # Resolution recovery improvements
     ENABLE_CROSS_FOLIO_CONSISTENCY, CROSS_FOLIO_MIN_AGREEMENT, CROSS_FOLIO_MIN_OCCURRENCES,
     ENABLE_GRADUATED_CSP, CSP_HIGH_CONFIDENCE_THRESHOLD, CSP_MEDIUM_CONFIDENCE_THRESHOLD,
     ENABLE_SELECTIVE_FUNCTION_WORDS, FUNCTION_WORD_MAX_DENSITY, FUNCTION_WORD_WINDOW_SIZE,
-    # Improvement 8: Illustration-guided disambiguation
     ENABLE_ILLUSTRATION_PRIOR, ILLUSTRATION_BOOSTED_RATIO_FACTOR,
 )
 from orchestrators._foundation import build_morphological_context
@@ -56,7 +54,6 @@ from modules.phase12.cross_folio_consistency import CrossFolioConsistencyEngine
 
 from data.botanical_identifications import PLANT_IDS
 
-
 def _build_illustration_prior_safe():
     """Build illustration prior dict, returning None if data is unavailable."""
     if not ENABLE_ILLUSTRATION_PRIOR:
@@ -67,18 +64,15 @@ def _build_illustration_prior_safe():
     except (ImportError, FileNotFoundError):
         return None
 
-
 def _count_brackets(text: str) -> int:
     """Count all bracketed tokens in text."""
     return len(re.findall(r'\[[^\]]+\]|<[^>]+>', text))
-
 
 def _count_word_repetitions(text: str) -> Dict[str, int]:
     """Count word frequencies in decoded text (excluding brackets)."""
     words = [w for w in text.split() if not w.startswith('[') and not w.startswith('<')]
     from collections import Counter
     return dict(Counter(words).most_common(10))
-
 
 def _get_folio_metadata(folio: str, page=None) -> Dict:
     """Return language, section, and scribe for a folio.
@@ -98,7 +92,6 @@ def _get_folio_metadata(folio: str, page=None) -> Dict:
         scribe = _infer_scribe(folio)
 
     return {'language': language, 'section': section, 'scribe': scribe}
-
 
 def run_phase12_reconstruction(
     phases=None,
@@ -138,13 +131,9 @@ def run_phase12_reconstruction(
         ),
     }
 
-    # Populated in sub-phase 3 (decode), used across sub-phases 5-6
     by_folio: Dict[str, list] = {}
     folio_metadata: Dict[str, Dict] = {}
 
-    # ================================================================
-    # SUB-PHASE 1: Load Dependencies
-    # ================================================================
     if 'load' in run_phases:
         if verbose:
             print('\n[1/5] Loading Extractors, Morphemers & Latin Corpus...')
@@ -157,10 +146,8 @@ def run_phase12_reconstruction(
         l_tokens = ctx.latin_tokens
         l_corpus = ctx.latin_corpus
 
-        # Build Latin skeleton index (reused from Phase 11)
         latin_skel = LatinPhoneticSkeletonizer(l_tokens)
 
-        # Build transition matrix for n-gram solver
         trans_matrix, trans_vocab = l_corpus.build_transition_matrix()
 
         if verbose:
@@ -170,9 +157,6 @@ def run_phase12_reconstruction(
             print(f'  → Transition matrix: {trans_matrix.shape[0]}x{trans_matrix.shape[1]} '
                   f'({len(trans_vocab)} vocab)')
 
-    # ================================================================
-    # SUB-PHASE 2: Build Phase 12 Components
-    # ================================================================
     if 'build' in run_phases:
         if verbose:
             print('\n[2/5] Building Phase 12 Components...')
@@ -180,21 +164,17 @@ def run_phase12_reconstruction(
         fuzzy_skel = FuzzySkeletonizer(v_morph)
         budgeted_decoder = BudgetedCSPDecoder(
             latin_skel, fuzzy_skel, l_tokens, PLANT_IDS,
-            # Graduated CSP scoring
             enable_graduated_csp=ENABLE_GRADUATED_CSP,
             high_threshold=CSP_HIGH_CONFIDENCE_THRESHOLD,
             medium_threshold=CSP_MEDIUM_CONFIDENCE_THRESHOLD,
-            # Selective function word reintroduction
             enable_selective_function_words=ENABLE_SELECTIVE_FUNCTION_WORDS,
             function_word_max_density=FUNCTION_WORD_MAX_DENSITY,
             function_word_window_size=FUNCTION_WORD_WINDOW_SIZE,
         )
         scaffolder = SyntacticScaffolder(v_morph)
 
-        # Build POS transition matrix for syntactic veto (Academic Fortification)
         pos_matrix, pos_vocab, pos_tagger = build_pos_transition_matrix(l_tokens)
 
-        # Build character n-gram model for fallback scoring
         char_ngram_model = None
         if ENABLE_CHAR_NGRAM_FALLBACK:
             char_ngram_model = LatinCharNgramModel(
@@ -210,35 +190,27 @@ def run_phase12_reconstruction(
             pos_tagger=pos_tagger,
             pos_transition_matrix=pos_matrix,
             pos_vocab=pos_vocab,
-            # Improvement 3: Length-scaled confidence ratio
             min_confidence_ratio_long=MIN_CONFIDENCE_RATIO_LONG,
             long_skeleton_segments=LONG_SKELETON_SEGMENTS,
             enable_length_scaled_ratio=ENABLE_LENGTH_SCALED_RATIO,
-            # Improvement 2: Bidirectional solving
             enable_bidirectional=ENABLE_BIDIRECTIONAL_SOLVING,
             max_solving_passes=MAX_SOLVING_PASSES,
-            # Improvement 1: Contextual function word recovery
             enable_function_word_recovery=ENABLE_FUNCTION_WORD_RECOVERY,
             function_word_trigram_threshold=FUNCTION_WORD_TRIGRAM_THRESHOLD,
-            # Improvement 4: Dual-context confidence reduction
             dual_context_ratio_factor=DUAL_CONTEXT_RATIO_FACTOR,
             dual_context_max_distance=DUAL_CONTEXT_MAX_DISTANCE,
-            # Improvement 5: Unigram frequency backoff
             enable_unigram_backoff=ENABLE_UNIGRAM_BACKOFF,
             unigram_backoff_ratio_factor=UNIGRAM_BACKOFF_RATIO_FACTOR,
             unigram_backoff_min_segments=UNIGRAM_BACKOFF_MIN_SEGMENTS,
-            # Improvement 6: POS-level backoff scoring
             enable_pos_backoff=ENABLE_POS_BACKOFF,
             pos_backoff_weight=POS_BACKOFF_WEIGHT,
             pos_backoff_min_confidence=POS_BACKOFF_MIN_CONFIDENCE,
-            # Improvement 7: Character-level n-gram fallback
             enable_char_ngram_fallback=ENABLE_CHAR_NGRAM_FALLBACK,
             char_ngram_model=char_ngram_model,
             char_ngram_min_score_gap=CHAR_NGRAM_MIN_SCORE_GAP,
             char_ngram_min_segments=CHAR_NGRAM_MIN_SEGMENTS,
             char_ngram_max_context_distance=CHAR_NGRAM_MAX_CONTEXT_DISTANCE,
             char_ngram_require_context=CHAR_NGRAM_REQUIRE_CONTEXT,
-            # Improvement 8: Illustration-guided disambiguation
             enable_illustration_prior=ENABLE_ILLUSTRATION_PRIOR,
             illustration_prior=_build_illustration_prior_safe(),
             illustration_boosted_ratio_factor=ILLUSTRATION_BOOSTED_RATIO_FACTOR,
@@ -270,14 +242,10 @@ def run_phase12_reconstruction(
                 print(f'  → CharNgramModel: {cstats["unique_ngrams"]} unique '
                       f'{CHAR_NGRAM_ORDER}-grams, gap threshold {CHAR_NGRAM_MIN_SCORE_GAP}')
 
-    # ================================================================
-    # SUB-PHASE 3: Decode Folios with Budgeted CSP
-    # ================================================================
     if 'decode' in run_phases:
         if verbose:
             print('\n[3/5] Running Budgeted CSP Decoding...')
 
-        # Extract ALL folios (Language A and B)
         if extractor._source == 'ivtff' and extractor._corpus is not None:
             for fid, page in extractor._corpus.pages.items():
                 tokens = page.paragraph_text.split()
@@ -297,13 +265,12 @@ def run_phase12_reconstruction(
                         'scribe': data.get('scribe', 0),
                     }
 
-        # Apply configurable folio limit
         folio_items = list(by_folio.items())
         if PHASE12_FOLIO_LIMIT is not None:
             folio_items = folio_items[:PHASE12_FOLIO_LIMIT]
 
         csp_translations = {}
-        folio_medium_candidates = {}  # Graduated CSP: position -> candidates per folio
+        folio_medium_candidates = {}
         total_bracket_count = 0
         total_word_count = 0
         total_medium_count = 0
@@ -314,7 +281,6 @@ def run_phase12_reconstruction(
             decoded = budgeted_decoder.decode_folio(tokens, folio_id=folio)
             csp_translations[folio] = decoded
 
-            # Capture medium-confidence candidates for n-gram solver
             if ENABLE_GRADUATED_CSP and budgeted_decoder.medium_candidates:
                 folio_medium_candidates[folio] = dict(budgeted_decoder.medium_candidates)
                 total_medium_count += len(budgeted_decoder.medium_candidates)
@@ -323,7 +289,6 @@ def run_phase12_reconstruction(
             total_bracket_count += brackets
             total_word_count += len(decoded.split())
 
-        # Compute per-language CSP metrics
         lang_a_words, lang_a_brackets = 0, 0
         lang_b_words, lang_b_brackets = 0, 0
         for folio in csp_translations:
@@ -368,9 +333,6 @@ def run_phase12_reconstruction(
             if ENABLE_GRADUATED_CSP:
                 print(f'  → Medium-confidence tokens (with candidates): {total_medium_count}')
 
-    # ================================================================
-    # SUB-PHASE 4: Syntactic Scaffolding
-    # ================================================================
     if 'scaffold' in run_phases:
         if verbose:
             print('\n[4/5] Applying Syntactic Scaffolding...')
@@ -394,9 +356,6 @@ def run_phase12_reconstruction(
         if verbose:
             print(f'  → POS distribution: {total_scaffold_stats["by_pos"]}')
 
-    # ================================================================
-    # SUB-PHASE 5: Deterministic N-Gram Mask Solving
-    # ================================================================
     if 'solve' in run_phases:
         if verbose:
             print('\n[5/5] Running Deterministic N-Gram Mask Solver...')
@@ -425,7 +384,6 @@ def run_phase12_reconstruction(
 
         results['final_translations'] = final_translations
 
-        # Compute overall and per-language metrics
         initial_brackets = results['csp_metrics']['total_brackets']
         lang_a_initial = results['csp_metrics']['lang_a']['brackets']
         lang_b_initial = results['csp_metrics']['lang_b']['brackets']
@@ -467,7 +425,6 @@ def run_phase12_reconstruction(
             },
         }
 
-        # Per-folio repetition analysis (with metadata tags)
         per_folio_stats = {}
         for folio, text in final_translations.items():
             top_words = _count_word_repetitions(text)
@@ -495,9 +452,6 @@ def run_phase12_reconstruction(
                 print(f'  → Lang B: {lang_b_resolved}/{lang_b_initial} resolved '
                       f'({100 * lang_b_resolved / max(1, lang_b_initial):.1f}%)')
 
-    # ================================================================
-    # SUB-PHASE 6: Cross-Folio Consistency (Post-Pipeline)
-    # ================================================================
     if 'consistency' in run_phases and ENABLE_CROSS_FOLIO_CONSISTENCY and 'solve' in run_phases:
         if verbose:
             print('\n[6/6] Applying Cross-Folio Consistency...')
@@ -508,17 +462,14 @@ def run_phase12_reconstruction(
             min_occurrences=CROSS_FOLIO_MIN_OCCURRENCES,
         )
 
-        # Pass 1: Collect skeleton->word mappings from all resolved folios
         for folio, tokens in by_folio.items():
             if folio in final_translations:
                 consistency_engine.collect_folio(
                     final_translations[folio], tokens, folio
                 )
 
-        # Compute consistent mappings
         consistent_mappings = consistency_engine.compute_consistent_mappings()
 
-        # Pass 2: Apply consistency to fill remaining brackets
         consistency_per_folio = {}
         total_consistency_applied = 0
         for folio, tokens in by_folio.items():
@@ -537,7 +488,6 @@ def run_phase12_reconstruction(
             'per_folio': consistency_per_folio,
         }
 
-        # Update per-folio stats to reflect consistency pass
         for folio, text in final_translations.items():
             top_words = _count_word_repetitions(text)
             max_repeat = max(top_words.values()) if top_words else 0
@@ -560,9 +510,6 @@ def run_phase12_reconstruction(
                 for skel, word in top_5:
                     print(f'    {skel} → {word}')
 
-    # ================================================================
-    # SUB-PHASE 7: POS Backoff Pass (Post-Consistency)
-    # ================================================================
     if 'solve' in run_phases and ENABLE_POS_BACKOFF:
         total_pos_resolved = 0
         for folio in final_translations:
@@ -572,7 +519,6 @@ def run_phase12_reconstruction(
             final_translations[folio] = updated_text
             total_pos_resolved += n_resolved
 
-        # Update per-folio stats to reflect POS backoff
         for folio, text in final_translations.items():
             top_words = _count_word_repetitions(text)
             max_repeat = max(top_words.values()) if top_words else 0
@@ -591,9 +537,6 @@ def run_phase12_reconstruction(
             print(f'\n[7/7] POS Backoff Pass...')
             print(f'  → POS backoff resolved: {total_pos_resolved} additional tokens')
 
-    # ================================================================
-    # SUB-PHASE 8: Character N-Gram Fallback Pass (Post-POS Backoff)
-    # ================================================================
     if 'solve' in run_phases and ENABLE_CHAR_NGRAM_FALLBACK:
         total_char_ngram_resolved = 0
         for folio in final_translations:
@@ -603,7 +546,6 @@ def run_phase12_reconstruction(
             final_translations[folio] = updated_text
             total_char_ngram_resolved += n_resolved
 
-        # Update per-folio stats to reflect char n-gram pass
         for folio, text in final_translations.items():
             top_words = _count_word_repetitions(text)
             max_repeat = max(top_words.values()) if top_words else 0
@@ -622,12 +564,8 @@ def run_phase12_reconstruction(
             print(f'\n[8/8] Character N-Gram Fallback Pass...')
             print(f'  → Char n-gram resolved: {total_char_ngram_resolved} additional tokens')
 
-    # ================================================================
-    # Save & Report
-    # ================================================================
     elapsed = time.time() - t0
 
-    # Section-level breakdown
     if 'per_folio_stats' in results:
         from collections import defaultdict
         section_agg = defaultdict(lambda: {
@@ -691,7 +629,6 @@ def run_phase12_reconstruction(
                   f'{stats["remaining_brackets"]} unresolved, '
                   f'max repeat: {stats["max_repeat"]}')
 
-        # Section summary table
         if 'section_breakdown' in results:
             print(f'\n{"=" * 70}')
             print('SECTION BREAKDOWN:')
@@ -706,7 +643,6 @@ def run_phase12_reconstruction(
                       f'{sb["total_words"]:>8} {sb["remaining_brackets"]:>11} '
                       f'{100 * sb["resolution_rate"]:>10.1f}%')
 
-            # Language A vs B summary
             lang_a_tw = sum(
                 sb['total_words'] for sb in results['section_breakdown'].values()
                 if sb['language'] == 'A'

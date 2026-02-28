@@ -13,24 +13,15 @@ Critical test: Grammar with <20 rules and <50 symbols generates text
 that matches all 17 Voynich constraints within their tolerances.
 """
 
-import sys
-import os
 import random
 import math
 import copy
 from collections import Counter
 from typing import Dict, List, Tuple, Optional
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-
 from modules.phase2.base_model import Phase2GenerativeModel, VOYNICH_TARGETS
 from modules.statistical_analysis import full_statistical_profile, profile_distance
 from modules.naibbe_cipher import MEDIAL_GLYPHS, PREFIX_GLYPHS, SUFFIX_GLYPHS
-
-
-# ============================================================================
-# PCFG REPRESENTATION
-# ============================================================================
 
 class ProductionRule:
     """A single PCFG production rule: LHS -> RHS with probability."""
@@ -38,8 +29,8 @@ class ProductionRule:
     __slots__ = ['lhs', 'rhs', 'probability']
 
     def __init__(self, lhs: str, rhs: List[str], probability: float = 1.0):
-        self.lhs = lhs           # Non-terminal symbol
-        self.rhs = rhs           # List of symbols (terminal or non-terminal)
+        self.lhs = lhs
+        self.rhs = rhs
         self.probability = probability
 
     def to_dict(self) -> Dict:
@@ -48,7 +39,6 @@ class ProductionRule:
             'rhs': self.rhs,
             'probability': self.probability,
         }
-
 
 class StochasticGrammar:
     """A probabilistic context-free grammar for generating Voynich-like text."""
@@ -88,7 +78,6 @@ class StochasticGrammar:
         if not rules:
             return symbol
 
-        # Choose rule probabilistically
         probs = [r.probability for r in rules]
         total = sum(probs)
         if total <= 0:
@@ -97,11 +86,7 @@ class StochasticGrammar:
 
         chosen = self.rng.choices(rules, weights=probs, k=1)[0]
 
-        # Expand each symbol in RHS
-        parts = []
-        for s in chosen.rhs:
-            parts.append(self._expand(s, depth - 1))
-        return ''.join(parts)
+        return ''.join(self._expand(s, depth - 1) for s in chosen.rhs)
 
     def generate_text(self, n_words: int = 500) -> str:
         """Generate n_words by repeatedly expanding from start symbol."""
@@ -130,11 +115,6 @@ class StochasticGrammar:
             'rules': [r.to_dict() for r in self.rules],
         }
 
-
-# ============================================================================
-# GRAMMAR INDUCTION VIA EVOLUTIONARY SEARCH
-# ============================================================================
-
 def _create_initial_grammar(rng: random.Random, max_rules: int,
                             max_symbols: int) -> StochasticGrammar:
     """
@@ -147,57 +127,46 @@ def _create_initial_grammar(rng: random.Random, max_rules: int,
       suffix -> one of SUFFIX_GLYPHS
     """
     terminals = set(PREFIX_GLYPHS + MEDIAL_GLYPHS + SUFFIX_GLYPHS)
-    # Limit terminals to stay under budget
     if len(terminals) > max_symbols // 2:
         terminals = set(list(terminals)[:max_symbols // 2])
 
     grammar = StochasticGrammar(terminals=terminals, seed=rng.randint(0, 10000))
 
-    # Word-level rules
     grammar.add_rule('W', ['P', 'B', 'S'], 0.4)
     grammar.add_rule('W', ['B', 'S'], 0.3)
     grammar.add_rule('W', ['P', 'B'], 0.2)
     grammar.add_rule('W', ['B'], 0.1)
 
-    # Prefix rules
     for g in PREFIX_GLYPHS:
         if g in terminals:
             grammar.add_rule('P', [g], 1.0 / len(PREFIX_GLYPHS))
 
-    # Suffix rules
     for g in SUFFIX_GLYPHS:
         if g in terminals:
             grammar.add_rule('S', [g], 1.0 / len(SUFFIX_GLYPHS))
 
-    # Body rules (medial sequences of 1-4 characters)
     grammar.add_rule('B', ['M'], 0.2)
     grammar.add_rule('B', ['M', 'M'], 0.35)
     grammar.add_rule('B', ['M', 'M', 'M'], 0.3)
     grammar.add_rule('B', ['M', 'M', 'M', 'M'], 0.15)
 
-    # Medial character rules
     medial_in_terminals = [g for g in MEDIAL_GLYPHS if g in terminals]
     for g in medial_in_terminals:
         grammar.add_rule('M', [g], 1.0 / max(len(medial_in_terminals), 1))
 
-    # Add some random additional rules up to budget
     nonterminals = ['W', 'P', 'B', 'S', 'M']
     while grammar.n_rules < max_rules and len(nonterminals) < 8:
-        # Create new non-terminal
         new_nt = f'N{len(nonterminals)}'
         nonterminals.append(new_nt)
-        # Add rules for it
         n_expansions = rng.randint(2, 4)
         for _ in range(n_expansions):
             rhs_len = rng.randint(1, 3)
             rhs = [rng.choice(list(terminals) + nonterminals[:5]) for _ in range(rhs_len)]
             grammar.add_rule(new_nt, rhs, rng.random())
-        # Link it from body
         grammar.add_rule('B', [new_nt], rng.random() * 0.3)
 
     grammar._rebuild_index()
     return grammar
-
 
 def _mutate_grammar(grammar: StochasticGrammar, rng: random.Random,
                     max_rules: int, max_symbols: int) -> StochasticGrammar:
@@ -209,17 +178,15 @@ def _mutate_grammar(grammar: StochasticGrammar, rng: random.Random,
     )
 
     mutation_type = rng.choice([
-        'adjust_prob', 'adjust_prob', 'adjust_prob',  # Most common
+        'adjust_prob', 'adjust_prob', 'adjust_prob',
         'add_rule', 'remove_rule', 'modify_rhs',
     ])
 
     if mutation_type == 'adjust_prob' and new_grammar.rules:
-        # Adjust a random rule's probability
         rule = rng.choice(new_grammar.rules)
         rule.probability = max(0.01, rule.probability + rng.gauss(0, 0.1))
 
     elif mutation_type == 'add_rule' and new_grammar.n_rules < max_rules:
-        # Add a new rule
         lhs_options = sorted(set(r.lhs for r in new_grammar.rules))
         if lhs_options:
             lhs = rng.choice(lhs_options)
@@ -229,12 +196,10 @@ def _mutate_grammar(grammar: StochasticGrammar, rng: random.Random,
             new_grammar.add_rule(lhs, rhs, rng.random())
 
     elif mutation_type == 'remove_rule' and len(new_grammar.rules) > 5:
-        # Remove a random rule (but keep at least 5)
         idx = rng.randint(0, len(new_grammar.rules) - 1)
         new_grammar.rules.pop(idx)
 
     elif mutation_type == 'modify_rhs' and new_grammar.rules:
-        # Change one symbol in a rule's RHS
         rule = rng.choice(new_grammar.rules)
         if rule.rhs:
             all_symbols = sorted(new_grammar.terminals) + sorted(set(r.lhs for r in new_grammar.rules))
@@ -243,11 +208,6 @@ def _mutate_grammar(grammar: StochasticGrammar, rng: random.Random,
 
     new_grammar._rebuild_index()
     return new_grammar
-
-
-# ============================================================================
-# MODEL CLASS
-# ============================================================================
 
 class GrammarInduction(Phase2GenerativeModel):
     """
@@ -301,7 +261,6 @@ class GrammarInduction(Phase2GenerativeModel):
             {best_grammar: Dict, best_distance: float,
              generations: int, improvement_history: [...]}
         """
-        # Build target profile for scoring
         voynich_profile = {
             'entropy': {
                 'H1': VOYNICH_TARGETS['H1'],
@@ -316,7 +275,6 @@ class GrammarInduction(Phase2GenerativeModel):
             'positional_entropy': {},
         }
 
-        # Initialize population
         population = []
         for _ in range(self.population_size):
             grammar = _create_initial_grammar(
@@ -330,7 +288,6 @@ class GrammarInduction(Phase2GenerativeModel):
         best_ever_grammar = None
 
         for gen in range(self.evolution_generations):
-            # Evaluate population
             scored = []
             for grammar in population:
                 text = grammar.generate_text(500)
@@ -343,7 +300,6 @@ class GrammarInduction(Phase2GenerativeModel):
 
             scored.sort(key=lambda x: x[0])
 
-            # Track best
             if scored[0][0] < best_ever_score:
                 best_ever_score = scored[0][0]
                 best_ever_grammar = scored[0][1]
@@ -358,10 +314,8 @@ class GrammarInduction(Phase2GenerativeModel):
                 'median_distance': scored[len(scored)//2][0],
             })
 
-            # Selection: keep top half
             survivors = [g for _, g in scored[:self.population_size // 2]]
 
-            # Reproduction: mutate survivors
             new_population = list(survivors)
             while len(new_population) < self.population_size:
                 parent = self.rng.choice(survivors)
@@ -429,7 +383,6 @@ class GrammarInduction(Phase2GenerativeModel):
         n_symbols = self.best_grammar.n_symbols
         complexity_ok = n_rules <= self.max_rules and n_symbols <= self.max_symbols
 
-        # Check distance
         distance_ok = self.best_score < 2.0
 
         passes = complexity_ok and distance_ok

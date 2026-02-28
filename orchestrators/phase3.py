@@ -31,11 +31,6 @@ from modules.phase3.lang_a_reprofiling import LanguageAReprofiler, LANG_A_TARGET
 from modules.phase3.hybrid_model import HybridModel
 from modules.phase2.base_model import VOYNICH_TARGETS
 
-
-# ============================================================================
-# PHASE 3 ORCHESTRATOR
-# ============================================================================
-
 def run_phase3_attack(
     phases: Optional[List[str]] = None,
     verbose: bool = True,
@@ -83,10 +78,8 @@ def run_phase3_attack(
               f'H2={LANG_A_TARGETS["H2"]}')
         print()
 
-    # Shared profiler instance (avoids redundant corpus extraction)
     profiler = LanguageBProfiler()
 
-    # ---- Sub-phase 1: Language B Profiling ----
     if 'profiling' in phases:
         if verbose:
             print('\n' + '=' * 70)
@@ -99,7 +92,6 @@ def run_phase3_attack(
         save_json(os.path.join(output_dir, 'lang_b_profile.json'),
                    profiling_results)
 
-    # ---- Sub-phase 2: Two-Pattern Attack (HIGHEST priority) ----
     if 'two_pattern' in phases:
         if verbose:
             print('\n' + '=' * 70)
@@ -113,7 +105,6 @@ def run_phase3_attack(
         save_json(os.path.join(output_dir, 'two_pattern_results.json'),
                    two_pattern_results)
 
-    # ---- Sub-phase 3: Onset Decomposition (HIGH priority) ----
     if 'onset' in phases:
         if verbose:
             print('\n' + '=' * 70)
@@ -127,7 +118,6 @@ def run_phase3_attack(
         save_json(os.path.join(output_dir, 'onset_decomposition_results.json'),
                    onset_results)
 
-    # ---- Sub-phase 4: Markov Generator (HIGH priority) ----
     if 'generator' in phases:
         if verbose:
             print('\n' + '=' * 70)
@@ -141,7 +131,6 @@ def run_phase3_attack(
         save_json(os.path.join(output_dir, 'lang_b_generator_results.json'),
                    generator_results)
 
-    # ---- Sub-phase 5: Language A Re-profiling ----
     if 'reprofiling' in phases:
         if verbose:
             print('\n' + '=' * 70)
@@ -155,7 +144,6 @@ def run_phase3_attack(
         save_json(os.path.join(output_dir, 'lang_a_reprofiling_results.json'),
                    reprofiling_results)
 
-    # ---- Sub-phase 6: Hybrid Model ----
     if 'hybrid' in phases:
         if verbose:
             print('\n' + '=' * 70)
@@ -169,7 +157,6 @@ def run_phase3_attack(
         save_json(os.path.join(output_dir, 'hybrid_model_results.json'),
                    hybrid_results)
 
-    # ---- Synthesis & Conclusion ----
     elapsed = time.time() - t0
     conclusion = _synthesize_phase3(results)
     results['conclusion'] = conclusion
@@ -188,11 +175,6 @@ def run_phase3_attack(
 
     return results
 
-
-# ============================================================================
-# SYNTHESIS
-# ============================================================================
-
 def _synthesize_phase3(results: Dict) -> Dict:
     """
     Synthesize Phase 3 findings into a conclusion.
@@ -206,7 +188,6 @@ def _synthesize_phase3(results: Dict) -> Dict:
     """
     conclusion = {}
 
-    # 1. Language B mechanism
     gen = results.get('generator', {})
     matrix = gen.get('matrix_analysis', {})
     total_info = gen.get('total_information', {})
@@ -223,12 +204,10 @@ def _synthesize_phase3(results: Dict) -> Dict:
             f'{total_info.get("markov_bits", 0):.0f} bits'
         )
 
-    # 2. Two-pattern verdict
     tp = results.get('two_pattern', {})
     synthesis = tp.get('synthesis', {})
     conclusion['two_pattern_verdict'] = synthesis.get('strongest_hypothesis', 'unknown')
 
-    # 3. Onset encoding
     onset = results.get('onset', {})
     onset_synth = onset.get('synthesis', {})
     conclusion['onset_encoding'] = (
@@ -237,18 +216,15 @@ def _synthesize_phase3(results: Dict) -> Dict:
         f'planet mapping: {"yes" if onset_synth.get("planet_consistent") else "no"}'
     )
 
-    # 4. Language A
     reprof = results.get('reprofiling', {})
     reprof_synth = reprof.get('synthesis', {})
     conclusion['lang_a_mechanism'] = reprof_synth.get('conclusion', 'unknown')
 
-    # 5. Hybrid model
     hybrid = results.get('hybrid', {})
     hybrid_synth = hybrid.get('synthesis', {})
     conclusion['hybrid_viable'] = hybrid_synth.get('hybrid_viable', False)
     conclusion['hybrid_conclusion'] = hybrid_synth.get('conclusion', 'unknown')
 
-    # Overall assessment
     if hybrid_synth.get('hybrid_viable') and total_info.get('markov_bits', 0) < 300:
         conclusion['overall'] = (
             'CONVERGENT — Language B is a notation system encoding '

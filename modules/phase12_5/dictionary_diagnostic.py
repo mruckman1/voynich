@@ -23,9 +23,7 @@ from modules.phase12.ngram_mask_solver import NgramMaskSolver
 
 import Levenshtein
 
-# Regex to match [token_UNRESOLVED] or <token_UNRESOLVED>
 UNRESOLVED_RE = re.compile(r'\[([^_\]]+)_UNRESOLVED\]|<([^_>]+)_UNRESOLVED>')
-
 
 class DictionaryDiagnostic:
     """
@@ -65,10 +63,8 @@ class DictionaryDiagnostic:
         """Check if a skeleton has any entries in the Latin skeleton index."""
         if not skeleton:
             return False
-        # Exact match
         if skeleton in self.latin_skel.skeleton_index:
             return True
-        # Fuzzy match (same logic as ngram_mask_solver)
         threshold = dynamic_levenshtein_threshold(skeleton)
         if threshold > 0:
             for latin_skel_key in self.latin_skel.skeleton_index:
@@ -88,13 +84,11 @@ class DictionaryDiagnostic:
             MATCH_IN_MATRIX = has candidates AND at least one is in transition matrix
             MATCH_NOT_IN_MATRIX = has candidates but NONE are in transition matrix
         """
-        # Get the stem via the fuzzy skeletonizer's morphemer
         prefix, stem, suffix = self.fuzzy_skel.v_morphemer._strip_affixes(voynich_token)
 
         if not stem:
             return 'NO_SKELETON', []
 
-        # Get skeleton candidates
         candidates = self.fuzzy_skel.get_skeleton_candidates(stem)
 
         if not candidates:
@@ -102,20 +96,16 @@ class DictionaryDiagnostic:
 
         skeletons = [skel for skel, _ in candidates]
 
-        # Check if ANY skeleton has dictionary entries
         has_match = any(self._has_skeleton_match(skel) for skel in skeletons)
 
         if not has_match:
             return 'ZERO_MATCH', skeletons
 
-        # Has dictionary match — check if any candidate is in the transition matrix
         matrix_vocab = set(self.solver.word_to_idx.keys())
         for skel in skeletons:
-            # Exact match
             words = self.latin_skel.skeleton_index.get(skel, [])
             if any(w in matrix_vocab for w in words):
                 return 'MATCH_IN_MATRIX', skeletons
-            # Fuzzy match
             threshold = dynamic_levenshtein_threshold(skel)
             if threshold > 0:
                 for l_skel in self.latin_skel.skeleton_index:
@@ -149,7 +139,6 @@ class DictionaryDiagnostic:
 
         folio_items = list(by_folio.items())[:folio_limit]
 
-        # Collect all unresolved tokens across folios
         all_unresolved: List[str] = []
         total_words = 0
         total_resolved = 0
@@ -162,12 +151,10 @@ class DictionaryDiagnostic:
             words = resolved_text.split()
             total_words += len(words)
 
-            # Count resolved words
             for w in words:
                 if not (w.startswith('[') or w.startswith('<')):
                     total_resolved += 1
 
-            # Extract unresolved tokens
             for match in UNRESOLVED_RE.finditer(resolved_text):
                 token = match.group(1) or match.group(2)
                 all_unresolved.append(token)
@@ -175,7 +162,6 @@ class DictionaryDiagnostic:
             if verbose and (i + 1) % 5 == 0:
                 print(f'    Processed {i + 1}/{len(folio_items)} folios...')
 
-        # Categorize each unresolved token
         category_counts = Counter()
         zero_match_skeletons: Counter = Counter()
         match_in_matrix_skeletons: Counter = Counter()
@@ -205,10 +191,9 @@ class DictionaryDiagnostic:
         total_unresolved = len(all_unresolved)
         matrix_vocab_size = len(self.solver.word_to_idx)
 
-        # Build report
         results = {
             'test': 'dictionary_diagnostic',
-            'pass': True,  # Diagnostic is informational, always "passes"
+            'pass': True,
             'corpus_stats': {
                 'latin_types': len(set(self.l_tokens)),
                 'latin_tokens': len(self.l_tokens),

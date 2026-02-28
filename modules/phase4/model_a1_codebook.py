@@ -12,21 +12,17 @@ then the word-bigram H2 of a medieval Latin herbal should match
 H2 = 1.49 ± 0.2. This is a clean, falsifiable test.
 """
 
-import sys
 import os
 import math
 import numpy as np
 from collections import Counter
 from typing import Dict, List, Optional
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-
 from modules.statistical_analysis import (
     word_conditional_entropy, zipf_analysis, compute_all_entropy,
 )
 from modules.phase4.lang_a_extractor import LanguageAExtractor, LANG_A_FULL_TARGETS
 from modules.phase4.latin_herbal_corpus import LatinHerbalCorpus
-
 
 class WholeWordCodebook:
     """
@@ -60,7 +56,6 @@ class WholeWordCodebook:
         delta = abs(latin_h2 - voynich_h2)
         passes = delta < 0.2
 
-        # Also compute with trigrams for additional context
         latin_h3 = self.latin_corpus.compute_word_trigram_h3()
         voynich_h3 = self.extractor.compute_full_profile()['entropy']['H3']
 
@@ -141,17 +136,13 @@ class WholeWordCodebook:
         latin_tokens = self.latin_corpus.get_tokens()
         latin_freqs = Counter(latin_tokens)
 
-        # How many unique Latin words appear in the herbal?
         latin_vocab = len(latin_freqs)
 
-        # What fraction of the Latin text is covered by the top 57 words?
         top_57_latin = latin_freqs.most_common(57)
         top_57_count = sum(c for _, c in top_57_latin)
         total_latin = len(latin_tokens)
         coverage = top_57_count / max(1, total_latin)
 
-        # Frequency concentration: what fraction of Latin tokens are
-        # from the top 10 words?
         top_10_count = sum(c for _, c in latin_freqs.most_common(10))
         concentration = top_10_count / max(1, total_latin)
 
@@ -177,20 +168,16 @@ class WholeWordCodebook:
         voynich_freqs = self.extractor.compute_word_frequencies()
         latin_freqs = Counter(self.latin_corpus.get_tokens())
 
-        # Get rank-ordered frequencies
         voynich_ranked = sorted(voynich_freqs.values(), reverse=True)
         latin_ranked = sorted(latin_freqs.values(), reverse=True)
 
-        # Compare the top N frequency ratios
         n = min(len(voynich_ranked), len(latin_ranked), 20)
         voynich_top = np.array(voynich_ranked[:n], dtype=float)
         latin_top = np.array(latin_ranked[:n], dtype=float)
 
-        # Normalize to proportions
         voynich_prop = voynich_top / voynich_top.sum()
         latin_prop = latin_top / latin_top.sum()
 
-        # Compute correlation
         if n >= 3:
             correlation = float(np.corrcoef(voynich_prop, latin_prop)[0, 1])
         else:

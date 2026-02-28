@@ -38,11 +38,6 @@ from modules.phase6.reduced_saa import ReducedSAA
 from modules.phase6.morpheme_analyzer import MorphemeAnalyzer
 from modules.phase6.boundary_analyzer import BoundaryAnalyzer
 
-
-# ============================================================================
-# PHASE 6 ORCHESTRATOR
-# ============================================================================
-
 def run_phase6_attack(
     paths: Optional[List[str]] = None,
     verbose: bool = True,
@@ -96,7 +91,6 @@ def run_phase6_attack(
         print(f'Latin corpus target: {latin_corpus_size:,} tokens')
         print()
 
-    # ---- Foundation: always needed ----
     if verbose:
         print('=' * 70)
         print('FOUNDATION: Language A + Tier Split + Matrix')
@@ -114,7 +108,6 @@ def run_phase6_attack(
         print(f'  Tier 2: {stats["tier2_types"]} types, '
               f'{stats["tier2_tokens"]} tokens')
 
-    # Shared improved corpus (needed by Path A and Path B's SAA)
     improved_corpus = None
     rank_cribs = None
     nmf_scaffold = None
@@ -133,7 +126,6 @@ def run_phase6_attack(
         results['improved_corpus'] = corpus_results
         save_json(os.path.join(output_dir, 'improved_corpus.json'), corpus_results)
 
-    # Recompute cribs and NMF if Path A is running
     if 'path_a' in paths and improved_corpus is not None:
         if verbose:
             print('\n' + '=' * 70)
@@ -157,9 +149,6 @@ def run_phase6_attack(
         save_json(os.path.join(output_dir, 'improved_corpus_nmf.json'),
                    nmf_results)
 
-    # ==================================================================
-    # PATH A: Fix the SAA
-    # ==================================================================
     if 'path_a' in paths:
         if verbose:
             print('\n' + '=' * 70)
@@ -194,7 +183,6 @@ def run_phase6_attack(
 
         saa_results = saa.run(n_iter=saa_iterations)
 
-        # Validate
         tier1_mapping = saa_results['mapping']
         page_tokens = extractor.extract_lang_a_by_folio()
         validation = saa.validate_mapping(tier1_mapping, page_tokens)
@@ -229,16 +217,12 @@ def run_phase6_attack(
             for v, l in list(tier1_mapping.items())[:10]:
                 print(f'      {v} → {l}')
 
-    # ==================================================================
-    # PATH B: Homophonic Hypothesis
-    # ==================================================================
     if 'path_b' in paths:
         if verbose:
             print('\n' + '=' * 70)
             print('PATH B: HOMOPHONIC HYPOTHESIS')
             print('=' * 70)
 
-        # Step 1: Detect homophones
         if verbose:
             print('\n  --- Step 1: Homophone Detection ---')
 
@@ -248,7 +232,6 @@ def run_phase6_attack(
         save_json(os.path.join(output_dir, 'path_b_homophones.json'),
                    detect_results)
 
-        # Step 2: Merge and re-measure
         groups = detector.cluster_homophones()
 
         if len(groups) >= 5:
@@ -261,12 +244,10 @@ def run_phase6_attack(
             save_json(os.path.join(output_dir, 'path_b_merged_stats.json'),
                        merge_results)
 
-            # Step 3: Reduced SAA (only if significant groups found)
             if len(groups) >= 10 and improved_corpus is not None:
                 if verbose:
                     print('\n  --- Step 3: Reduced SAA ---')
 
-                # Build rank pairs from the improved corpus cribs
                 rp = {}
                 if rank_cribs is not None:
                     rp = rank_cribs.get_candidate_matrix()
@@ -295,16 +276,12 @@ def run_phase6_attack(
             if verbose:
                 print(f'\n  Skipping merge/SAA: only {len(groups)} groups (need ≥ 5)')
 
-    # ==================================================================
-    # PATH C: Morphological Hypothesis
-    # ==================================================================
     if 'path_c' in paths:
         if verbose:
             print('\n' + '=' * 70)
             print('PATH C: MORPHOLOGICAL HYPOTHESIS')
             print('=' * 70)
 
-        # Step 1: Morpheme analysis
         if verbose:
             print('\n  --- Step 1: Morpheme Analysis ---')
 
@@ -314,7 +291,6 @@ def run_phase6_attack(
         save_json(os.path.join(output_dir, 'path_c_morphemes.json'),
                    morpheme_results)
 
-        # Step 2: Boundary analysis
         if verbose:
             print('\n  --- Step 2: Boundary Analysis ---')
 
@@ -324,9 +300,6 @@ def run_phase6_attack(
         save_json(os.path.join(output_dir, 'path_c_boundaries.json'),
                    boundary_results)
 
-    # ==================================================================
-    # SYNTHESIS
-    # ==================================================================
     elapsed = time.time() - t0
     conclusion = _synthesize_phase6(results)
     results['conclusion'] = conclusion
@@ -348,11 +321,6 @@ def run_phase6_attack(
 
     return results
 
-
-# ============================================================================
-# SYNTHESIS
-# ============================================================================
-
 def _synthesize_phase6(results: Dict) -> Dict:
     """
     Cross-path synthesis and decision tree.
@@ -361,7 +329,6 @@ def _synthesize_phase6(results: Dict) -> Dict:
     """
     conclusion = {}
 
-    # ---- Path A evaluation ----
     path_a = results.get('path_a', {})
     a_validation = path_a.get('validation', {})
     a_phrases = a_validation.get('best_phrase_count', 0)
@@ -388,7 +355,6 @@ def _synthesize_phase6(results: Dict) -> Dict:
                     f'FAIL — {a_phrases} phrases, {a_crib_rate:.1%} crib rate'),
     }
 
-    # ---- Path B evaluation ----
     path_b_detect = results.get('path_b_detect', {})
     b_n_groups = path_b_detect.get('group_statistics', {}).get('n_groups', 0)
     b_homophony = path_b_detect.get('homophony_plausible', False)
@@ -417,7 +383,6 @@ def _synthesize_phase6(results: Dict) -> Dict:
                     f'INCONCLUSIVE — {b_n_groups} groups'),
     }
 
-    # ---- Path C evaluation ----
     path_c_morph = results.get('path_c_morpheme', {})
     c_n_affixes = path_c_morph.get('statistics', {}).get('n_productive_prefixes', 0) + \
                   path_c_morph.get('statistics', {}).get('n_productive_suffixes', 0)
@@ -443,7 +408,6 @@ def _synthesize_phase6(results: Dict) -> Dict:
                     f'{c_paradigm_cov:.1%} paradigm coverage'),
     }
 
-    # ---- Cross-path synthesis ----
     if path_a_success:
         overall = (
             'PATH A SUCCESS — The fixed SAA with bijection enforcement, '
@@ -498,7 +462,6 @@ def _synthesize_phase6(results: Dict) -> Dict:
 
     conclusion['overall'] = overall
 
-    # Ranked recommendations
     recommendations = []
     if homophonic_confirmed:
         recommendations.append('1. Refine homophone groups (Path B)')

@@ -19,9 +19,7 @@ from typing import Dict, List, Optional, Tuple
 
 from modules.phase12.fuzzy_skeletonizer import FuzzySkeletonizer
 
-# Regex for UNRESOLVED brackets
 UNRESOLVED_RE = re.compile(r'\[([^_\]]+)_UNRESOLVED\]|<([^_>]+)_UNRESOLVED>')
-
 
 class CrossFolioConsistencyEngine:
     """
@@ -53,11 +51,8 @@ class CrossFolioConsistencyEngine:
         self.min_agreement = min_agreement
         self.min_occurrences = min_occurrences
 
-        # skeleton -> {latin_word: count}
         self._skeleton_mappings: Dict[str, Counter] = defaultdict(Counter)
-        # voynich_token -> skeleton (cache)
         self._token_skeleton_cache: Dict[str, Optional[str]] = {}
-        # Computed consistent mappings (skeleton -> latin_word)
         self._consistent_mappings: Dict[str, str] = {}
 
     def _get_primary_skeleton(self, voynich_token: str) -> Optional[str]:
@@ -65,14 +60,13 @@ class CrossFolioConsistencyEngine:
         if voynich_token in self._token_skeleton_cache:
             return self._token_skeleton_cache[voynich_token]
 
-        # Strip affixes to get stem before skeleton lookup
         pref, stem, suf = self.f_skel.v_morphemer._strip_affixes(voynich_token)
         candidates = self.f_skel.get_skeleton_candidates(stem)
         if not candidates:
             self._token_skeleton_cache[voynich_token] = None
             return None
 
-        primary = candidates[0][0]  # highest-weight skeleton
+        primary = candidates[0][0]
         self._token_skeleton_cache[voynich_token] = primary
         return primary
 
@@ -98,7 +92,6 @@ class CrossFolioConsistencyEngine:
 
         for i in range(n):
             word = resolved_words[i]
-            # Skip brackets
             if word.startswith('[') or word.startswith('<'):
                 continue
 

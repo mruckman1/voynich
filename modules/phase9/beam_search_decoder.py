@@ -10,7 +10,6 @@ class SyllabicBeamSearch:
         self.beam_width = beam_width
 
     def _get_candidates(self, v_token: str) -> list:
-        # Determine possible syllables based on rigid sigla constraints
         candidates = []
         parsed = False
 
@@ -24,13 +23,11 @@ class SyllabicBeamSearch:
                         parsed = True
 
         if not parsed:
-            # Fallback for unknown configurations, pad with generic vowels
             candidates.append(v_token[0] + "e")
 
         return sorted(set(candidates))
 
     def decode(self, max_tokens: int = 200):
-        # Beam states: (log_probability, current_string, last_syllable)
         beam = [(0.0, "", "<SPACE>")]
 
         for i, token in enumerate(self.v_tokens[:max_tokens]):
@@ -39,7 +36,6 @@ class SyllabicBeamSearch:
 
             for log_prob, text, last_syl in beam:
                 for cand in candidates:
-                    # Transition score + Emission Score (hardcoded to 1 here since candidates are exact maps)
                     trans_prob = self.transitions.get(last_syl, {}).get(cand, 0.0001)
                     score = log_prob + math.log(trans_prob)
 
@@ -48,7 +44,6 @@ class SyllabicBeamSearch:
 
                     new_beam.append((score, new_text, cand))
 
-            # Sort by score and crop to beam width
             new_beam.sort(key=lambda x: (-x[0], x[1]))
             beam = new_beam[:self.beam_width]
 

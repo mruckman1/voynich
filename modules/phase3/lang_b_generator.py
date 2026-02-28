@@ -12,18 +12,13 @@ Total information content: 227 tokens * 0.74 bits/token = 168 bits = 21 bytes.
 Priority: HIGH
 """
 
-import sys
-import os
 import math
 import numpy as np
 from collections import Counter
 from typing import Dict, List, Tuple, Optional
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-
 from modules.phase3.lang_b_profiler import LanguageBProfiler, LANG_B_TARGETS, LANG_B_VOCABULARY
 from modules.statistical_analysis import compute_all_entropy, zipf_analysis
-
 
 class LanguageBGenerator:
     """
@@ -71,7 +66,6 @@ class LanguageBGenerator:
                 if word in self.word_to_idx:
                     self.initial_dist[self.word_to_idx[word]] = count / total
         else:
-            # Fallback: uniform
             self.initial_dist = np.ones(len(self.vocabulary)) / len(self.vocabulary)
 
     def _compute_stationary_distribution(self):
@@ -85,11 +79,9 @@ class LanguageBGenerator:
         M = self.transition_matrix.T
         eigenvalues, eigenvectors = np.linalg.eig(M)
 
-        # Find eigenvalue closest to 1
         idx = np.argmin(np.abs(eigenvalues - 1.0))
         stationary = np.real(eigenvectors[:, idx])
 
-        # Normalize to probability distribution
         stationary = np.abs(stationary)
         total = stationary.sum()
         if total > 0:
@@ -116,14 +108,12 @@ class LanguageBGenerator:
         self._build()
         rng = np.random.RandomState(seed)
 
-        # Start from initial distribution
         current_idx = rng.choice(len(self.vocabulary), p=self.initial_dist)
         tokens = [self.vocabulary[current_idx]]
 
         for _ in range(n_tokens - 1):
             probs = self.transition_matrix[current_idx]
             if probs.sum() == 0:
-                # Dead state — resample from stationary
                 current_idx = rng.choice(len(self.vocabulary), p=self.stationary_dist)
             else:
                 current_idx = rng.choice(len(self.vocabulary), p=probs)
@@ -160,7 +150,6 @@ class LanguageBGenerator:
         ttr_arr = np.array(ttr_values)
         zipf_arr = np.array(zipf_values)
 
-        # Check if all samples are within tolerance
         h2_ok = np.all(np.abs(h2_arr - target_h2) < 0.15)
         ttr_ok = np.all(np.abs(ttr_arr - target_ttr) < 0.03)
 
@@ -192,10 +181,8 @@ class LanguageBGenerator:
         M = self.transition_matrix
         n = len(self.vocabulary)
 
-        # 1. Eigenvalue spectrum
         eigenvalues = np.sort(np.abs(np.linalg.eigvals(M)))[::-1]
 
-        # 2. Mixing time (from second-largest eigenvalue)
         if len(eigenvalues) >= 2 and eigenvalues[1] < 1.0:
             second_eigenvalue = float(eigenvalues[1])
             mixing_time = int(math.ceil(1.0 / (1.0 - second_eigenvalue))) if second_eigenvalue < 1.0 else float('inf')
@@ -203,7 +190,6 @@ class LanguageBGenerator:
             second_eigenvalue = 1.0
             mixing_time = float('inf')
 
-        # 3. Reversibility (detailed balance): pi_i * P_ij == pi_j * P_ji
         pi = self.stationary_dist
         max_imbalance = 0.0
         for i in range(n):
@@ -213,7 +199,6 @@ class LanguageBGenerator:
                     max_imbalance = max(max_imbalance, imbalance)
         is_reversible = max_imbalance < 0.01
 
-        # 4. Block structure: reorder so edy words come first
         edy_indices = [i for i, w in enumerate(self.vocabulary)
                        if LANG_B_VOCABULARY.get(w, {}).get('family') == 'edy']
         aiin_indices = [i for i, w in enumerate(self.vocabulary)
@@ -224,7 +209,6 @@ class LanguageBGenerator:
             M_reordered = M[np.ix_(reorder, reorder)]
             n_edy = len(edy_indices)
 
-            # Compute within-block vs cross-block transition mass
             within_edy = M_reordered[:n_edy, :n_edy].sum()
             within_aiin = M_reordered[n_edy:, n_edy:].sum()
             cross_edy_to_aiin = M_reordered[:n_edy, n_edy:].sum()
@@ -232,13 +216,12 @@ class LanguageBGenerator:
 
             total_mass = within_edy + within_aiin + cross_edy_to_aiin + cross_aiin_to_edy
             within_prop = (within_edy + within_aiin) / total_mass if total_mass > 0 else 0
-            has_block_structure = within_prop > 0.7  # >70% within-family = block structure
+            has_block_structure = within_prop > 0.7
         else:
             within_prop = 0
             has_block_structure = False
             within_edy = within_aiin = cross_edy_to_aiin = cross_aiin_to_edy = 0
 
-        # 5. Entropy rate: H(X_n | X_{n-1}) = -sum_i pi_i sum_j P_ij log2 P_ij
         entropy_rate = 0.0
         for i in range(n):
             if pi[i] > 0:
@@ -246,7 +229,6 @@ class LanguageBGenerator:
                     if M[i][j] > 0:
                         entropy_rate -= pi[i] * M[i][j] * math.log2(M[i][j])
 
-        # Effective rank (number of eigenvalues > 0.1)
         effective_rank = int(np.sum(eigenvalues > 0.1))
 
         return {
@@ -286,7 +268,6 @@ class LanguageBGenerator:
         n_tokens = len(self.profiler.lang_b_tokens)
         vocab_size = len(self.vocabulary)
 
-        # Markov bits
         entropy_rate = 0.0
         pi = self.stationary_dist
         M = self.transition_matrix
@@ -297,10 +278,8 @@ class LanguageBGenerator:
                         entropy_rate -= pi[i] * M[i][j] * math.log2(M[i][j])
         markov_bits = entropy_rate * n_tokens
 
-        # Uniform bits
         uniform_bits = n_tokens * math.log2(vocab_size) if vocab_size > 1 else 0
 
-        # Independent (unigram) bits
         word_freq = self.profiler.word_freq
         total = sum(word_freq.values())
         h1_words = -sum(
@@ -318,8 +297,8 @@ class LanguageBGenerator:
             'independent_bits': independent_bits,
             'compression_ratio': markov_bits / uniform_bits if uniform_bits > 0 else 0,
             'markov_vs_independent': markov_bits / independent_bits if independent_bits > 0 else 0,
-            'equivalent_ascii_chars': int(markov_bits / 7),  # 7 bits per ASCII char
-            'equivalent_latin_words': int(markov_bits / 22.5),  # ~22.5 bits per Latin word
+            'equivalent_ascii_chars': int(markov_bits / 7),
+            'equivalent_latin_words': int(markov_bits / 22.5),
             'interpretation': (
                 f'Language B encodes {markov_bits:.0f} bits ({markov_bits/8:.0f} bytes) '
                 f'of information. Compression ratio vs uniform: {markov_bits/uniform_bits:.0%}. '
@@ -356,8 +335,6 @@ class LanguageBGenerator:
         mean_max = float(np.mean(max_probs))
         n_near_det = sum(1 for p in max_probs if p > 0.5)
 
-        # Determinism score: 1.0 = perfectly deterministic, 0.0 = uniform
-        # = (mean_max - 1/V) / (1 - 1/V)
         v = len(self.vocabulary)
         uniform_max = 1.0 / v if v > 0 else 0
         determinism = (mean_max - uniform_max) / (1 - uniform_max) if uniform_max < 1 else 0
@@ -387,7 +364,6 @@ class LanguageBGenerator:
 
         results = {}
 
-        # Matrix structure analysis
         if verbose:
             print('\n  --- Matrix Structure ---')
         results['matrix_analysis'] = self.analyze_matrix_structure()
@@ -402,21 +378,18 @@ class LanguageBGenerator:
                   f'(within-family: {ma["within_family_proportion"]:.1%})')
             print(f'  Effective rank: {ma["effective_rank"]}')
 
-        # Determinism test
         if verbose:
             print('\n  --- Determinism Test ---')
         results['determinism'] = self.test_determinism()
         if verbose:
             print(f'  {results["determinism"]["interpretation"]}')
 
-        # Total information
         if verbose:
             print('\n  --- Total Information Content ---')
         results['total_information'] = self.compute_total_information()
         if verbose:
             print(f'  {results["total_information"]["interpretation"]}')
 
-        # Validation
         if verbose:
             print('\n  --- Statistical Validation ---')
         results['validation'] = self.validate_statistics(n_samples=50)
@@ -428,13 +401,11 @@ class LanguageBGenerator:
                   f'(target: {v["TTR_target"]})')
             print(f'  All within tolerance: {v["all_within_tolerance"]}')
 
-        # Stationary distribution
         results['stationary_distribution'] = {
             word: float(self.stationary_dist[i])
             for i, word in enumerate(self.vocabulary)
         }
 
-        # Observed vs stationary comparison
         observed_freq = {
             word: self.profiler.word_freq.get(word, 0) / len(self.profiler.lang_b_tokens)
             for word in self.vocabulary
@@ -449,7 +420,6 @@ class LanguageBGenerator:
             for word in self.vocabulary
         }
 
-        # Sample generated text
         sample = self.generate(n_tokens=50, seed=42)
         results['sample_output'] = sample
 
@@ -457,7 +427,6 @@ class LanguageBGenerator:
             print(f'\n  Sample generated text:')
             print(f'    {sample[:120]}...')
 
-        # Transition matrix (for JSON serialization)
         results['transition_matrix'] = self.transition_matrix.tolist()
         results['vocabulary'] = self.vocabulary
 

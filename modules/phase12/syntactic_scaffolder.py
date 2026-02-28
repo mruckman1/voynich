@@ -21,25 +21,20 @@ from typing import Dict, List, Optional, Tuple
 
 from modules.phase7.voynich_morphemer import VoynichMorphemer
 
-
-# Voynich suffix → Latin POS constraint mapping
-# Derived from Phase 7's affix-to-inflection analysis
 SUFFIX_POS_MAP = {
-    'iin': 'VERB_3P',       # -t / -nt (3rd person verb endings)
-    'in':  'NOUN_ACC',      # -um / -em (accusative nouns)
-    'dy':  'NOUN_FEM',      # -ae / -a (feminine nominative/genitive)
-    'ey':  'NOUN_NOM',      # -es / -er (nominative/agent nouns)
-    'y':   'ADJ',           # -a / -i / -e (adjective agreement)
-    'l':   'NOUN',          # -al / -il (neuter nouns)
-    'r':   'NOUN_AGT',      # -or / -er (agent nouns)
-    'm':   'NOUN_ACC',      # -am / -um (accusative)
-    's':   'NOUN_PL',       # -as / -os / -es (plural)
+    'iin': 'VERB_3P',
+    'in':  'NOUN_ACC',
+    'dy':  'NOUN_FEM',
+    'ey':  'NOUN_NOM',
+    'y':   'ADJ',
+    'l':   'NOUN',
+    'r':   'NOUN_AGT',
+    'm':   'NOUN_ACC',
+    's':   'NOUN_PL',
 }
 
-# Regex to match bracketed tokens: [word] or <word>
 BRACKET_RE = re.compile(r'\[([^\]]+)\]|<([^>]+)>')
 
-# ─── Latin POS Tagger: Closed-class word sets ───────────────────────
 LATIN_PREPOSITIONS = frozenset({
     'in', 'cum', 'per', 'ad', 'de', 'pro', 'contra', 'sub', 'super',
     'ex', 'ab', 'sine', 'inter', 'ante', 'post', 'apud', 'circa',
@@ -66,22 +61,18 @@ LATIN_DETERMINERS = frozenset({
     'quidam', 'quaedam', 'quoddam', 'aliquis', 'aliqua', 'aliquod',
 })
 
-# Latin verb endings (3rd person forms, imperatives, infinitives)
 _VERB_ENDINGS = (
     'at', 'et', 'it', 'ut', 'nt', 'unt', 'ent', 'ant', 'unt',
     'atur', 'etur', 'itur', 'are', 'ere', 'ire', 'ari', 'eri', 'iri',
     'avit', 'evit', 'ivit', 'atur', 'antur', 'entur', 'untur',
 )
 
-# Latin adjective endings
 _ADJ_ENDINGS = (
     'us', 'a', 'um', 'is', 'e', 'em', 'am', 'ior', 'ius',
     'alis', 'aris', 'ilis', 'anus', 'inus', 'ivus', 'osus',
 )
 
-# Coarse POS categories for transition matrix
 POS_CATEGORIES = ['NOUN', 'VERB', 'ADJ', 'PREP', 'CONJ', 'ADV', 'DET', 'OTHER']
-
 
 class LatinPOSTagger:
     """
@@ -101,7 +92,6 @@ class LatinPOSTagger:
         if not w:
             return 'OTHER'
 
-        # 1. Closed-class sets (highest priority)
         if w in LATIN_PREPOSITIONS:
             return 'PREP'
         if w in LATIN_CONJUNCTIONS:
@@ -111,21 +101,17 @@ class LatinPOSTagger:
         if w in LATIN_DETERMINERS:
             return 'DET'
 
-        # 2. Verb endings (before adjective — many overlap)
         if any(w.endswith(end) for end in _VERB_ENDINGS) and len(w) > 3:
             return 'VERB'
 
-        # 3. Adjective endings (common Latin adj morphology)
         if any(w.endswith(end) for end in _ADJ_ENDINGS) and len(w) > 3:
             return 'ADJ'
 
-        # 4. Default: NOUN (most open-class Latin words are nouns in herbal texts)
         return 'NOUN'
 
     def tag_tokens(self, tokens: List[str]) -> List[str]:
         """Tag a sequence of Latin tokens."""
         return [self.tag(t) for t in tokens]
-
 
 def build_pos_transition_matrix(
     corpus_tokens: List[str],
@@ -151,10 +137,8 @@ def build_pos_transition_matrix(
     pos_to_idx = {p: i for i, p in enumerate(pos_vocab)}
     n = len(pos_vocab)
 
-    # Tag corpus
     tags = tagger.tag_tokens(corpus_tokens)
 
-    # Count bigram transitions
     counts = np.zeros((n, n), dtype=float)
     for i in range(len(tags) - 1):
         t_from = tags[i]
@@ -162,13 +146,11 @@ def build_pos_transition_matrix(
         if t_from in pos_to_idx and t_to in pos_to_idx:
             counts[pos_to_idx[t_from]][pos_to_idx[t_to]] += 1
 
-    # Normalize rows
     row_sums = counts.sum(axis=1, keepdims=True)
     row_sums[row_sums == 0] = 1
     matrix = counts / row_sums
 
     return matrix, pos_vocab, tagger
-
 
 class SyntacticScaffolder:
     """
@@ -219,7 +201,6 @@ class SyntacticScaffolder:
             Scaffolded text with POS-annotated brackets
         """
         def _replace_bracket(match):
-            # Extract the token from either [token] or <token>
             square_token = match.group(1)
             angle_token = match.group(2)
 
@@ -244,7 +225,6 @@ class SyntacticScaffolder:
         Returns:
             Dict with counts per POS tag and totals
         """
-        # Match POS-tagged brackets: [token_POS] or <token_POS>
         tagged_re = re.compile(r'\[([^_\]]+)_([A-Z_]+)\]|<([^_>]+)_([A-Z_]+)>')
 
         pos_counts = Counter()

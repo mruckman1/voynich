@@ -4,6 +4,10 @@ import os
 from datetime import datetime
 from typing import Any, Dict
 
+def vprint(verbose, *args, **kwargs):
+    """Print only when verbose is True."""
+    if verbose:
+        print(*args, **kwargs)
 
 def save_json(filepath: str, data: Any) -> None:
     """Save results to JSON, handling non-serializable types.
@@ -20,7 +24,7 @@ def save_json(filepath: str, data: Any) -> None:
         if isinstance(obj, (set, frozenset)):
             return list(obj)
         if isinstance(obj, float):
-            if obj != obj:  # NaN
+            if obj != obj:
                 return None
             if obj == float('inf') or obj == float('-inf'):
                 return str(obj)
@@ -29,18 +33,15 @@ def save_json(filepath: str, data: Any) -> None:
     with open(filepath, 'w') as f:
         json.dump(data, f, indent=2, default=default_handler)
 
-
 def ensure_output_dir(output_dir: str) -> None:
     """Create output directory if it doesn't exist."""
     os.makedirs(output_dir, exist_ok=True)
-
 
 def make_results_header(**extra_fields) -> Dict:
     """Create the standard results dict header with timestamp."""
     result = {'timestamp': datetime.now().isoformat()}
     result.update(extra_fields)
     return result
-
 
 PHASE_DESCRIPTIONS = {
     1:  '5-Strategy Convergence Attack',
@@ -58,7 +59,6 @@ PHASE_DESCRIPTIONS = {
     '12.5': 'Adversarial Defense Suite',
     13:    'Scholarly Synthesis & Presentation',
 }
-
 
 def build_combined_report(phase_results: Dict[int, Dict], output_dir: str) -> str:
     """Build and save a combined report from all phases that were run.

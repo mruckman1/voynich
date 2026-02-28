@@ -9,14 +9,10 @@ different encoding mechanisms:
 The hybrid model should explain ALL Phase 2 anomalies simultaneously.
 """
 
-import sys
-import os
 import math
 import numpy as np
 from collections import Counter
 from typing import Dict, List, Optional
-
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from modules.phase3.lang_b_profiler import LanguageBProfiler, LANG_B_TARGETS
 from modules.phase3.lang_b_generator import LanguageBGenerator
@@ -25,8 +21,6 @@ from modules.phase2.base_model import VOYNICH_TARGETS
 from modules.phase2.verbose_cipher import VerboseCipher
 from modules.statistical_analysis import full_statistical_profile, profile_distance
 
-
-# Phase 2 anomalies to verify
 PHASE2_ANOMALIES = [
     {
         'name': 'Combined H2 lower than any single cipher',
@@ -55,7 +49,6 @@ PHASE2_ANOMALIES = [
     },
 ]
 
-
 class HybridModel:
     """
     Tests whether a hybrid (cipher-A + notation-B) architecture
@@ -76,7 +69,6 @@ class HybridModel:
 
         Returns dict with both portions and combined text.
         """
-        # Generate Language A using verbose cipher
         verbose = VerboseCipher(
             vocab_size=30,
             homophones_per_letter=3,
@@ -87,10 +79,8 @@ class HybridModel:
         )
         lang_a_text = verbose.generate(n_words=n_a_tokens)
 
-        # Generate Language B using Markov chain
         lang_b_text = self.lang_b_gen.generate(n_tokens=n_b_tokens, seed=seed)
 
-        # Combine
         combined = lang_a_text + ' ' + lang_b_text
 
         return {
@@ -114,7 +104,6 @@ class HybridModel:
         zipf_values = []
         distances = []
 
-        # Build Voynich target profile for distance comparison
         voynich_profile = {
             'entropy': {
                 'H1': VOYNICH_TARGETS['H1'],
@@ -148,7 +137,6 @@ class HybridModel:
         zipf_arr = np.array(zipf_values)
         dist_arr = np.array(distances)
 
-        # Theoretical prediction for H2 of mixture
         f_a = LANG_A_TARGETS['total_tokens'] / (
             LANG_A_TARGETS['total_tokens'] + LANG_B_TARGETS['total_tokens']
         )
@@ -203,7 +191,6 @@ class HybridModel:
         metric = anomaly['metric']
 
         if metric == 'H2':
-            # Combined H2 explained by mixing high-H2 cipher + low-H2 notation
             f_a = LANG_A_TARGETS['total_tokens'] / (
                 LANG_A_TARGETS['total_tokens'] + LANG_B_TARGETS['total_tokens']
             )
@@ -218,7 +205,6 @@ class HybridModel:
             )
 
         elif metric == 'positional':
-            # d/l swap explained by different encoding systems using glyphs differently
             explained = True
             explanation = (
                 'Different encoding systems (cipher vs notation) '
@@ -226,7 +212,6 @@ class HybridModel:
             )
 
         elif metric == 'zipf':
-            # Unusual Zipf from two overlapping vocabulary distributions
             explained = True
             explanation = (
                 f'Language A Zipf={LANG_A_TARGETS["zipf_exponent"]:.3f}, '
@@ -236,7 +221,6 @@ class HybridModel:
             )
 
         elif metric == 'TTR':
-            # Low TTR from Language B's tiny vocabulary
             combined_types = LANG_A_TARGETS['vocabulary_size'] + LANG_B_TARGETS['vocabulary_size']
             combined_tokens = LANG_A_TARGETS['total_tokens'] + LANG_B_TARGETS['total_tokens']
             predicted_ttr = combined_types / combined_tokens
@@ -249,7 +233,6 @@ class HybridModel:
             )
 
         elif metric == 'qo':
-            # qo-words are Language B notation markers
             explained = True
             explanation = (
                 'qo- words are part of Language B\'s 13-word notation vocabulary '
@@ -286,13 +269,9 @@ class HybridModel:
         total_bits = a_bits + b_bits
         total_bytes = total_bits / 8
 
-        # Equivalent content size
-        bits_per_latin_word = 22.5  # ~5 chars * 4.5 bits/char
+        bits_per_latin_word = 22.5
         equiv_latin = int(total_bits / bits_per_latin_word)
 
-        # Is this plausible for a medical herbal?
-        # A typical medieval herbal recipe: 50-200 words per folio
-        # 15 folios of text content: 750-3000 words
         plausible = 10 <= equiv_latin <= 5000
 
         return {
@@ -324,7 +303,6 @@ class HybridModel:
 
         results = {}
 
-        # Anomaly verification
         if verbose:
             print('\n  --- Phase 2 Anomaly Verification ---')
         results['anomaly_verification'] = self.verify_phase2_anomalies()
@@ -336,7 +314,6 @@ class HybridModel:
                 print(f'    [{status}] {a["name"]}')
                 print(f'      {a["explanation"]}')
 
-        # Information budget
         if verbose:
             print('\n  --- Information Budget ---')
         results['information_budget'] = self.information_budget()
@@ -347,7 +324,6 @@ class HybridModel:
             print(f'  {ib["breakdown"]["total"]}')
             print(f'  {ib["interpretation"]}')
 
-        # Combined profile check
         if verbose:
             print('\n  --- Combined Profile Check ---')
         results['combined_profile'] = self.check_combined_profile(n_samples=10)
@@ -355,7 +331,6 @@ class HybridModel:
             cp = results['combined_profile']
             print(f'  {cp["interpretation"]}')
 
-        # Synthesis
         av = results['anomaly_verification']
         ib = results['information_budget']
         cp = results['combined_profile']
@@ -375,7 +350,6 @@ class HybridModel:
             print(f'\n  Conclusion: {results["synthesis"]["conclusion"]}')
 
         return results
-
 
 def _synthesize_hybrid(results: Dict) -> str:
     """Generate conclusion about the hybrid model."""

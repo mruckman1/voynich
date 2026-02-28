@@ -18,20 +18,14 @@ Replaces Phase 4's simple SAA which:
 Phase 5  ·  Voynich Convergence Attack
 """
 
-import sys
-import os
 import math
 import random
 import numpy as np
 from collections import Counter
 from typing import Dict, List, Tuple, Optional
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-
 from modules.phase5.nmf_scaffold import NMFScaffold
 
-
-# Known Latin herbal phrases for validation
 RECOGNIZABLE_PHRASES = [
     'calida et sicca',
     'frigida et humida',
@@ -54,7 +48,6 @@ RECOGNIZABLE_PHRASES = [
     'et coque',
     'contra venenum',
 ]
-
 
 class ConstrainedSAA:
     """
@@ -107,7 +100,6 @@ class ConstrainedSAA:
         self.v_word_to_idx = {w: i for i, w in enumerate(voynich_vocab)}
         self.l_word_to_idx = {w: i for i, w in enumerate(latin_vocab)}
 
-        # Build candidate index sets for efficient crib checking
         self._candidate_indices = {}
         for v_word, candidates in rank_pairs.items():
             if v_word in self.v_word_to_idx:
@@ -119,11 +111,9 @@ class ConstrainedSAA:
                 if l_indices:
                     self._candidate_indices[v_idx] = l_indices
 
-        # Voynich word rank lookup
         self._v_rank = {w: i for i, w in enumerate(voynich_vocab)}
         self._l_rank = {w: i for i, w in enumerate(latin_vocab)}
 
-        # NMF shared-topic matrix (precomputed for speed)
         self._topic_matrix = None
         if nmf_scaffold is not None:
             self._topic_matrix = nmf_scaffold.build_topic_coherence_matrix(voynich_vocab)
@@ -156,12 +146,10 @@ class ConstrainedSAA:
         """
         perm_arr = np.array(perm)
 
-        # Clamp indices to valid range
         valid = perm_arr < self.n_l
         if not valid.all():
             perm_arr = np.clip(perm_arr, 0, self.n_l - 1)
 
-        # Build permuted Latin matrix
         l_permuted = self.l_matrix[perm_arr][:, perm_arr]
         diff = self.v_matrix[:self.n_v, :self.n_v] - l_permuted[:self.n_v, :self.n_v]
         return float(np.sum(diff ** 2))
@@ -209,8 +197,6 @@ class ConstrainedSAA:
         penalty = 0.0
         n_checked = 0
 
-        # Sample pairs to avoid O(N^2) on every cost evaluation
-        # Check a random subset of shared-topic pairs
         for i in range(self.n_v):
             for j in range(i + 1, min(i + 20, self.n_v)):
                 if self._topic_matrix[i][j] > 0:
@@ -236,34 +222,29 @@ class ConstrainedSAA:
         """
         delta = 0.0
 
-        # Matrix distance delta (rows and columns involving idx)
         if self.alpha > 0:
             for j in range(self.n_v):
                 lj = perm[j]
                 if lj >= self.n_l:
                     continue
 
-                # Row idx
                 v_val = self.v_matrix[idx, j]
                 old_l = self.l_matrix[old_val, lj] if old_val < self.n_l else 0
                 new_l = self.l_matrix[new_val, lj] if new_val < self.n_l else 0
                 delta += self.alpha * ((v_val - new_l) ** 2 - (v_val - old_l) ** 2)
 
                 if j != idx:
-                    # Column idx
                     v_val2 = self.v_matrix[j, idx]
                     old_l2 = self.l_matrix[lj, old_val] if old_val < self.n_l else 0
                     new_l2 = self.l_matrix[lj, new_val] if new_val < self.n_l else 0
                     delta += self.alpha * ((v_val2 - new_l2) ** 2 - (v_val2 - old_l2) ** 2)
 
-        # Crib violation delta
         if self.beta > 0 and idx in self._candidate_indices:
             valid = self._candidate_indices[idx]
             old_violated = 1.0 if old_val not in valid else 0.0
             new_violated = 1.0 if new_val not in valid else 0.0
             delta += self.beta * (new_violated - old_violated)
 
-        # Rank deviation delta
         if self.gamma > 0:
             old_dev = abs(idx - old_val)
             new_dev = abs(idx - new_val)
@@ -289,14 +270,12 @@ class ConstrainedSAA:
         """
         rng = random.Random(seed)
 
-        # Initialize: assign each Voynich word to its best rank-paired candidate
         current = []
         fixed_indices = set()
 
         for v_idx in range(self.n_v):
             v_word = self.v_vocab[v_idx]
             if v_word in self.rank_pairs and self.rank_pairs[v_word]:
-                # Use first candidate
                 cand = self.rank_pairs[v_word][0]
                 if cand in self.l_word_to_idx:
                     current.append(self.l_word_to_idx[cand])
@@ -309,7 +288,6 @@ class ConstrainedSAA:
         best = current[:]
         best_cost = current_cost
 
-        # Non-fixed indices (all indices are mutable, but cribs guide initialization)
         non_fixed = list(range(self.n_v))
 
         cost_trajectory = [(0, current_cost)]
@@ -338,7 +316,6 @@ class ConstrainedSAA:
 
         cost_trajectory.append((n_iter, best_cost))
 
-        # Build mapping
         mapping = {}
         for i, l_idx in enumerate(best):
             if i < len(self.v_vocab) and l_idx < len(self.l_vocab):

@@ -16,7 +16,6 @@ class LatinSyllabifier:
 
         for c in word:
             current += c
-            # Break after a vowel unless it's forming a diphthong or end of word
             if c in self.vowels:
                 if len(current) >= 2 and current[-2:] in self.diphthongs:
                     continue
@@ -39,18 +38,15 @@ class LatinSyllabifier:
             syls = self.syllabify(word)
             all_syllables.extend(syls)
 
-            # Map valid syllable continuations inside words
             for i in range(len(syls) - 1):
                 transitions[syls[i]][syls[i+1]] += 1
 
-            # Map word-to-word transition (space as syllable barrier)
             if len(syls) > 0:
                 transitions[syls[-1]]["<SPACE>"] += 1
                 transitions["<SPACE>"][syls[0]] += 1
 
         counts = Counter(all_syllables)
 
-        # Convert to probabilities
         prob_transitions = defaultdict(dict)
         for s1, next_syls in transitions.items():
             total = sum(next_syls.values())

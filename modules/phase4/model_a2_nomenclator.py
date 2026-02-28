@@ -12,21 +12,16 @@ If H2 drops significantly below 1.487, the nomenclator model is supported
 (the codebook tier has lower entropy than the cipher tier).
 """
 
-import sys
-import os
 import math
 import numpy as np
 from collections import Counter
 from typing import Dict, List
-
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from modules.statistical_analysis import (
     compute_all_entropy, zipf_analysis, word_conditional_entropy,
     first_order_entropy, conditional_entropy,
 )
 from modules.phase4.lang_a_extractor import LanguageAExtractor
-
 
 class NomenclatorModel:
     """
@@ -55,19 +50,15 @@ class NomenclatorModel:
         split = self.extractor.separate_frequent_and_singleton()
         all_tokens = self.extractor.extract_lang_a_tokens()
 
-        # Character-level H2 of the full text
         full_text = self.extractor.extract_lang_a_text()
         full_h2 = conditional_entropy(full_text, order=1)
 
-        # Character-level H2 of frequent-word-only text
         frequent_text = split['frequent_text']
         frequent_h2 = conditional_entropy(frequent_text, order=1) if frequent_text else 0.0
 
-        # Word-level H2 of frequent-word subsequence
         freq_tokens = split['frequent_tokens']
         word_h2_frequent = word_conditional_entropy(freq_tokens, order=1) if len(freq_tokens) > 2 else 0.0
 
-        # Word-level H2 of full sequence
         word_h2_full = word_conditional_entropy(all_tokens, order=1)
 
         h2_drop = full_h2 - frequent_h2
@@ -101,7 +92,6 @@ class NomenclatorModel:
         """
         split = self.extractor.separate_frequent_and_singleton()
 
-        # Character frequency profiles
         freq_chars = Counter()
         for token in split['frequent_tokens']:
             freq_chars.update(token)
@@ -110,7 +100,6 @@ class NomenclatorModel:
         for token in split['singleton_tokens']:
             sing_chars.update(token)
 
-        # Character entropy of each tier
         def char_entropy(counter):
             total = sum(counter.values())
             if total == 0:
@@ -121,14 +110,12 @@ class NomenclatorModel:
         freq_h1 = char_entropy(freq_chars)
         sing_h1 = char_entropy(sing_chars)
 
-        # Average word length
         freq_lengths = [len(t) for t in split['frequent_tokens']]
         sing_lengths = [len(t) for t in split['singleton_tokens']]
 
         freq_mean_len = np.mean(freq_lengths) if freq_lengths else 0
         sing_mean_len = np.mean(sing_lengths) if sing_lengths else 0
 
-        # Character repertoire size
         freq_alphabet = len(freq_chars)
         sing_alphabet = len(sing_chars)
 
@@ -186,11 +173,10 @@ class NomenclatorModel:
         split = self.extractor.separate_frequent_and_singleton()
         frequent_set = set(split['frequent_types'])
 
-        # Classify each transition
-        ff_count = 0  # frequent -> frequent
-        fs_count = 0  # frequent -> singleton
-        sf_count = 0  # singleton -> frequent
-        ss_count = 0  # singleton -> singleton
+        ff_count = 0
+        fs_count = 0
+        sf_count = 0
+        ss_count = 0
 
         for i in range(len(tokens) - 1):
             curr_freq = tokens[i] in frequent_set
@@ -208,7 +194,6 @@ class NomenclatorModel:
         if total == 0:
             return {'error': 'No transitions found'}
 
-        # Under random mixing, P(f->f) = P(f)^2, P(f->s) = P(f)*P(s), etc.
         p_freq = split['n_frequent_tokens'] / max(1, len(tokens))
         p_sing = 1 - p_freq
 

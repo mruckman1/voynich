@@ -11,7 +11,6 @@ what H2 looks like for encrypted text across a range of languages and ciphers.
 Output: empirical distributions and percentile ranks for all Voynich metrics.
 """
 
-import sys
 import os
 import json
 import math
@@ -21,8 +20,6 @@ import time
 import numpy as np
 from collections import Counter, defaultdict
 from typing import Dict, List, Tuple, Optional
-
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from modules.statistical_analysis import (
     full_statistical_profile, compute_all_entropy, first_order_entropy,
@@ -34,11 +31,6 @@ from modules.strategy1_parameter_search import generate_medical_plaintext
 from data.voynich_corpus import get_all_tokens, get_section_text
 from data.medieval_text_templates import generate_italian_text, generate_german_text
 
-
-# ============================================================================
-# CIPHER ZOO: Four additional cipher families
-# ============================================================================
-
 class SimpleSubstitutionCipher:
     """
     Monoalphabetic substitution cipher.
@@ -48,7 +40,6 @@ class SimpleSubstitutionCipher:
 
     def __init__(self, seed: int = 42):
         self.rng = random.Random(seed)
-        # Build random 1-to-1 mapping
         plain_alpha = list('abcdefghijklmnopqrstuvwxyz')
         cipher_alpha = plain_alpha.copy()
         self.rng.shuffle(cipher_alpha)
@@ -65,7 +56,6 @@ class SimpleSubstitutionCipher:
             elif ch.isalpha():
                 result.append(ch)
         return ''.join(result)
-
 
 class VigenereCipher:
     """
@@ -91,7 +81,6 @@ class VigenereCipher:
                 key_idx += 1
         return ''.join(result)
 
-
 class HomophonicCipher:
     """
     Homophonic substitution cipher.
@@ -103,14 +92,12 @@ class HomophonicCipher:
         self.rng = random.Random(seed)
         self.name = 'homophonic'
 
-        # Approximate English/Latin letter frequencies for allocation
         freq_tiers = {
-            'high': list('aeioust'),      # 3-5 homophones each
-            'medium': list('cnrldhm'),     # 2-3 homophones each
-            'low': list('bfgkpqvwxyz'),   # 1 homophone each
+            'high': list('aeioust'),
+            'medium': list('cnrldhm'),
+            'low': list('bfgkpqvwxyz'),
         }
 
-        # Build output symbols (use pairs of letters as symbols)
         symbols = [f'{chr(a)}{chr(b)}' for a in range(ord('a'), ord('z') + 1)
                    for b in range(ord('a'), ord('z') + 1)]
         self.rng.shuffle(symbols)
@@ -128,7 +115,6 @@ class HomophonicCipher:
         for ch in freq_tiers['low']:
             self.table[ch] = [symbols[sym_idx]]
             sym_idx += 1
-        # Catch remaining letters
         for ch in string.ascii_lowercase:
             if ch not in self.table:
                 self.table[ch] = [symbols[sym_idx]]
@@ -141,9 +127,7 @@ class HomophonicCipher:
                 result.append(' ')
             elif ch in self.table:
                 result.append(self.rng.choice(self.table[ch]))
-        # Join symbols and re-split into words
         return ''.join(result)
-
 
 class NomenclatorCipher:
     """
@@ -156,11 +140,9 @@ class NomenclatorCipher:
         self.rng = random.Random(seed)
         self.name = 'nomenclator'
 
-        # Code table for common words
         code_symbols = [f'#{i:03d}' for i in range(n_code_words)]
         self.rng.shuffle(code_symbols)
 
-        # Top-50 common medieval Latin words
         common_words = [
             'et', 'in', 'de', 'ad', 'cum', 'per', 'est', 'non', 'sed',
             'qui', 'que', 'ut', 'sic', 'hoc', 'aut', 'vel', 'pro', 'quod',
@@ -173,7 +155,6 @@ class NomenclatorCipher:
         self.code_table = dict(zip(common_words[:n_code_words],
                                    code_symbols[:n_code_words]))
 
-        # Simple substitution for remaining text
         plain_alpha = list('abcdefghijklmnopqrstuvwxyz')
         cipher_alpha = plain_alpha.copy()
         self.rng.shuffle(cipher_alpha)
@@ -190,11 +171,6 @@ class NomenclatorCipher:
                 encrypted = ''.join(self.sub_table.get(c, c) for c in clean)
                 result.append(encrypted)
         return ' '.join(result)
-
-
-# ============================================================================
-# CIPHER ZOO REGISTRY
-# ============================================================================
 
 CIPHER_FAMILIES = {
     'simple_substitution': {
@@ -230,11 +206,6 @@ CIPHER_FAMILIES = {
     },
 }
 
-
-# ============================================================================
-# PLAINTEXT GENERATORS
-# ============================================================================
-
 def _generate_plaintext(language: str, n_words: int = 500, seed: int = 42) -> str:
     """Generate synthetic plaintext for a given source language."""
     if language == 'latin':
@@ -246,13 +217,7 @@ def _generate_plaintext(language: str, n_words: int = 500, seed: int = 42) -> st
     else:
         raise ValueError(f"Unknown language: {language}")
 
-
 SOURCE_LANGUAGES = ['latin', 'italian', 'german']
-
-
-# ============================================================================
-# NULL DISTRIBUTION ENGINE
-# ============================================================================
 
 class NullDistributionEngine:
     """
@@ -285,10 +250,7 @@ class NullDistributionEngine:
             'mean_word_length': np.mean([len(t) for t in tokens]),
         }
 
-        # Positional entropy as a vector (positions 0-9)
-        pos_values = []
-        for i in range(10):
-            pos_values.append(pos_entropy.get(i, 0.0))
+        pos_values = [pos_entropy.get(i, 0.0) for i in range(10)]
         self.voynich_metrics['positional_entropy_curve'] = pos_values
 
         return self.voynich_metrics
@@ -327,21 +289,17 @@ class NullDistributionEngine:
             if len(tokens) < 10:
                 continue
 
-            # Entropy
             entropy = compute_all_entropy(text)
             metrics['H1'].append(entropy['H1'])
             metrics['H2'].append(entropy['H2'])
             metrics['H3'].append(entropy['H3'])
 
-            # Zipf
             zipf = zipf_analysis(tokens)
             metrics['zipf_exponent'].append(abs(zipf['zipf_exponent']))
             metrics['type_token_ratio'].append(zipf['type_token_ratio'])
 
-            # Word length
             metrics['mean_word_length'].append(np.mean([len(t) for t in tokens]))
 
-            # Positional entropy
             pos_ent = word_positional_entropy(tokens)
             curve = [pos_ent.get(i, 0.0) for i in range(10)]
             pos_entropy_curves.append(curve)
@@ -381,7 +339,6 @@ class NullDistributionEngine:
             print(f"  Source languages: {SOURCE_LANGUAGES}")
             print(f"  Samples per combination: {self.n_samples}")
 
-        # Step 1: Compute Voynich baselines
         if self.verbose:
             print("\n  Computing Voynich baselines...")
         self.compute_voynich_baselines()
@@ -394,7 +351,6 @@ class NullDistributionEngine:
                   f"TTR={self.voynich_metrics['type_token_ratio']:.4f}  "
                   f"MWL={self.voynich_metrics['mean_word_length']:.2f}")
 
-        # Step 2: Generate distributions for each combination
         results = {
             'voynich_metrics': self.voynich_metrics,
             'distributions': {},
@@ -429,7 +385,6 @@ class NullDistributionEngine:
                 dist = self.compute_metric_distributions(samples)
                 elapsed = time.time() - t0
 
-                # Compute percentile ranks for Voynich
                 ranks = {}
                 pvals = {}
                 scalar_metrics = ['H1', 'H2', 'H3', 'zipf_exponent',
@@ -453,12 +408,10 @@ class NullDistributionEngine:
 
                 if self.verbose:
                     print(f" {len(samples)} samples, {elapsed:.1f}s")
-                    # Show most interesting percentile
                     h2_rank = ranks.get('H2', 50.0)
                     print(f"    H2 percentile: {h2_rank:.1f}%  "
                           f"(p={pvals.get('H2', 1.0):.4f})")
 
-        # Step 3: Anomaly summary
         results['anomaly_summary'] = self._anomaly_summary(results)
 
         return results
@@ -491,17 +444,12 @@ class NullDistributionEngine:
                 'anomalous_count': len(anomalous_for),
                 'normal_count': len(normal_for),
                 'total_tested': total,
-                'anomalous_for': anomalous_for[:5],  # top 5 for brevity
+                'anomalous_for': anomalous_for[:5],
                 'normal_for': normal_for[:5],
                 'globally_anomalous': len(anomalous_for) > total * 0.8,
             }
 
         return summary
-
-
-# ============================================================================
-# MODULE ENTRY POINT
-# ============================================================================
 
 def run(verbose: bool = True, n_samples: int = 200) -> Dict:
     """
@@ -519,7 +467,6 @@ def run(verbose: bool = True, n_samples: int = 200) -> Dict:
     results['track'] = 'null_framework'
     results['track_number'] = 10
 
-    # Print summary
     if verbose:
         print("\n" + "─" * 70)
         print("NULL FRAMEWORK SUMMARY")
@@ -532,7 +479,6 @@ def run(verbose: bool = True, n_samples: int = 200) -> Dict:
                   f"(anomalous for {data['anomalous_count']}/{data['total_tested']} "
                   f"combinations)")
 
-        # Key finding
         h2_data = summary.get('H2', {})
         if h2_data.get('globally_anomalous'):
             print(f"\n  KEY FINDING: Voynich H2={h2_data['voynich_value']:.4f} is "
@@ -546,10 +492,8 @@ def run(verbose: bool = True, n_samples: int = 200) -> Dict:
                   f"{', '.join(normal[:3])}")
             print("  → These cipher families remain viable candidates.")
 
-    # Save distributions
     try:
         os.makedirs('./output', exist_ok=True)
-        # Save a summary (full arrays would be too large)
         save_data = {
             'voynich_metrics': {k: v for k, v in results['voynich_metrics'].items()
                                if not isinstance(v, list)},

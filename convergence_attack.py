@@ -36,11 +36,6 @@ from modules.statistical_analysis import (
 )
 from data.voynich_corpus import get_all_tokens, SAMPLE_CORPUS
 
-
-# ============================================================================
-# CONVERGENCE SYNTHESIS
-# ============================================================================
-
 def synthesize_results(results: Dict) -> Dict:
     """
     Synthesize results from all strategies into a convergence report.
@@ -61,9 +56,6 @@ def synthesize_results(results: Dict) -> Dict:
         'confidence_assessment': {},
     }
 
-    # ---- Extract key findings from each strategy ----
-
-    # Strategy 1: Best cipher parameters
     s1_results = results.get('strategy1', {})
     best_params = {}
     for section, section_res in s1_results.get('sections_analyzed', {}).items():
@@ -76,7 +68,6 @@ def synthesize_results(results: Dict) -> Dict:
             }
     synthesis['parameter_consensus'] = _find_parameter_consensus(best_params)
 
-    # Strategy 2: Scribe behavior
     s2_results = results.get('strategy2', {})
     scribe_findings = []
 
@@ -102,7 +93,6 @@ def synthesize_results(results: Dict) -> Dict:
 
     synthesis['findings'].extend(scribe_findings)
 
-    # Strategy 3: Binding order
     s3_results = results.get('strategy3', {})
     binding = s3_results.get('binding_comparison', {})
     ranking = binding.get('ranking', [])
@@ -123,7 +113,6 @@ def synthesize_results(results: Dict) -> Dict:
             'confidence': 'HIGH' if abs(state.get('correlation', 0)) > 0.5 else 'MODERATE',
         })
 
-    # Strategy 4: Grammar layer
     s4_results = results.get('strategy4', {})
     core = s4_results.get('core_isolation', {})
     delta_h2 = core.get('entropy_delta', {}).get('H2', 0)
@@ -146,7 +135,6 @@ def synthesize_results(results: Dict) -> Dict:
             'confidence': 'MODERATE',
         })
 
-    # Strategy 5: Zodiac attack
     s5_results = results.get('strategy5', {})
     consistency = s5_results.get('attack', {}).get('cross_section_consistency', {})
     n_consistent = consistency.get('n_consistent_params', 0)
@@ -169,24 +157,19 @@ def synthesize_results(results: Dict) -> Dict:
             'confidence': 'HIGH' if 'HIGH' in quality else 'LOW',
         })
 
-    # ---- Build constraint list ----
     synthesis['constraints'] = _build_constraints(results)
 
-    # ---- Source language evidence ----
     synthesis['source_language_evidence'] = _assess_source_language(results)
 
-    # ---- Overall confidence ----
     synthesis['confidence_assessment'] = _overall_confidence(synthesis['findings'])
 
     return synthesis
-
 
 def _find_parameter_consensus(best_params: Dict) -> Dict:
     """Find parameter values that are consistent across sections."""
     if not best_params:
         return {'consensus': 'insufficient data'}
 
-    # Collect parameter values across sections
     param_values = {
         'n_tables': [],
         'bigram_probability': [],
@@ -200,7 +183,6 @@ def _find_parameter_consensus(best_params: Dict) -> Dict:
             if key in params:
                 param_values[key].append(params[key])
 
-    # Compute consensus (median ± range)
     consensus = {}
     for key, values in param_values.items():
         if values:
@@ -216,12 +198,10 @@ def _find_parameter_consensus(best_params: Dict) -> Dict:
 
     return consensus
 
-
 def _build_constraints(results: Dict) -> List[Dict]:
     """Compile all constraints that narrow the solution space."""
     constraints = []
 
-    # Entropy constraints (from Voynich target)
     all_text = ' '.join(get_all_tokens())
     entropy = compute_all_entropy(all_text)
     constraints.append({
@@ -232,7 +212,6 @@ def _build_constraints(results: Dict) -> List[Dict]:
         'source': 'statistical_analysis',
     })
 
-    # Scribe consistency constraint
     constraints.append({
         'type': 'multi_scribe',
         'description': 'Cipher must be operable by 5 distinct scribes with consistent output',
@@ -240,7 +219,6 @@ def _build_constraints(results: Dict) -> List[Dict]:
         'source': 'Davis_2020',
     })
 
-    # Positional constraint
     constraints.append({
         'type': 'positional_glyphs',
         'description': 'Certain glyphs must be restricted to word-initial/final positions',
@@ -248,7 +226,6 @@ def _build_constraints(results: Dict) -> List[Dict]:
         'source': 'strategy4',
     })
 
-    # Temporal constraint
     constraints.append({
         'type': 'historical',
         'description': 'Cipher mechanism must be executable with 1400-1438 CE technology',
@@ -256,7 +233,6 @@ def _build_constraints(results: Dict) -> List[Dict]:
         'source': 'radiocarbon_dating',
     })
 
-    # Language family constraint
     constraints.append({
         'type': 'language',
         'description': 'Source language must produce Voynich-like entropy when encrypted',
@@ -266,7 +242,6 @@ def _build_constraints(results: Dict) -> List[Dict]:
     })
 
     return constraints
-
 
 def _assess_source_language(results: Dict) -> Dict:
     """Assess evidence for each candidate source language."""
@@ -288,7 +263,6 @@ def _assess_source_language(results: Dict) -> Dict:
         },
     }
 
-    # Latin evidence
     evidence['medieval_latin']['pro'].extend([
         'Zodiac month labels in Romance language suggest Latin-sphere origin',
         'Pharmaceutical recipe format matches Latin medical tradition',
@@ -297,7 +271,6 @@ def _assess_source_language(results: Dict) -> Dict:
     ])
     evidence['medieval_latin']['score'] = 0.7
 
-    # Italian evidence
     evidence['northern_italian']['pro'].extend([
         'Swallowtail merlons in cosmological section = Northern Italian architecture',
         'Month labels may be Northern French/Occitan (adjacent language area)',
@@ -305,7 +278,6 @@ def _assess_source_language(results: Dict) -> Dict:
     ])
     evidence['northern_italian']['score'] = 0.5
 
-    # German evidence
     evidence['middle_high_german']['pro'].extend([
         'Hartlieb was Bavarian, writing in German and Latin',
         'Alpine botanical style consistent with German-speaking regions',
@@ -317,7 +289,6 @@ def _assess_source_language(results: Dict) -> Dict:
     evidence['middle_high_german']['score'] = 0.4
 
     return evidence
-
 
 def _overall_confidence(findings: List[Dict]) -> Dict:
     """Compute overall confidence assessment."""
@@ -350,11 +321,6 @@ def _overall_confidence(findings: List[Dict]) -> Dict:
         'message': message,
     }
 
-
-# ============================================================================
-# MAIN ORCHESTRATOR
-# ============================================================================
-
 def run_convergence_attack(
         strategies: Optional[List[int]] = None,
         verbose: bool = True,
@@ -384,8 +350,6 @@ def run_convergence_attack(
     print()
 
     results = {}
-
-    # ---- Run each strategy ----
 
     if 1 in strategies:
         print("\n" + "▓" * 70)
@@ -427,7 +391,6 @@ def run_convergence_attack(
             print(f"  [ERROR] Strategy 5 failed: {e}")
             results['strategy5'] = {'error': str(e)}
 
-    # ---- Synthesize ----
     print("\n" + "▓" * 70)
     print("=" * 70)
     print("CONVERGENCE SYNTHESIS")
@@ -438,7 +401,6 @@ def run_convergence_attack(
 
     elapsed = time.time() - start_time
 
-    # ---- Print final report ----
     print(f"\n{'─'*70}")
     print("FINDINGS SUMMARY")
     print(f"{'─'*70}")
@@ -475,11 +437,9 @@ def run_convergence_attack(
     print(f"  {conf['message']}")
     print(f"\n  Total runtime: {elapsed:.1f}s")
 
-    # ---- Save results ----
     os.makedirs(output_dir, exist_ok=True)
     report_path = os.path.join(output_dir, 'convergence_report.json')
     try:
-        # Make results JSON-serializable
         serializable = _make_serializable(results)
         with open(report_path, 'w') as fh:
             json.dump(serializable, fh, indent=2, default=str)
@@ -488,7 +448,6 @@ def run_convergence_attack(
         print(f"\n  [WARN] Could not save report: {e}")
 
     return results
-
 
 def _make_serializable(obj):
     """Make nested dicts/lists JSON-serializable."""
@@ -504,11 +463,6 @@ def _make_serializable(obj):
         return obj
     else:
         return obj
-
-
-# ============================================================================
-# PHASED CONVERGENCE ATTACK (10 RESEARCH TRACKS)
-# ============================================================================
 
 def run_phased_attack(
         phases: Optional[List[int]] = None,
@@ -554,7 +508,6 @@ def run_phased_attack(
     print(f"  Corpus: {len(SAMPLE_CORPUS)} folios loaded")
     print(f"  Total tokens: {len(get_all_tokens())}")
 
-    # ---- Run original strategies if requested ----
     if run_original:
         print("\n" + "▓" * 70)
         print("  ORIGINAL STRATEGIES (1-5)")
@@ -562,7 +515,6 @@ def run_phased_attack(
         original = run_convergence_attack(verbose=verbose, output_dir=output_dir)
         all_results['convergence_attack'] = original
 
-    # ---- Phase 1: Statistical Foundations ----
     if 1 in phases:
         print("\n" + "▓" * 70)
         print("  PHASE 1: STATISTICAL FOUNDATIONS")
@@ -581,7 +533,6 @@ def run_phased_attack(
             print(f"  [ERROR] Word length failed: {e}")
             all_results['word_length'] = {'error': str(e)}
 
-    # ---- Phase 2: Structural Fingerprinting ----
     if 2 in phases:
         print("\n" + "▓" * 70)
         print("  PHASE 2: STRUCTURAL FINGERPRINTING")
@@ -599,7 +550,6 @@ def run_phased_attack(
                 print(f"  [ERROR] {track_name} failed: {e}")
                 all_results[track_name] = {'error': str(e)}
 
-    # ---- Phase 3: Plaintext Anchors ----
     if 3 in phases:
         print("\n" + "▓" * 70)
         print("  PHASE 3: PLAINTEXT ANCHORS")
@@ -617,7 +567,6 @@ def run_phased_attack(
                 print(f"  [ERROR] {track_name} failed: {e}")
                 all_results[track_name] = {'error': str(e)}
 
-    # ---- Phase 4: Constraint Integration + Candidate Search ----
     if 4 in phases:
         print("\n" + "▓" * 70)
         print("  PHASE 4: CONSTRAINT INTEGRATION & DECRYPTION")
@@ -628,11 +577,9 @@ def run_phased_attack(
                 verbose=verbose, phase_results=all_results)
             all_results['constraint_model'] = cm_result
 
-            # Get anchor pairs from label analysis
             anchor_pairs = all_results.get('label_analysis', {}).get(
                 'candidate_pairs', [])
 
-            # Get constraint model object
             model_obj = cm_result.get('model')
 
             cs_result = cs_module.run(
@@ -646,7 +593,6 @@ def run_phased_attack(
             print(f"  [ERROR] Phase 4 failed: {e}")
             all_results['constraint_model'] = {'error': str(e)}
 
-    # ---- Final Synthesis ----
     elapsed = time.time() - start_time
 
     print("\n" + "▓" * 70)
@@ -654,13 +600,11 @@ def run_phased_attack(
     print("PHASED ATTACK SYNTHESIS")
     print("═" * 70)
 
-    # Collect all findings
     findings = []
     for track_name, result in all_results.items():
         if isinstance(result, dict) and 'error' not in result:
             _extract_track_findings(track_name, result, findings)
 
-    # Print findings
     print(f"\n{'─'*70}")
     print(f"ALL FINDINGS ({len(findings)} total)")
     print(f"{'─'*70}")
@@ -670,7 +614,6 @@ def run_phased_attack(
         print(f"\n  {marker} Finding #{i} [{conf}] ({f.get('source', '')})")
         print(f"    {f['finding']}")
 
-    # Constraint model summary
     cm = all_results.get('constraint_model', {})
     spec = cm.get('specification', {})
     if spec:
@@ -682,7 +625,6 @@ def run_phased_attack(
         print(f"  Viable families: {spec.get('viable_cipher_families', [])}")
         print(f"  Candidate languages: {spec.get('candidate_languages', [])}")
 
-    # Top candidates
     cs = all_results.get('candidate_search', {})
     top = cs.get('top_candidates', [])
     if top:
@@ -699,12 +641,10 @@ def run_phased_attack(
     print(f"  Tracks completed: {len([r for r in all_results.values() if 'error' not in r])}")
     print(f"  Tracks failed: {len([r for r in all_results.values() if isinstance(r, dict) and 'error' in r])}")
 
-    # Save results
     os.makedirs(output_dir, exist_ok=True)
     report_path = os.path.join(output_dir, 'phased_convergence_report.json')
     try:
         serializable = _make_serializable(all_results)
-        # Remove non-serializable objects
         for key in list(serializable.keys()):
             if isinstance(serializable[key], dict):
                 serializable[key].pop('model', None)
@@ -715,7 +655,6 @@ def run_phased_attack(
         print(f"\n  [WARN] Could not save report: {e}")
 
     return all_results
-
 
 def _extract_track_findings(track_name: str, result: Dict, findings: List):
     """Extract key findings from a track result."""
@@ -806,11 +745,6 @@ def _extract_track_findings(track_name: str, result: Dict, findings: List):
                 'confidence': 'MODERATE',
                 'source': 'Track 9: Entropy Gradient',
             })
-
-
-# ============================================================================
-# ENTRY POINT
-# ============================================================================
 
 if __name__ == '__main__':
     import sys as _sys

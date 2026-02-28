@@ -14,21 +14,15 @@ Three attack steps:
 Phase 5  ·  Voynich Convergence Attack
 """
 
-import sys
-import os
 import math
 import numpy as np
 from collections import Counter, defaultdict
 from typing import Dict, List, Tuple, Optional, Set
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-
 from modules.phase5.tier_splitter import TierSplitter
 from modules.phase4.lang_a_extractor import LanguageAExtractor
 from modules.phase5.latin_corpus_expanded import EXPANDED_PLANT_NAMES
 
-
-# Latin character frequencies (approximate, from medieval Latin texts)
 LATIN_CHAR_FREQUENCIES = {
     'a': 0.078, 'b': 0.015, 'c': 0.042, 'd': 0.035, 'e': 0.120,
     'f': 0.012, 'g': 0.018, 'h': 0.015, 'i': 0.095, 'l': 0.035,
@@ -37,12 +31,8 @@ LATIN_CHAR_FREQUENCIES = {
     'x': 0.003, 'y': 0.002, 'z': 0.001,
 }
 
-# Medieval Latin herbal word dictionary (plant names, parts, actions)
-# Includes inflected forms commonly appearing in herbal texts
 LATIN_HERBAL_DICTIONARY = (
-    # Plant names (nominative and oblique)
     list(EXPANDED_PLANT_NAMES) + [
-        # Oblique/genitive/ablative forms
         'artemisiae', 'artemisiam', 'malvae', 'malvam',
         'rutae', 'rutam', 'salviae', 'salviam',
         'rosae', 'rosam', 'rosarum',
@@ -64,7 +54,6 @@ LATIN_HERBAL_DICTIONARY = (
         'valerianae', 'valerianam',
         'verbenae', 'verbenam',
     ] + [
-        # Body parts (nominative, genitive, ablative)
         'caput', 'capitis', 'capite',
         'venter', 'ventris', 'ventre',
         'stomachus', 'stomachi', 'stomacho',
@@ -81,7 +70,6 @@ LATIN_HERBAL_DICTIONARY = (
         'vesica', 'vesicae', 'vesicam',
         'nervus', 'nervi', 'nervo', 'nervorum', 'nervis',
     ] + [
-        # Actions and virtues
         'radix', 'radicem', 'radicis', 'radice',
         'folium', 'folia', 'foliorum', 'foliis',
         'semen', 'seminis', 'semine',
@@ -94,7 +82,6 @@ LATIN_HERBAL_DICTIONARY = (
         'vinum', 'vini', 'vino',
         'oleum', 'olei', 'oleo',
     ] + [
-        # Qualities and descriptors
         'calidus', 'calida', 'calidum', 'calidi', 'calidae',
         'frigidus', 'frigida', 'frigidum', 'frigidi', 'frigidae',
         'siccus', 'sicca', 'siccum', 'sicci', 'siccae',
@@ -105,7 +92,6 @@ LATIN_HERBAL_DICTIONARY = (
         'bonus', 'bona', 'bonum', 'melior', 'optimus',
     ]
 )
-
 
 def _compute_pattern_signature(word: str) -> str:
     """
@@ -124,11 +110,10 @@ def _compute_pattern_signature(word: str) -> str:
     pattern = []
     for char in word:
         if char not in mapping:
-            mapping[char] = chr(65 + next_label)  # A, B, C, ...
+            mapping[char] = chr(65 + next_label)
             next_label += 1
         pattern.append(mapping[char])
     return ''.join(pattern)
-
 
 class CipherTierAttack:
     """
@@ -144,10 +129,6 @@ class CipherTierAttack:
         self.extractor = extractor
         self._contexts = None
         self._singleton_chars = None
-
-    # =========================================================
-    # Attack B Step 1: Context Recovery
-    # =========================================================
 
     def recover_contexts(self, context_window: int = 3) -> List[Dict]:
         """
@@ -170,7 +151,6 @@ class CipherTierAttack:
             if tier != 2:
                 continue
 
-            # Gather left context (Tier 1 words before this singleton)
             left_tokens = []
             left_decoded = []
             j = i - 1
@@ -180,7 +160,6 @@ class CipherTierAttack:
                     left_decoded.insert(0, self.tier1_mapping.get(tokens[j], f'[{tokens[j]}]'))
                 j -= 1
 
-            # Gather right context
             right_tokens = []
             right_decoded = []
             j = i + 1
@@ -207,10 +186,6 @@ class CipherTierAttack:
         self._contexts = contexts
         return contexts
 
-    # =========================================================
-    # Attack B Step 2: Character-Level Analysis
-    # =========================================================
-
     def analyze_character_frequencies(self) -> Dict:
         """
         Analyze the character frequency distribution of all Tier 2 singletons
@@ -218,7 +193,6 @@ class CipherTierAttack:
         """
         tier2_tokens = self.splitter.get_tier2_tokens()
 
-        # Character frequencies within singletons
         char_counts = Counter()
         for token in tier2_tokens:
             char_counts.update(token)
@@ -226,14 +200,11 @@ class CipherTierAttack:
         total_chars = sum(char_counts.values())
         voynich_freqs = {c: n / total_chars for c, n in char_counts.items()}
 
-        # H1 of singleton characters
         h1 = -sum(p * math.log2(p) for p in voynich_freqs.values() if p > 0)
 
-        # Compare against Latin
         common_chars = set(voynich_freqs.keys())
         latin_h1 = -sum(p * math.log2(p) for p in LATIN_CHAR_FREQUENCIES.values() if p > 0)
 
-        # Word length statistics
         lengths = [len(t) for t in tier2_tokens]
         mean_length = np.mean(lengths) if lengths else 0
         std_length = np.std(lengths) if lengths else 0
@@ -264,23 +235,17 @@ class CipherTierAttack:
         for token in tier2_tokens:
             char_counts.update(token)
 
-        # Rank by frequency
         v_ranked = [c for c, _ in char_counts.most_common()]
         l_ranked = sorted(LATIN_CHAR_FREQUENCIES.keys(),
                           key=lambda c: -LATIN_CHAR_FREQUENCIES[c])
 
         candidates = {}
         for i, v_char in enumerate(v_ranked):
-            # Window of ±2 around the matching rank
             start = max(0, i - 2)
             end = min(len(l_ranked), i + 3)
             candidates[v_char] = l_ranked[start:end]
 
         return candidates
-
-    # =========================================================
-    # Attack B Step 3: Pattern Dictionary Attack
-    # =========================================================
 
     def build_pattern_dictionary(self) -> Dict[str, List[str]]:
         """
@@ -309,7 +274,6 @@ class CipherTierAttack:
         pattern_dict = self.build_pattern_dictionary()
         contexts = self.recover_contexts()
 
-        # Build singleton → context lookup
         singleton_context = {}
         for ctx in contexts:
             singleton_context[ctx['singleton']] = ctx
@@ -321,23 +285,18 @@ class CipherTierAttack:
             sig = _compute_pattern_signature(singleton)
             latin_candidates = pattern_dict.get(sig, [])
 
-            # Context-based filtering
             context = singleton_context.get(singleton, {})
             decoded_context = context.get('full_decoded_context', '')
 
-            # Simple context relevance scoring
             scored_candidates = []
             for cand in latin_candidates[:max_candidates * 2]:
                 score = 0.0
-                # Boost if candidate is contextually appropriate
                 if 'recipe' in decoded_context.lower() or 'contra' in decoded_context.lower():
-                    # Context suggests medical/herbal → boost herbal words
                     if cand in EXPANDED_PLANT_NAMES:
                         score += 2.0
                     if len(cand) == len(singleton):
                         score += 1.0
 
-                # Length match (required for substitution cipher)
                 if len(cand) == len(singleton):
                     score += 3.0
 
@@ -347,7 +306,6 @@ class CipherTierAttack:
                     'length_match': len(cand) == len(singleton),
                 })
 
-            # Sort by score
             scored_candidates.sort(key=lambda x: -x['score'])
             top = scored_candidates[:max_candidates]
 
@@ -369,7 +327,6 @@ class CipherTierAttack:
         subst_candidates = self.build_substitution_candidates()
         pattern_matches = self.match_singletons_to_patterns()
 
-        # Summary statistics
         n_with_matches = sum(1 for m in pattern_matches if m['n_candidates'] > 0)
         n_with_length_match = sum(1 for m in pattern_matches
                                    if m['n_length_matched'] > 0)

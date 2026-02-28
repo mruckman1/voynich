@@ -10,21 +10,18 @@ class MorphologicalSynthesizer:
 
         l_suffix = self.v_suffix_to_l_suffix.get(voynich_suffix, "")
 
-        # Grammatical padding (Nulls)
         if l_suffix == "":
             return latin_stem
 
-        # Latin Inflection rules (Simplified Medieval Herbal rules)
         if latin_stem.endswith('e') and l_suffix.startswith('e'):
-            return latin_stem[:-1] + l_suffix # vale + em = valem
+            return latin_stem[:-1] + l_suffix
 
         if latin_stem.endswith('a') and l_suffix == 'a':
-            return latin_stem # frigida + a = frigida
+            return latin_stem
 
         if latin_stem.endswith('i') and l_suffix.startswith('i'):
             return latin_stem[:-1] + l_suffix
 
-        # Third person verbs (vale- + -t = valet)
         if l_suffix == "t" and not latin_stem.endswith(('a', 'e', 'i', 'o', 'u')):
             return latin_stem + "it"
 

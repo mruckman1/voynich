@@ -20,32 +20,19 @@ import math
 from collections import defaultdict
 from typing import List, Dict, Tuple, Optional, Set
 
+PREFIX_GLYPHS = list('dskqtpf')
+MEDIAL_GLYPHS = list('oaielchr')
+SUFFIX_GLYPHS = list('nym')
+ANY_GLYPHS = list('oaeichlr')
 
-# ============================================================================
-# VOYNICH-LIKE GLYPH INVENTORY
-# ============================================================================
-
-# Positional glyph classes mimicking observed Voynich behavior
-PREFIX_GLYPHS = list('dskqtpf')   # Gallows + initial-only glyphs
-MEDIAL_GLYPHS = list('oaielchr')  # Bench elements, loops, minims
-SUFFIX_GLYPHS = list('nym')       # Terminal flourishes, descenders
-ANY_GLYPHS = list('oaeichlr')     # Can appear anywhere
-
-# Common Voynich bigram-units (ligatures)
 BIGRAM_UNITS = [
     'sh', 'ch', 'ol', 'or', 'al', 'ar', 'dy', 'ey',
     'qo', 'ok', 'ot', 'in', 'an', 'ai', 'oi', 'ee',
 ]
 
-# Full output alphabet (EVA characters)
 FULL_ALPHABET = sorted(set(
     PREFIX_GLYPHS + MEDIAL_GLYPHS + SUFFIX_GLYPHS + ANY_GLYPHS
 ))
-
-
-# ============================================================================
-# SUBSTITUTION TABLE GENERATION
-# ============================================================================
 
 class SubstitutionTable:
     """
@@ -68,20 +55,17 @@ class SubstitutionTable:
 
     def _build(self):
         """Build the substitution mappings."""
-        latin_chars = list('abcdefghilmnopqrstuvx')  # Medieval Latin alphabet
+        latin_chars = list('abcdefghilmnopqrstuvx')
 
-        # Unigram map: each plaintext letter → 1-3 possible Voynich outputs
         for char in latin_chars:
             n_variants = self.rng.randint(1, 3)
             variants = []
             for _ in range(n_variants):
-                # Generate a 1-3 character Voynich glyph sequence
                 glyph_len = self.rng.choices([1, 2, 3], weights=[3, 5, 2])[0]
                 glyph = self._random_glyph_sequence(glyph_len)
                 variants.append(glyph)
             self.unigram_map[char] = variants
 
-        # Bigram map: common Latin bigrams → Voynich output
         latin_bigrams = [
             'qu', 'th', 'ch', 'an', 'en', 'in', 'on', 'er', 'ar',
             'es', 'is', 'us', 'um', 'am', 'em', 'at', 'et', 'it',
@@ -116,7 +100,7 @@ class SubstitutionTable:
         char = char.lower()
         if char in self.unigram_map:
             return self.rng.choice(self.unigram_map[char])
-        return self.rng.choice(MEDIAL_GLYPHS)  # fallback
+        return self.rng.choice(MEDIAL_GLYPHS)
 
     def substitute_bigram(self, bigram: str) -> Optional[str]:
         """Look up a bigram substitution. Returns None if not in table."""
@@ -124,11 +108,6 @@ class SubstitutionTable:
         if bigram in self.bigram_map:
             return self.rng.choice(self.bigram_map[bigram])
         return None
-
-
-# ============================================================================
-# NAIBBE CIPHER ENGINE
-# ============================================================================
 
 class NaibbeCipher:
     """
@@ -171,13 +150,11 @@ class NaibbeCipher:
         self.seed = seed
         self.rng = random.Random(seed)
 
-        # Build substitution tables
         self.tables = [
             SubstitutionTable(i, seed=seed * 100 + i)
             for i in range(n_tables)
         ]
 
-        # Statistics tracking
         self.stats = defaultdict(int)
 
     def get_params(self) -> Dict:
@@ -213,7 +190,6 @@ class NaibbeCipher:
         """
         self.stats = defaultdict(int)
 
-        # Normalize
         plain = ''.join(c.lower() for c in plaintext if c.isalpha())
         if not plain:
             return ''
@@ -225,11 +201,9 @@ class NaibbeCipher:
 
         i = 0
         while i < len(plain):
-            # Roll dice to select table
             table_idx = self._roll_dice()
             table = self.tables[table_idx]
 
-            # Try bigram substitution first
             glyph = None
             if i + 1 < len(plain) and self._should_use_bigram():
                 bigram = plain[i:i + 2]
@@ -238,7 +212,6 @@ class NaibbeCipher:
                     i += 2
                     self.stats['bigram_subs'] += 1
 
-            # Fallback to unigram
             if glyph is None:
                 glyph = table.substitute_unigram(plain[i])
                 i += 1
@@ -247,7 +220,6 @@ class NaibbeCipher:
             current_word_glyphs.append(glyph)
             current_word_len += len(glyph)
 
-            # Check if we should end this word
             if current_word_len >= target_word_len:
                 word = self._finalize_word(current_word_glyphs)
                 output_words.append(word)
@@ -256,7 +228,6 @@ class NaibbeCipher:
                 target_word_len = self.rng.randint(self.word_min, self.word_max)
                 self.stats['words_emitted'] += 1
 
-        # Emit any remaining glyphs
         if current_word_glyphs:
             word = self._finalize_word(current_word_glyphs)
             output_words.append(word)
@@ -271,23 +242,19 @@ class NaibbeCipher:
         """
         core = ''.join(glyphs)
 
-        # Optionally add a prefix glyph (gallows letter at word start)
         if self.rng.random() < self.prefix_prob:
             prefix = self.rng.choice(PREFIX_GLYPHS)
             core = prefix + core
             self.stats['prefixes_added'] += 1
 
-        # Optionally add a suffix glyph (terminal flourish)
         if self.rng.random() < self.suffix_prob:
             suffix = self.rng.choice(SUFFIX_GLYPHS)
             core = core + suffix
             self.stats['suffixes_added'] += 1
 
-        # Enforce minimum length
         while len(core) < self.word_min:
             core += self.rng.choice(MEDIAL_GLYPHS)
 
-        # Enforce maximum length (truncate)
         if len(core) > self.word_max + 2:
             core = core[:self.word_max + 2]
 
@@ -303,11 +270,6 @@ class NaibbeCipher:
             cipher = self.encrypt(term)
             pairs.append((term, cipher))
         return pairs
-
-
-# ============================================================================
-# PARAMETER SPACE DEFINITION
-# ============================================================================
 
 def generate_parameter_grid(resolution: str = 'medium') -> List[Dict]:
     """
@@ -332,7 +294,7 @@ def generate_parameter_grid(resolution: str = 'medium') -> List[Dict]:
         prefix_probs = [0.15, 0.25, 0.35, 0.45, 0.55]
         suffix_probs = [0.2, 0.35, 0.45, 0.55, 0.65]
         seeds = [42]
-    else:  # fine
+    else:
         n_tables_range = list(range(2, 10))
         bigram_prob_range = [i / 20 for i in range(1, 15)]
         word_len_ranges = [(2, 5), (2, 6), (3, 6), (3, 7), (3, 8),
@@ -359,11 +321,6 @@ def generate_parameter_grid(resolution: str = 'medium') -> List[Dict]:
                             })
 
     return grid
-
-
-# ============================================================================
-# QUICK DEMO / SELF-TEST
-# ============================================================================
 
 def demo():
     """Run a quick demonstration of the Naibbe cipher."""
@@ -395,7 +352,6 @@ def demo():
 
     print(f"\n  Stats: {dict(cipher.stats)}")
     print("=" * 70)
-
 
 if __name__ == '__main__':
     demo()

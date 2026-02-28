@@ -19,22 +19,17 @@ import os
 from collections import defaultdict, Counter
 from typing import Dict, List, Tuple, Optional
 
-
-# ============================================================================
-# DATA STRUCTURES
-# ============================================================================
-
 class VoynichPage:
     """Represents a single page (folio) of the manuscript."""
 
     def __init__(self, folio: str):
-        self.folio = folio          # e.g. 'f1r', 'f72v3'
-        self.quire = 0              # $Q variable
-        self.language = ''          # $L: 'A' or 'B' (Currier)
-        self.hand = 0               # $H: LFD scribe hand (1-5)
-        self.illustration = ''      # $I: illustration type
-        self.page_num = 0           # $P: page position
-        self.cluster = ''           # $C: cluster assignment
+        self.folio = folio
+        self.quire = 0
+        self.language = ''
+        self.hand = 0
+        self.illustration = ''
+        self.page_num = 0
+        self.cluster = ''
         self.loci: List[VoynichLocus] = []
         self.comments: List[str] = []
 
@@ -71,13 +66,12 @@ class VoynichPage:
         }
         return type_map.get(self.illustration, 'unknown')
 
-
 class VoynichLocus:
     """A single text item (line/label/circular text) on a page."""
 
     def __init__(self, locus_id: str, locus_type: str, raw_text: str):
-        self.locus_id = locus_id    # e.g. 'f1r.P1.1'
-        self.locus_type = locus_type  # P=paragraph, L=label, C=circular, R=radial
+        self.locus_id = locus_id
+        self.locus_type = locus_type
         self.raw_text = raw_text
         self._clean = None
 
@@ -87,11 +81,6 @@ class VoynichLocus:
         if self._clean is None:
             self._clean = clean_eva_text(self.raw_text)
         return self._clean
-
-
-# ============================================================================
-# TEXT CLEANING
-# ============================================================================
 
 def clean_eva_text(raw: str) -> str:
     """
@@ -111,54 +100,36 @@ def clean_eva_text(raw: str) -> str:
     """
     text = raw
 
-    # Remove inline comments
     text = re.sub(r'<![^>]*>', '', text)
 
-    # Remove drawing breaks and alignment marks
     text = text.replace('<->', ' ')
     text = text.replace('<~>', ' ')
     text = text.replace('<$>', '')
 
-    # Remove line-end markers
     text = text.rstrip('-=')
 
-    # Resolve uncertain readings: [a:o] → a (take first option)
     text = re.sub(r'\[([^:\]]*?):[^\]]*?\]', r'\1', text)
-    # Also handle [ao] format (no colon) → ao
     text = re.sub(r'\[([^\]]*?)\]', r'\1', text)
 
-    # Remove ligature braces
     text = re.sub(r'\{([^}]*)\}', r'\1', text)
 
-    # Lowercase (handles capitalised EVA: Sh → sh)
     text = text.lower()
 
-    # Convert periods to spaces
     text = text.replace('.', ' ')
 
-    # Remove uncertain markers
     text = text.replace('*', '')
     text = text.replace('?', '')
     text = text.replace(',', '')
     text = text.replace("'", '')
 
-    # Remove @ high-ascii codes (rare characters)
     text = re.sub(r'@\d+;?', '', text)
 
-    # Collapse whitespace
     text = re.sub(r'\s+', ' ', text).strip()
 
-    # Remove any remaining non-EVA characters
-    # Keep only: a-z and spaces
     text = re.sub(r'[^a-z ]', '', text)
     text = re.sub(r'\s+', ' ', text).strip()
 
     return text
-
-
-# ============================================================================
-# IVTFF PARSER
-# ============================================================================
 
 def parse_ivtff(filepath: str, verbose: bool = False) -> Dict[str, VoynichPage]:
     """
@@ -185,21 +156,17 @@ def parse_ivtff(filepath: str, verbose: bool = False) -> Dict[str, VoynichPage]:
             line_count += 1
             line = raw_line.rstrip('\n\r')
 
-            # Skip empty lines
             if not line.strip():
                 continue
 
-            # Skip file header
             if line.startswith('#=IVTFF') or line.startswith('#='):
                 continue
 
-            # Comment lines
             if line.startswith('#'):
                 if current_page:
                     current_page.comments.append(line[1:].strip())
                 continue
 
-            # Page start: <f1r> or <f1r> <! $Q=1 $P=1 $I=T $L=A $C=1 $H=1 >
             page_match = re.match(r'^<(f\d+[rv]\d?)>\s*(.*)', line)
             if page_match:
                 folio = page_match.group(1)
@@ -208,17 +175,13 @@ def parse_ivtff(filepath: str, verbose: bool = False) -> Dict[str, VoynichPage]:
                 current_page = VoynichPage(folio)
                 pages[folio] = current_page
 
-                # Parse page variables from dedicated comment
                 _parse_page_variables(current_page, rest)
                 continue
 
-            # Dedicated comment with page variables (sometimes on next line)
             if line.strip().startswith('<!') and current_page:
                 _parse_page_variables(current_page, line)
                 continue
 
-            # Data line: locus identifier + transliterated text
-            # Format: <f1r.P1.1;H> text.text.text-
             locus_match = re.match(r'^<([^>]+)>\s*(.*)', line)
             if locus_match:
                 locus_id = locus_match.group(1)
@@ -228,8 +191,6 @@ def parse_ivtff(filepath: str, verbose: bool = False) -> Dict[str, VoynichPage]:
                     skipped += 1
                     continue
 
-                # Extract locus type from identifier
-                # e.g., f1r.P1.1;H → type = P (paragraph)
                 locus_type = _extract_locus_type(locus_id)
 
                 locus = VoynichLocus(locus_id, locus_type, text)
@@ -237,8 +198,6 @@ def parse_ivtff(filepath: str, verbose: bool = False) -> Dict[str, VoynichPage]:
                 locus_count += 1
                 continue
 
-            # Lines without angle brackets might be continuation text
-            # or unlabeled content — skip these
             skipped += 1
 
     if verbose:
@@ -251,20 +210,16 @@ def parse_ivtff(filepath: str, verbose: bool = False) -> Dict[str, VoynichPage]:
         print(f"  Total characters: {total_chars}")
         print(f"  Lines read: {line_count}, skipped: {skipped}")
 
-        # Language distribution
         lang_counts = Counter(p.language for p in pages.values() if p.language)
         print(f"  Language distribution: {dict(lang_counts)}")
 
-        # Hand distribution
         hand_counts = Counter(p.hand for p in pages.values() if p.hand)
         print(f"  Hand (scribe) distribution: {dict(hand_counts)}")
 
-        # Section distribution
         section_counts = Counter(p.section for p in pages.values())
         print(f"  Section distribution: {dict(section_counts)}")
 
     return pages
-
 
 def _parse_page_variables(page: VoynichPage, text: str):
     """Extract $Q, $L, $H, $I, $P, $C variables from page header."""
@@ -282,7 +237,6 @@ def _parse_page_variables(page: VoynichPage, text: str):
         if match:
             setattr(page, attr, conv(match.group(1)))
 
-
 def _extract_locus_type(locus_id: str) -> str:
     """
     Extract locus type from an IVTFF locus identifier.
@@ -293,22 +247,15 @@ def _extract_locus_type(locus_id: str) -> str:
         f67r.C1.1;H → C (circular)
         f67r.R1.1;H → R (radial)
     """
-    # Look for the type letter after the folio reference
     match = re.search(r'\.([PLCRTX])\d', locus_id)
     if match:
         return match.group(1)
 
-    # Fallback: try just finding a capital letter after a period
     match = re.search(r'\.([A-Z])', locus_id)
     if match:
         return match.group(1)
 
-    return 'P'  # default to paragraph
-
-
-# ============================================================================
-# CORPUS BUILDER
-# ============================================================================
+    return 'P'
 
 class VoynichCorpus:
     """
@@ -413,11 +360,6 @@ class VoynichCorpus:
             'quires': sorted(set(p.quire for p in self.pages.values() if p.quire)),
         }
 
-
-# ============================================================================
-# CONVENIENCE FUNCTION
-# ============================================================================
-
 def load_corpus(data_dir: str = 'data/corpus', verbose: bool = True) -> VoynichCorpus:
     """
     Load the best available corpus from the data directory.
@@ -440,11 +382,6 @@ def load_corpus(data_dir: str = 'data/corpus', verbose: bool = True) -> VoynichC
         f"No IVTFF files found in {data_dir}. Download with:\n"
         f"  curl https://www.voynich.nu/data/ZL_ivtff_2b.txt -o {data_dir}/ZL_ivtff_2b.txt"
     )
-
-
-# ============================================================================
-# CLI
-# ============================================================================
 
 if __name__ == '__main__':
     import sys

@@ -10,14 +10,10 @@ re-measure corpus statistics. If the hypothesis holds:
 Phase 6  ·  Voynich Convergence Attack
 """
 
-import sys
-import os
 import math
 import numpy as np
 from collections import Counter
 from typing import Dict, List, Tuple
-
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from modules.statistical_analysis import (
     word_conditional_entropy, zipf_analysis, first_order_entropy,
@@ -25,7 +21,6 @@ from modules.statistical_analysis import (
 )
 from modules.phase5.tier_splitter import TierSplitter
 from modules.phase4.lang_a_extractor import LanguageAExtractor
-
 
 class HomophoneMerger:
     """
@@ -165,7 +160,6 @@ class HomophoneMerger:
         after = comparison['after']
         deltas = comparison['deltas']
 
-        # Checks
         zipf_improved = after['zipf_exponent'] > before['zipf_exponent']
         zipf_toward_1 = abs(after['zipf_exponent'] - 1.0) < abs(before['zipf_exponent'] - 1.0)
         vocab_reduced_significantly = deltas['types_reduction_pct'] > 0.3

@@ -12,20 +12,15 @@ Three sub-hypotheses:
 Priority: HIGHEST
 """
 
-import sys
 import os
 import math
 import numpy as np
 from collections import Counter, defaultdict
 from typing import Dict, List, Tuple, Optional
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-
 from modules.phase3.lang_b_profiler import LanguageBProfiler, LANG_B_TARGETS, LANG_B_VOCABULARY
 from data.voynich_corpus import ZODIAC_LABELS, SAMPLE_CORPUS
 
-
-# Zodiac elements for grouping
 ZODIAC_ELEMENTS = {
     'Aries': 'fire', 'Leo': 'fire', 'Sagittarius': 'fire',
     'Taurus': 'earth', 'Virgo': 'earth', 'Capricorn': 'earth',
@@ -33,7 +28,6 @@ ZODIAC_ELEMENTS = {
     'Cancer': 'water', 'Scorpio': 'water', 'Pisces': 'water',
 }
 
-# Anatomical regions for grouping body parts
 ANATOMICAL_REGIONS = {
     'head': 'upper', 'neck/throat': 'upper', 'arms/shoulders': 'upper',
     'chest/breast': 'upper', 'heart/stomach': 'middle',
@@ -41,7 +35,6 @@ ANATOMICAL_REGIONS = {
     'genitals': 'lower', 'thighs': 'lower', 'knees': 'lower',
     'legs/shins': 'lower', 'feet': 'lower',
 }
-
 
 class TwoPatternAttack:
     """
@@ -54,7 +47,6 @@ class TwoPatternAttack:
         self.profiler.classify_word_families()
         self.folio_data = self.profiler.extract_folio_level_data()
 
-        # Build word family lookup sets
         families = self.profiler.word_families
         self.edy_words = set(w for w, _ in families.get('edy', []))
         self.aiin_words = set(w for w, _ in families.get('aiin', []))
@@ -67,7 +59,6 @@ class TwoPatternAttack:
         tests if edy/aiin ratios correlate with element grouping via
         chi-squared test for independence.
         """
-        # Get zodiac folios only
         zodiac_folios = [f for f in self.folio_data if 'zodiac_sign' in f]
 
         if len(zodiac_folios) < 2:
@@ -81,7 +72,6 @@ class TwoPatternAttack:
                 ),
             }
 
-        # Build contingency data: element -> (edy_count, aiin_count)
         element_counts = defaultdict(lambda: {'edy': 0, 'aiin': 0})
         folio_ratios = []
 
@@ -98,7 +88,6 @@ class TwoPatternAttack:
                 'aiin_ratio': f['aiin_ratio'],
             })
 
-        # Chi-squared test: 2 (family) x N (elements) contingency table
         elements = sorted(element_counts.keys())
         if len(elements) < 2:
             return {
@@ -111,13 +100,11 @@ class TwoPatternAttack:
                 ),
             }
 
-        # Build contingency table
         observed = np.array([
             [element_counts[e]['edy'] for e in elements],
             [element_counts[e]['aiin'] for e in elements],
         ], dtype=float)
 
-        # Chi-squared test (manual to avoid scipy dependency)
         row_totals = observed.sum(axis=1, keepdims=True)
         col_totals = observed.sum(axis=0, keepdims=True)
         grand_total = observed.sum()
@@ -130,24 +117,20 @@ class TwoPatternAttack:
             }
 
         expected = row_totals * col_totals / grand_total
-        # Avoid division by zero
         expected[expected == 0] = 1e-10
 
         chi2 = float(np.sum((observed - expected) ** 2 / expected))
         df = (observed.shape[0] - 1) * (observed.shape[1] - 1)
 
-        # Approximate p-value using chi-squared CDF (Wilson-Hilferty)
         if df > 0 and chi2 > 0:
             z = ((chi2 / df) ** (1/3) - (1 - 2 / (9 * df))) / math.sqrt(2 / (9 * df))
             p_value = 0.5 * math.erfc(z / math.sqrt(2))
         else:
             p_value = 1.0
 
-        # Effect size: Cramer's V
         min_dim = min(observed.shape[0] - 1, observed.shape[1] - 1)
         cramers_v = math.sqrt(chi2 / (grand_total * max(min_dim, 1))) if grand_total > 0 else 0
 
-        # Per-element edy ratios
         element_edy_ratios = {}
         for e in elements:
             total = element_counts[e]['edy'] + element_counts[e]['aiin']
@@ -182,8 +165,7 @@ class TwoPatternAttack:
         (where imperative verbs like 'recipe' would appear in medical text)
         vs edy words distributed more uniformly.
         """
-        # Compute line-position distribution for each family
-        edy_positions = []  # normalized [0, 1] position within line
+        edy_positions = []
         aiin_positions = []
 
         for folio_id, data in SAMPLE_CORPUS.items():
@@ -195,7 +177,7 @@ class TwoPatternAttack:
                 if n == 0:
                     continue
                 for i, tok in enumerate(tokens):
-                    pos = i / max(n - 1, 1)  # normalized to [0, 1]
+                    pos = i / max(n - 1, 1)
                     if tok in self.edy_words:
                         edy_positions.append(pos)
                     elif tok in self.aiin_words:
@@ -215,17 +197,14 @@ class TwoPatternAttack:
         edy_arr = np.array(edy_positions)
         aiin_arr = np.array(aiin_positions)
 
-        # Line-initial rate (first position)
         edy_initial = np.mean(edy_arr == 0.0)
         aiin_initial = np.mean(aiin_arr == 0.0)
 
-        # KS test (two-sample, manual implementation)
         combined = np.sort(np.concatenate([edy_arr, aiin_arr]))
         edy_cdf = np.searchsorted(np.sort(edy_arr), combined, side='right') / len(edy_arr)
         aiin_cdf = np.searchsorted(np.sort(aiin_arr), combined, side='right') / len(aiin_arr)
         ks_stat = float(np.max(np.abs(edy_cdf - aiin_cdf)))
 
-        # KS p-value approximation (Kolmogorov distribution)
         n_eff = len(edy_arr) * len(aiin_arr) / (len(edy_arr) + len(aiin_arr))
         lambda_val = (math.sqrt(n_eff) + 0.12 + 0.11 / math.sqrt(n_eff)) * ks_stat
         if lambda_val > 0:
@@ -234,7 +213,6 @@ class TwoPatternAttack:
         else:
             p_value = 1.0
 
-        # Position statistics
         edy_mean_pos = float(np.mean(edy_arr))
         aiin_mean_pos = float(np.mean(aiin_arr))
 
@@ -267,7 +245,6 @@ class TwoPatternAttack:
         edy_prop = family_stats.get('edy', {}).get('proportion', 0)
         aiin_prop = family_stats.get('aiin', {}).get('proportion', 0)
 
-        # Known letter-class ratios in medieval Latin medical text
         binary_splits = {
             'consonant_vs_vowel': {
                 'description': 'Consonants (BCDFGHLMNPQRSTVX) vs vowels (AEIOU)',
@@ -289,7 +266,6 @@ class TwoPatternAttack:
 
         test_results = []
         for split_name, split in binary_splits.items():
-            # Compare against edy being the major class
             mismatch_edy_major = abs(edy_prop - split['expected_major'])
             mismatch_edy_minor = abs(edy_prop - split['expected_minor'])
             best_mismatch = min(mismatch_edy_major, mismatch_edy_minor)
@@ -328,7 +304,7 @@ class TwoPatternAttack:
         """
         ratios = []
         for f in self.folio_data:
-            if f['n_tokens'] >= 5:  # require minimum tokens
+            if f['n_tokens'] >= 5:
                 ratios.append({
                     'folio': f['folio'],
                     'section': f['section'],
@@ -350,12 +326,9 @@ class TwoPatternAttack:
         edy_ratios = np.array([r['edy_ratio'] for r in ratios])
         aiin_ratios = np.array([r['aiin_ratio'] for r in ratios])
 
-        # Coefficient of variation
         cv_edy = float(np.std(edy_ratios) / np.mean(edy_ratios)) if np.mean(edy_ratios) > 0 else 0
         cv_aiin = float(np.std(aiin_ratios) / np.mean(aiin_ratios)) if np.mean(aiin_ratios) > 0 else 0
 
-        # Is the ratio approximately constant?
-        # CV < 0.15 suggests near-constant; CV > 0.30 suggests significant variation
         ratio_constant = cv_edy < 0.15
 
         return {
@@ -392,7 +365,6 @@ class TwoPatternAttack:
                 ),
             }
 
-        # Group by anatomical region
         region_counts = defaultdict(lambda: {'edy': 0, 'aiin': 0, 'total': 0})
         mapping = []
 
@@ -410,21 +382,17 @@ class TwoPatternAttack:
                 'edy_ratio': f['edy_ratio'],
             })
 
-        # Compute per-region edy ratios
         region_edy_ratios = {}
         for region, counts in region_counts.items():
             if counts['total'] > 0:
                 region_edy_ratios[region] = counts['edy'] / counts['total']
 
-        # Test for monotonic trend (upper -> middle -> lower)
         ordered_regions = ['upper', 'middle', 'lower']
         ordered_ratios = [region_edy_ratios.get(r, 0) for r in ordered_regions
                           if r in region_edy_ratios]
 
-        # Spearman-like rank correlation (manual)
         has_monotonic_trend = False
         if len(ordered_ratios) >= 3:
-            # Check if ratios are monotonically increasing or decreasing
             diffs = [ordered_ratios[i+1] - ordered_ratios[i]
                      for i in range(len(ordered_ratios)-1)]
             has_monotonic_trend = all(d > 0 for d in diffs) or all(d < 0 for d in diffs)
@@ -448,42 +416,36 @@ class TwoPatternAttack:
 
         results = {}
 
-        # Hypothesis A: Semantic categories
         if verbose:
             print('\n  --- Hypothesis A: Semantic Categories ---')
         results['hypothesis_a'] = self.hypothesis_a_semantic_categories()
         if verbose:
             print(f'  {results["hypothesis_a"]["interpretation"]}')
 
-        # Hypothesis B: Verb/noun
         if verbose:
             print('\n  --- Hypothesis B: Verb/Noun Distinction ---')
         results['hypothesis_b'] = self.hypothesis_b_verb_noun()
         if verbose:
             print(f'  {results["hypothesis_b"]["interpretation"]}')
 
-        # Hypothesis C: Letter encoding
         if verbose:
             print('\n  --- Hypothesis C: Letter Encoding ---')
         results['hypothesis_c'] = self.hypothesis_c_letter_encoding()
         if verbose:
             print(f'  {results["hypothesis_c"]["interpretation"]}')
 
-        # Cross-folio distribution
         if verbose:
             print('\n  --- Cross-Folio Distribution Test ---')
         results['cross_folio'] = self.cross_folio_distribution_test()
         if verbose:
             print(f'  {results["cross_folio"]["interpretation"]}')
 
-        # Zodiac content correlation
         if verbose:
             print('\n  --- Zodiac Content Correlation ---')
         results['zodiac_correlation'] = self.zodiac_content_correlation()
         if verbose:
             print(f'  {results["zodiac_correlation"]["interpretation"]}')
 
-        # Synthesis
         verdicts = {
             'hypothesis_a': results['hypothesis_a'].get('verdict', 'UNKNOWN'),
             'hypothesis_b': results['hypothesis_b'].get('verdict', 'UNKNOWN'),
@@ -501,7 +463,6 @@ class TwoPatternAttack:
 
         return results
 
-
 def _pick_strongest(verdicts: Dict[str, str]) -> str:
     """Pick the most supported hypothesis."""
     scores = {'A': 0, 'B': 0, 'C': 0}
@@ -515,14 +476,12 @@ def _pick_strongest(verdicts: Dict[str, str]) -> str:
     elif verdicts.get('hypothesis_c') == 'ELIMINATED':
         scores['C'] -= 2
 
-    # Cross-folio variability supports semantic hypotheses (A or B)
     if verdicts.get('cross_folio') == 'VARIABLE':
         scores['A'] += 1
         scores['B'] += 1
     elif verdicts.get('cross_folio') == 'CONSTANT':
-        scores['C'] += 1  # Constant ratio could be mechanical
+        scores['C'] += 1
 
-    # Zodiac correlation supports semantic hypothesis A
     if verdicts.get('zodiac') == 'CORRELATED':
         scores['A'] += 2
 

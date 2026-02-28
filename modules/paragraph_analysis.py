@@ -10,23 +10,15 @@ are 30 words where Latin entries are 60, the cipher is 1:2 compressing,
 which constrains the mechanism.
 """
 
-import sys
 import os
 import numpy as np
 from collections import Counter, defaultdict
 from typing import Dict, List, Tuple, Optional
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 from data.voynich_corpus import get_all_tokens, SAMPLE_CORPUS, SECTIONS
 from data.medieval_text_templates import (
     PARAGRAPH_STATS, SECTION_TEXT_TYPE_MAP, get_text_type_for_section
 )
-
-
-# ============================================================================
-# PARAGRAPH ANALYZER
-# ============================================================================
 
 class ParagraphAnalyzer:
     """Analyzes paragraph structure and estimates plaintext-ciphertext ratios."""
@@ -59,7 +51,6 @@ class ParagraphAnalyzer:
 
                 current_paragraph.extend(tokens)
 
-                # If line is substantial, treat as paragraph boundary
                 if len(tokens) > 15:
                     section_paragraphs[section].append(current_paragraph)
                     current_paragraph = []
@@ -94,7 +85,6 @@ class ParagraphAnalyzer:
                     [u / max(w, 1) for u, w in zip(unique_counts, word_counts)]
                 )),
                 'word_count_histogram': dict(Counter(
-                    # Bin into ranges of 10
                     [(w // 10) * 10 for w in word_counts]
                 )),
             }
@@ -167,10 +157,8 @@ class ParagraphAnalyzer:
         mean_ratio = np.mean(all_ratios)
         std_ratio = np.std(all_ratios)
 
-        # Cross-section consistency
         consistent = std_ratio < 0.3
 
-        # Mechanism constraints
         if mean_ratio < 0.7:
             mechanism = ('Compression cipher: the mechanism must encode more information '
                          'per output character than input. Candidate mechanisms: '
@@ -192,11 +180,6 @@ class ParagraphAnalyzer:
             'per_section_ratios': {s: r['ratio'] for s, r in ratios.items()},
         }
 
-
-# ============================================================================
-# MODULE ENTRY POINT
-# ============================================================================
-
 def run(verbose: bool = True) -> Dict:
     """
     Run paragraph structure analysis.
@@ -211,7 +194,6 @@ def run(verbose: bool = True) -> Dict:
         print("TRACK 6: PARAGRAPH STRUCTURE ANALYSIS")
         print("=" * 70)
 
-    # Extract paragraphs
     if verbose:
         print("\n  Extracting paragraphs from corpus...")
     paragraphs = analyzer.extract_paragraphs()
@@ -219,7 +201,6 @@ def run(verbose: bool = True) -> Dict:
         for section, paras in paragraphs.items():
             print(f"    {section}: {len(paras)} paragraphs")
 
-    # Voynich statistics
     if verbose:
         print("\n  Computing paragraph statistics...")
     voynich_stats = analyzer.paragraph_statistics(paragraphs)
@@ -229,10 +210,8 @@ def run(verbose: bool = True) -> Dict:
                   f"{stats['std_words']:.1f} words  "
                   f"(n={stats['n_paragraphs']})")
 
-    # Reference statistics
     reference_stats = analyzer.reference_paragraph_stats()
 
-    # Length ratios
     if verbose:
         print("\n  Estimating plaintext-ciphertext length ratios...")
     ratios = analyzer.length_ratio_estimate(voynich_stats, reference_stats)
@@ -242,7 +221,6 @@ def run(verbose: bool = True) -> Dict:
                   f"{data['reference_mean_words']:.1f} = {data['ratio']:.2f}")
             print(f"      {data['interpretation'][:80]}")
 
-    # Implications
     if verbose:
         print("\n  Deriving mechanism constraints...")
     implications = analyzer.ratio_implications(ratios)

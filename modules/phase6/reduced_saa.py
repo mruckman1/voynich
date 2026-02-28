@@ -8,20 +8,15 @@ and bijection to a similarly-sized Latin vocabulary is more feasible.
 Phase 6  ·  Voynich Convergence Attack
 """
 
-import sys
-import os
 import numpy as np
 from collections import Counter
 from typing import Dict, List, Tuple, Optional
-
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from modules.phase6.homophone_merger import HomophoneMerger
 from modules.phase6.improved_latin_corpus import ImprovedLatinCorpus
 from modules.phase6.fixed_saa import FixedSAA
 from modules.phase5.rank_paired_cribs import RankPairedCribs
 from modules.phase5.nmf_scaffold import NMFScaffold
-
 
 class ReducedSAA:
     """
@@ -58,10 +53,8 @@ class ReducedSAA:
         Returns:
             (v_matrix, v_vocab, l_matrix, l_vocab)
         """
-        # Voynich side: merged transition matrix
         v_matrix, v_vocab = self.merger.build_merged_transition_matrix()
 
-        # Latin side: trim to match merged vocabulary size
         n_merged = len(v_vocab)
         l_matrix, l_vocab = self.latin_corpus.build_transition_matrix(top_n=n_merged)
 
@@ -76,7 +69,6 @@ class ReducedSAA:
         """
         pairs = {}
         for v_idx, v_word in enumerate(v_vocab):
-            # First check if original rank_pairs has candidates
             if v_word in self.rank_pairs:
                 candidates = [c for c in self.rank_pairs[v_word]
                               if c in set(l_vocab)]
@@ -84,7 +76,6 @@ class ReducedSAA:
                     pairs[v_word] = candidates
                     continue
 
-            # Fall back to rank-based pairing
             candidates = []
             for offset in range(-2, 3):
                 l_idx = v_idx + offset
@@ -105,10 +96,8 @@ class ReducedSAA:
                 'n_latin': len(l_vocab),
             }
 
-        # Build rank pairs for reduced vocab
         reduced_pairs = self.build_reduced_rank_pairs(v_vocab, l_vocab)
 
-        # Lock fewer words since vocabulary is smaller
         n_locked = min(20, len(v_vocab) // 5)
 
         saa = FixedSAA(
@@ -117,12 +106,12 @@ class ReducedSAA:
             latin_matrix=l_matrix,
             latin_vocab=l_vocab,
             rank_pairs=reduced_pairs,
-            nmf_scaffold=None,  # NMF not recomputed for reduced vocab
+            nmf_scaffold=None,
             n_locked=n_locked,
             alpha=self.alpha,
             beta=self.beta,
             gamma=self.gamma,
-            delta=0.0,  # No topic coherence for reduced vocab
+            delta=0.0,
         )
 
         results = saa.run(n_iter=n_iter, seed=seed)
@@ -146,11 +135,9 @@ class ReducedSAA:
         full_mapping = {}
         merge_map = self.merger.build_merge_map()
 
-        # First, apply the reduced mapping to canonical words
         for v_word, l_word in self._reduced_mapping.items():
             full_mapping[v_word] = l_word
 
-        # Then expand: all variants get their canonical's Latin word
         for variant, canonical in merge_map.items():
             if canonical in self._reduced_mapping:
                 full_mapping[variant] = self._reduced_mapping[canonical]
@@ -169,16 +156,13 @@ class ReducedSAA:
 
         saa_results = self.run_saa(n_iter=n_iter)
 
-        # Expand mapping
         expanded = self.expand_mapping()
         saa_results['expanded_mapping_size'] = len(expanded)
 
-        # Validate on page tokens
         if self._reduced_mapping:
             extractor = self.merger.extractor
             page_tokens = extractor.extract_lang_a_by_folio()
 
-            # Use FixedSAA's validation with expanded mapping
             saa_temp = FixedSAA(
                 voynich_matrix=v_matrix,
                 voynich_vocab=v_vocab,
@@ -189,7 +173,6 @@ class ReducedSAA:
             validation = saa_temp.validate_mapping(expanded, page_tokens)
             saa_results['validation'] = validation
 
-            # Decode sample
             all_tokens = extractor.extract_lang_a_tokens()[:100]
             decoded = ' '.join(expanded.get(t, f'[{t}]') for t in all_tokens)
             saa_results['decoded_sample'] = decoded[:300]

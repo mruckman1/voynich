@@ -9,15 +9,11 @@ For each model × language combination, generates N synthetic texts
 and computes their statistical profiles to build reference distributions.
 """
 
-import sys
-import os
 import time
 import random
 import numpy as np
 from collections import defaultdict
 from typing import Dict, List, Optional
-
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from modules.statistical_analysis import full_statistical_profile
 from modules.phase2.base_model import VOYNICH_TARGETS
@@ -30,7 +26,6 @@ from modules.phase2.glyph_decomposition import GlyphDecomposition
 from modules.strategy1_parameter_search import generate_medical_plaintext
 from data.medieval_text_templates import generate_italian_text, generate_german_text
 
-
 MODEL_REGISTRY = {
     'verbose_cipher': VerboseCipher,
     'syllabary_code': SyllabaryCode,
@@ -42,7 +37,6 @@ MODEL_REGISTRY = {
 
 METRICS = ['H1', 'H2', 'H3', 'zipf_exponent', 'type_token_ratio', 'mean_word_length']
 
-
 def _get_plaintext(language: str, n_words: int = 600) -> str:
     """Generate plaintext in the specified language."""
     if language == 'latin':
@@ -52,7 +46,6 @@ def _get_plaintext(language: str, n_words: int = 600) -> str:
     elif language == 'german':
         return generate_german_text(n_words)
     return generate_medical_plaintext(n_words)
-
 
 class Phase2NullEngine:
     """
@@ -65,7 +58,7 @@ class Phase2NullEngine:
     def __init__(self, n_samples: int = 50, verbose: bool = True):
         self.n_samples = n_samples
         self.verbose = verbose
-        self.distributions = {}  # model -> language -> metric -> [values]
+        self.distributions = {}
 
     def generate_model_distributions(self, model_name: str,
                                      source_language: str) -> Dict:
@@ -82,15 +75,13 @@ class Phase2NullEngine:
         metric_values = {m: [] for m in METRICS}
 
         for i in range(self.n_samples):
-            seed = 42 + i * 137  # Reproducible but varied seeds
+            seed = 42 + i * 137
 
             try:
                 if model_name in ('glyph_decomposition', 'steganographic_carrier'):
-                    # These models don't use plaintext
                     model = model_class(seed=seed)
                     text = model.generate(n_words=500)
                 elif model_name == 'grammar_induction':
-                    # Grammar induction needs special handling
                     model = model_class(
                         max_rules=20, max_symbols=50,
                         evolution_generations=50, seed=seed
@@ -121,7 +112,6 @@ class Phase2NullEngine:
                     print(f'  Sample {i} failed: {e}')
                 continue
 
-        # Compute distribution statistics
         dist = {}
         for metric, values in metric_values.items():
             if not values:
@@ -152,7 +142,6 @@ class Phase2NullEngine:
         dist = self.distributions.get(model_name, {}).get(source_language, {})
         if not dist:
             dist = self.generate_model_distributions(model_name, source_language)
-            # Cache
             if model_name not in self.distributions:
                 self.distributions[model_name] = {}
             self.distributions[model_name][source_language] = dist
@@ -169,15 +158,12 @@ class Phase2NullEngine:
             mean = metric_dist.get('mean', 0)
             std = metric_dist.get('std', 1)
 
-            # Two-sided p-value (how unusual is the Voynich value?)
             if std > 0:
                 z_score = abs(voynich_val - mean) / std
-                # Approximate p-value from z-score
                 p_value = 2.0 * (1.0 - _normal_cdf(z_score))
             else:
                 p_value = 0.0 if voynich_val != mean else 1.0
 
-            # Percentile rank
             percentile = _estimate_percentile(voynich_val, mean, std)
 
             results[metric] = {
@@ -214,7 +200,6 @@ class Phase2NullEngine:
 
             results[model_name] = {}
 
-            # Some models don't vary by language
             if model_name in ('glyph_decomposition', 'steganographic_carrier'):
                 lang = 'n/a'
                 if self.verbose:
@@ -269,16 +254,10 @@ class Phase2NullEngine:
             'elapsed_seconds': elapsed,
         }
 
-
-# ============================================================================
-# HELPERS
-# ============================================================================
-
 def _normal_cdf(z: float) -> float:
     """Approximate standard normal CDF using the error function."""
     import math
     return 0.5 * (1 + math.erf(z / math.sqrt(2)))
-
 
 def _estimate_percentile(value: float, mean: float, std: float) -> float:
     """Estimate percentile rank assuming normal distribution."""

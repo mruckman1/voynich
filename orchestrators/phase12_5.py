@@ -34,7 +34,6 @@ from orchestrators._config import (
     ENABLE_CHAR_NGRAM_FALLBACK, CHAR_NGRAM_ORDER, CHAR_NGRAM_SMOOTHING,
     CHAR_NGRAM_MIN_SCORE_GAP, CHAR_NGRAM_MIN_SEGMENTS,
     CHAR_NGRAM_MAX_CONTEXT_DISTANCE, CHAR_NGRAM_REQUIRE_CONTEXT,
-    # Improvement 8: Illustration-guided disambiguation
     ENABLE_ILLUSTRATION_PRIOR, ILLUSTRATION_BOOSTED_RATIO_FACTOR,
 )
 from orchestrators._foundation import build_morphological_context
@@ -57,7 +56,6 @@ from modules.phase12_5.proof_of_compositionality import CompositionalityProof
 
 from data.botanical_identifications import PLANT_IDS
 
-
 def _build_illustration_prior_safe():
     """Build illustration prior dict, returning None if data is unavailable."""
     if not ENABLE_ILLUSTRATION_PRIOR:
@@ -67,7 +65,6 @@ def _build_illustration_prior_safe():
         return build_illustration_prior()
     except (ImportError, FileNotFoundError):
         return None
-
 
 def run_phase12_5_adversarial(
     phases: Optional[List[str]] = None,
@@ -110,9 +107,6 @@ def run_phase12_5_adversarial(
         ),
     }
 
-    # ================================================================
-    # LOAD SHARED DEPENDENCIES
-    # ================================================================
     if verbose:
         print('\n[0/5] Loading shared pipeline dependencies...')
 
@@ -133,10 +127,8 @@ def run_phase12_5_adversarial(
     )
     scaffolder = SyntacticScaffolder(v_morph)
 
-    # Build POS transition matrix for syntactic veto (Academic Fortification)
     pos_matrix, pos_vocab, pos_tagger = build_pos_transition_matrix(l_tokens)
 
-    # Build character n-gram model for fallback scoring
     char_ngram_model = None
     if ENABLE_CHAR_NGRAM_FALLBACK:
         char_ngram_model = LatinCharNgramModel(
@@ -152,8 +144,6 @@ def run_phase12_5_adversarial(
         pos_tagger=pos_tagger,
         pos_transition_matrix=pos_matrix,
         pos_vocab=pos_vocab,
-        # Wire all three improvements so adversarial tests run against
-        # the enhanced pipeline
         min_confidence_ratio_long=MIN_CONFIDENCE_RATIO_LONG,
         long_skeleton_segments=LONG_SKELETON_SEGMENTS,
         enable_length_scaled_ratio=ENABLE_LENGTH_SCALED_RATIO,
@@ -166,18 +156,15 @@ def run_phase12_5_adversarial(
         enable_unigram_backoff=ENABLE_UNIGRAM_BACKOFF,
         unigram_backoff_ratio_factor=UNIGRAM_BACKOFF_RATIO_FACTOR,
         unigram_backoff_min_segments=UNIGRAM_BACKOFF_MIN_SEGMENTS,
-        # Improvement 6: POS-level backoff scoring
         enable_pos_backoff=ENABLE_POS_BACKOFF,
         pos_backoff_weight=POS_BACKOFF_WEIGHT,
         pos_backoff_min_confidence=POS_BACKOFF_MIN_CONFIDENCE,
-        # Improvement 7: Character-level n-gram fallback
         enable_char_ngram_fallback=ENABLE_CHAR_NGRAM_FALLBACK,
         char_ngram_model=char_ngram_model,
         char_ngram_min_score_gap=CHAR_NGRAM_MIN_SCORE_GAP,
         char_ngram_min_segments=CHAR_NGRAM_MIN_SEGMENTS,
         char_ngram_max_context_distance=CHAR_NGRAM_MAX_CONTEXT_DISTANCE,
         char_ngram_require_context=CHAR_NGRAM_REQUIRE_CONTEXT,
-        # Improvement 8: Illustration-guided disambiguation
         enable_illustration_prior=ENABLE_ILLUSTRATION_PRIOR,
         illustration_prior=_build_illustration_prior_safe(),
         illustration_boosted_ratio_factor=ILLUSTRATION_BOOSTED_RATIO_FACTOR,
@@ -194,9 +181,6 @@ def run_phase12_5_adversarial(
 
     test_results = {}
 
-    # ================================================================
-    # TEST 1: UNICITY DISTANCE (Procrustean Bed)
-    # ================================================================
     if 'unicity' in run_phases:
         if verbose:
             print('\n' + '─' * 70)
@@ -209,9 +193,6 @@ def run_phase12_5_adversarial(
             n_trials=ADV_UNICITY_TRIALS, verbose=verbose,
         )
 
-    # ================================================================
-    # TEST 2: DOMAIN SWAP (Texas Sharpshooter)
-    # ================================================================
     if 'domain_swap' in run_phases:
         if verbose:
             print('\n' + '─' * 70)
@@ -227,9 +208,6 @@ def run_phase12_5_adversarial(
             by_folio, folio_limit=folio_limit, verbose=verbose,
         )
 
-    # ================================================================
-    # TEST 3: POLYGLOT DICTIONARY (Latin Bias)
-    # ================================================================
     if 'polyglot' in run_phases:
         if verbose:
             print('\n' + '─' * 70)
@@ -245,9 +223,6 @@ def run_phase12_5_adversarial(
             by_folio, folio_limit=folio_limit, verbose=verbose,
         )
 
-    # ================================================================
-    # TEST 4: EVA COLLAPSE (EVA Illusion)
-    # ================================================================
     if 'eva_collapse' in run_phases:
         if verbose:
             print('\n' + '─' * 70)
@@ -265,9 +240,6 @@ def run_phase12_5_adversarial(
             by_folio, folio_limit=folio_limit, verbose=verbose,
         )
 
-    # ================================================================
-    # TEST 5: ABLATION STUDY (Frequency Forcing)
-    # ================================================================
     if 'ablation' in run_phases:
         if verbose:
             print('\n' + '─' * 70)
@@ -285,9 +257,6 @@ def run_phase12_5_adversarial(
             by_folio, folio_limit=folio_limit, verbose=verbose,
         )
 
-    # ================================================================
-    # TEST 6: COMPOSITIONALITY PROOF (Paleographic Theorem)
-    # ================================================================
     if 'compositionality' in run_phases:
         if verbose:
             print('\n' + '─' * 70)
@@ -305,9 +274,6 @@ def run_phase12_5_adversarial(
             by_folio, folio_limit=folio_limit, verbose=verbose,
         )
 
-    # ================================================================
-    # DICTIONARY DIAGNOSTIC (opt-in, not part of defense score)
-    # ================================================================
     if 'dictionary_diagnostic' in run_phases:
         if verbose:
             print('\n' + '─' * 70)
@@ -323,12 +289,8 @@ def run_phase12_5_adversarial(
             by_folio, folio_limit=folio_limit, verbose=verbose,
         )
 
-    # ================================================================
-    # AGGREGATE DEFENSE METRICS
-    # ================================================================
     elapsed = time.time() - t0
 
-    # Exclude informational tools (diagnostic) from defense score
     adversarial_results = {
         k: v for k, v in test_results.items()
         if k != 'dictionary_diagnostic'
@@ -346,7 +308,6 @@ def run_phase12_5_adversarial(
     }
     results['elapsed_seconds'] = round(elapsed, 2)
 
-    # Save
     report_path = os.path.join(output_dir, 'phase12_5_adversarial.json')
     save_json(report_path, results)
 

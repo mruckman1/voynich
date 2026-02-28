@@ -24,7 +24,6 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
-
 class ChartGenerator:
     """Generates publication-quality matplotlib charts from phase data."""
 
@@ -32,7 +31,6 @@ class ChartGenerator:
         self.output_dir = os.path.join(output_dir, 'charts')
         self.dpi = dpi
         os.makedirs(self.output_dir, exist_ok=True)
-        # Dark theme for consistency with HTML viewer
         plt.rcParams.update({
             'figure.facecolor': '#1a1a2e',
             'axes.facecolor': '#16213e',
@@ -159,7 +157,6 @@ class ChartGenerator:
         freqs = sorted(word_counts.values(), reverse=True)
         ranks = range(1, len(freqs) + 1)
 
-        # Ideal Zipf line
         zipf_ideal = [freqs[0] / r for r in ranks]
 
         fig, ax = plt.subplots(figsize=(8, 6))
@@ -176,7 +173,6 @@ class ChartGenerator:
         fig.savefig(path, dpi=self.dpi, bbox_inches='tight')
         plt.close(fig)
         return path
-
 
 class MarkdownBuilder:
     """Constructs the academic paper in Markdown format."""
@@ -200,7 +196,6 @@ class MarkdownBuilder:
 
     def render(self) -> str:
         return '\n'.join(self.sections)
-
 
 class WhitepaperGenerator:
     """Orchestrates the full whitepaper generation from phase outputs."""
@@ -260,7 +255,6 @@ class WhitepaperGenerator:
             desc = data.get('description', f'Phase {phase_num}')
             elapsed = data.get('elapsed_seconds', 0)
 
-            # Extract key metrics from each phase
             summary_parts = [f'**Phase {phase_num}: {desc}** ({elapsed:.1f}s)\n']
 
             if phase_num == 1:
@@ -280,7 +274,6 @@ class WhitepaperGenerator:
                     f'- Final unresolved rate: {ngram.get("final_unresolved_rate", 0):.1%}'
                 )
             else:
-                # Generic summary from top-level keys
                 skip_keys = {'description', 'elapsed_seconds', 'timestamp'}
                 for k, v in data.items():
                     if k in skip_keys:
@@ -297,7 +290,6 @@ class WhitepaperGenerator:
     def _write_results(self) -> None:
         self.builder.add_section('Final Results', 1, '')
 
-        # Per-folio stats table
         per_folio = self.p12.get('per_folio_stats', {})
         if per_folio:
             rows = []
@@ -313,7 +305,6 @@ class WhitepaperGenerator:
                 rows,
             )
 
-        # Sample translations
         final = self.p12.get('final_translations', {})
         if final:
             self.builder.add_section('Sample Translations', 2, '')
@@ -367,7 +358,6 @@ class WhitepaperGenerator:
         with open(path, 'w', encoding='utf-8') as f:
             f.write(md)
         return path
-
 
 def run_whitepaper_generator(
     combined_report_path: str,

@@ -15,11 +15,7 @@ glyph boundaries (Stolfi, Zandbergen, Bennett).
 Priority: MEDIUM
 """
 
-import sys
-import os
 from typing import Dict, List
-
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from modules.phase2.base_model import Phase2GenerativeModel, VOYNICH_TARGETS
 from modules.statistical_analysis import full_statistical_profile
@@ -28,12 +24,7 @@ from data.glyph_alphabets import (
 )
 from data.voynich_corpus import get_all_tokens
 
-
-# Threshold: if H2 exceeds this value under any re-alphabetization,
-# then the EVA alphabet is the problem and character-level ciphers
-# should be re-tested with the corrected alphabet.
 H2_CIPHER_THRESHOLD = 2.5
-
 
 class GlyphDecomposition(Phase2GenerativeModel):
     """
@@ -65,27 +56,22 @@ class GlyphDecomposition(Phase2GenerativeModel):
         Retranscribe the actual Voynich corpus into the target alphabet.
         The plaintext parameter is ignored — this model works on the real corpus.
         """
-        # Get all Voynich tokens and reconstruct text
         tokens = get_all_tokens()
         if not tokens:
             return ''
 
         eva_text = ' '.join(tokens)
 
-        # Apply compound transformations if requested
         text = eva_text
 
-        # First apply gallows split if requested
         if self.params.get('split_gallows', False) and self.alphabet_name != 'gallows_split':
             text = retranscribe(text, 'gallows_split')
 
-        # Then apply the primary alphabet transformation
         if self.alphabet_name != 'eva_standard':
             text = retranscribe(text, self.alphabet_name)
 
-        # If merge_ligatures is False but alphabet is ligature_merged, skip
         if not self.params.get('merge_ligatures', True) and self.alphabet_name == 'ligature_merged':
-            text = eva_text  # Revert to standard
+            text = eva_text
 
         return text
 
@@ -97,20 +83,17 @@ class GlyphDecomposition(Phase2GenerativeModel):
         alphabets = list_alphabets()
 
         if resolution == 'coarse':
-            # Just the primary alphabets
             return [{'alphabet_name': a, 'seed': 42}
                     for a in alphabets]
 
-        # Medium/fine: include compound transformations
         grid = []
         for a in alphabets:
             for merge in [True, False]:
                 for split in [True, False]:
-                    # Skip redundant combinations
                     if a == 'gallows_split' and split:
-                        continue  # Already splitting
+                        continue
                     if a == 'ligature_merged' and not merge:
-                        continue  # Contradictory
+                        continue
                     grid.append({
                         'alphabet_name': a,
                         'merge_ligatures': merge,
@@ -190,7 +173,6 @@ class GlyphDecomposition(Phase2GenerativeModel):
                 print(f'  [{alpha_name:20s}] H2 = {entry["H2"]:.4f} '
                       f'(delta {entry["H2_delta"]:+.4f}){marker}')
 
-        # Sort by H2 descending (highest = closest to cipher range)
         results.sort(key=lambda r: -r['H2'])
 
         any_match = any(r['in_cipher_range'] for r in results)

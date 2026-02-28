@@ -27,11 +27,6 @@ from modules.phase2.phase2_null_engine import Phase2NullEngine
 from modules.phase2.base_model import VOYNICH_TARGETS
 from modules.statistical_analysis import full_statistical_profile
 
-
-# ============================================================================
-# PHASE 2 ORCHESTRATOR
-# ============================================================================
-
 def run_phase2_attack(
     phases: Optional[List[str]] = None,
     models: Optional[List[str]] = None,
@@ -81,7 +76,6 @@ def run_phase2_attack(
         print(f'Models: {models}')
         print()
 
-    # ---- Sub-phase 1: Quick Discrimination ----
     if 'discrimination' in phases:
         if verbose:
             print('\n' + '=' * 70)
@@ -95,17 +89,14 @@ def run_phase2_attack(
         )
         results['discrimination'] = discrimination
 
-        # Save intermediate results
         save_json(os.path.join(output_dir, 'discrimination_results.json'),
                    discrimination)
 
-        # Determine which models survive for deep analysis
         surviving_models = (
             discrimination.get('triple_matches', []) +
             discrimination.get('partial_matches', [])
         )
         if not surviving_models:
-            # If nothing passed, take top 3 by distance
             rankings = discrimination.get('model_rankings', [])
             surviving_models = [r['model'] for r in rankings[:3]]
 
@@ -115,7 +106,6 @@ def run_phase2_attack(
     else:
         surviving_models = models
 
-    # ---- Sub-phase 2: Deep Implementation ----
     if 'deep' in phases:
         if verbose:
             print('\n' + '=' * 70)
@@ -139,14 +129,12 @@ def run_phase2_attack(
         save_json(os.path.join(output_dir, 'deep_analysis_results.json'),
                    deep_results)
 
-    # ---- Sub-phase 3: Cross-Cutting Investigations ----
     if 'crosscutting' in phases:
         if verbose:
             print('\n' + '=' * 70)
             print('SUB-PHASE 3: CROSS-CUTTING INVESTIGATIONS')
             print('=' * 70)
 
-        # Build model outputs for Investigation C comparison
         model_outputs = {}
         for model_name in surviving_models:
             if model_name in MODEL_REGISTRY:
@@ -168,7 +156,6 @@ def run_phase2_attack(
         save_json(os.path.join(output_dir, 'cross_cutting_results.json'),
                    cross_cutting)
 
-    # ---- Sub-phase 4: Null Distributions (optional, slower) ----
     if 'null' in phases:
         if verbose:
             print('\n' + '=' * 70)
@@ -183,13 +170,11 @@ def run_phase2_attack(
         save_json(os.path.join(output_dir, 'null_distributions_p2.json'),
                    null_results)
 
-    # ---- Synthesis & Conclusion ----
     elapsed = time.time() - t0
     conclusion = _synthesize_conclusion(results, surviving_models)
     results['conclusion'] = conclusion
     results['elapsed_seconds'] = elapsed
 
-    # Save full report
     save_json(os.path.join(output_dir, 'phase2_report.json'), results)
 
     if verbose:
@@ -204,11 +189,6 @@ def run_phase2_attack(
 
     return results
 
-
-# ============================================================================
-# DEEP ANALYSIS
-# ============================================================================
-
 def _run_deep_analysis(model_name: str, verbose: bool = True) -> Dict:
     """
     Run full constraint testing for a single model with medium-resolution sweep.
@@ -217,7 +197,6 @@ def _run_deep_analysis(model_name: str, verbose: bool = True) -> Dict:
     if not model_class:
         return {'error': f'Unknown model: {model_name}'}
 
-    # Run medium-resolution sweep
     from modules.strategy1_parameter_search import generate_medical_plaintext
     plaintext = generate_medical_plaintext(600)
 
@@ -229,11 +208,9 @@ def _run_deep_analysis(model_name: str, verbose: bool = True) -> Dict:
         verbose=verbose,
     )
 
-    # Get the best result's full score
     best = sweep.get('best_results', [{}])[0] if sweep.get('best_results') else {}
     best_params = best.get('params', {})
 
-    # Generate text with best params and run full constraint check
     constraints_result = {}
     if best_params:
         try:
@@ -244,11 +221,9 @@ def _run_deep_analysis(model_name: str, verbose: bool = True) -> Dict:
                 score = model.full_score(profile)
                 crit = model.critical_test(profile)
 
-                # Try to load and check against Phase 1 constraints
                 try:
                     from modules.constraint_model import ConstraintModel
                     cm = ConstraintModel(verbose=False)
-                    # Load constraints from Phase 1 output
                     constraint_file = os.path.join(
                         os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
                         'output', 'constraint_model.json'
@@ -286,22 +261,15 @@ def _run_deep_analysis(model_name: str, verbose: bool = True) -> Dict:
 
     return {'sweep_results': sweep, 'best_params': best_params}
 
-
-# ============================================================================
-# SYNTHESIS
-# ============================================================================
-
 def _synthesize_conclusion(results: Dict, surviving_models: List[str]) -> Dict:
     """Synthesize the overall Phase 2 conclusion."""
     viable = []
     best_model = None
     best_distance = float('inf')
 
-    # Check discrimination results
     disc = results.get('discrimination', {})
     triple_matches = disc.get('triple_matches', [])
 
-    # Check deep analysis results
     deep = results.get('deep_analysis', {})
     for model_name, analysis in deep.items():
         score = analysis.get('best_score', {})
@@ -315,11 +283,9 @@ def _synthesize_conclusion(results: Dict, surviving_models: List[str]) -> Dict:
             best_distance = dist
             best_model = model_name
 
-    # If no model passed critical test but some hit the triple
     if not viable and triple_matches:
         viable = triple_matches
 
-    # Determine next steps
     if viable:
         next_steps = (
             f'Models {viable} survived all tests. '

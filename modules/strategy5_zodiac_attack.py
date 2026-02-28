@@ -36,12 +36,6 @@ from data.voynich_corpus import (
     get_folio_text, tokenize
 )
 
-
-# ============================================================================
-# FORMULAIC ZODIAC PLAINTEXT GENERATION
-# ============================================================================
-
-# Standard medieval zodiac-body correspondences and medical formulas
 ZODIAC_MEDICAL_FORMULAS = {
     'Aries': {
         'body': 'caput',
@@ -162,7 +156,6 @@ ZODIAC_MEDICAL_FORMULAS = {
     },
 }
 
-
 def generate_zodiac_plaintext(sign: str) -> List[str]:
     """
     Generate all probable plaintext variants for a zodiac section.
@@ -177,31 +170,22 @@ def generate_zodiac_plaintext(sign: str) -> List[str]:
 
     variants = []
 
-    # Variant 1: Body-part focused
     body = data.get('body', '')
     conditions = ' et '.join(data.get('conditions', [])[:2])
     v1 = f"{sign.lower()} regit {body} {conditions}"
     variants.append(v1)
 
-    # Variant 2: Treatment focused
     for treatment in data.get('treatments', []):
         variants.append(treatment)
 
-    # Variant 3: Humoral description
     humoral = data.get('humoral', '')
     v3 = f"{sign.lower()} est {humoral} et regit {body}"
     variants.append(v3)
 
-    # Variant 4: Combined
     v4 = f"{body} {conditions} {data.get('treatments', [''])[0]}"
     variants.append(v4)
 
     return variants
-
-
-# ============================================================================
-# KNOWN-PLAINTEXT MATCHING
-# ============================================================================
 
 def zodiac_known_plaintext_attack(
         n_params: int = 50,
@@ -221,7 +205,6 @@ def zodiac_known_plaintext_attack(
     if verbose:
         print("  Running zodiac known-plaintext attack...")
 
-    # Generate parameter variants to test
     param_variants = []
     import random
     for seed in range(n_params):
@@ -236,7 +219,6 @@ def zodiac_known_plaintext_attack(
             'seed': seed * 7 + 13,
         })
 
-    # For each zodiac section with available Voynich text
     section_results = {}
     for folio, zodiac_data in ZODIAC_LABELS.items():
         voynich_text = get_folio_text(folio)
@@ -246,15 +228,12 @@ def zodiac_known_plaintext_attack(
         sign = zodiac_data['zodiac_sign']
         month = zodiac_data['month_label']
 
-        # Generate probable plaintexts
         probable_plains = generate_zodiac_plaintext(sign)
         if not probable_plains:
             continue
 
-        # Compute Voynich target profile
         voynich_profile = full_statistical_profile(voynich_text, f'Voynich-{folio}')
 
-        # Test each parameter set × each plaintext variant
         best_matches = []
         for param_idx, params in enumerate(param_variants):
             for plain_idx, plaintext in enumerate(probable_plains):
@@ -270,16 +249,13 @@ def zodiac_known_plaintext_attack(
                     )
                     distance = profile_distance(cipher_profile, voynich_profile)
 
-                    # Also do direct token-level comparison
                     voynich_tokens = tokenize(voynich_text)
                     cipher_tokens = tokenize(ciphertext)
 
-                    # Token length distribution match
                     v_lengths = Counter(len(t) for t in voynich_tokens)
                     c_lengths = Counter(len(t) for t in cipher_tokens)
                     length_overlap = _distribution_overlap(v_lengths, c_lengths)
 
-                    # Composite match score
                     composite = 0.7 * distance + 0.3 * (1 - length_overlap)
 
                     best_matches.append({
@@ -296,7 +272,6 @@ def zodiac_known_plaintext_attack(
                 except Exception:
                     continue
 
-        # Sort by composite score
         best_matches.sort(key=lambda x: x['composite_score'])
 
         section_results[folio] = {
@@ -316,14 +291,12 @@ def zodiac_known_plaintext_attack(
                 print(f"    Plaintext: {top['plaintext']}")
                 print(f"    Cipher:    {top['ciphertext']}")
 
-    # Cross-section consistency check
     consistency = _check_cross_section_consistency(section_results)
 
     return {
         'section_results': section_results,
         'cross_section_consistency': consistency,
     }
-
 
 def _distribution_overlap(d1: Counter, d2: Counter) -> float:
     """Compute overlap between two distributions (0-1)."""
@@ -337,7 +310,6 @@ def _distribution_overlap(d1: Counter, d2: Counter) -> float:
     overlap = sum(min(d1.get(k, 0) / total1, d2.get(k, 0) / total2)
                   for k in all_keys)
     return overlap
-
 
 def _check_cross_section_consistency(section_results: Dict) -> Dict:
     """
@@ -354,7 +326,6 @@ def _check_cross_section_consistency(section_results: Dict) -> Dict:
                 'score': match['composite_score'],
             })
 
-    # Find parameters that appear in top-5 of multiple sections
     consistent = []
     for param_idx, scores in param_scores.items():
         if len(scores) >= 2:
@@ -381,11 +352,6 @@ def _check_cross_section_consistency(section_results: Dict) -> Dict:
         ),
     }
 
-
-# ============================================================================
-# GLYPH MAPPING BOOTSTRAP
-# ============================================================================
-
 def bootstrap_glyph_mappings(
         best_params: Dict,
         top_n_sections: int = 3,
@@ -408,7 +374,6 @@ def bootstrap_glyph_mappings(
 
     cipher = NaibbeCipher(**best_params)
 
-    # Collect alignment pairs
     alignments = []
     for folio, zodiac_data in ZODIAC_LABELS.items():
         voynich_text = get_folio_text(folio)
@@ -420,28 +385,23 @@ def bootstrap_glyph_mappings(
         if not probable_plains:
             continue
 
-        # Encrypt best plaintext variant
         for plaintext in probable_plains[:2]:
             ciphertext = cipher.encrypt(plaintext)
             voynich_tokens = tokenize(voynich_text)
             cipher_tokens = tokenize(ciphertext)
 
-            # Simple character-level alignment (token-pair comparison)
             min_len = min(len(voynich_tokens), len(cipher_tokens))
             for i in range(min_len):
                 vt = voynich_tokens[i]
                 ct = cipher_tokens[i]
-                # Character-level correspondence
                 min_chars = min(len(vt), len(ct))
                 for j in range(min_chars):
                     alignments.append((ct[j], vt[j]))
 
-    # Count character correspondences
     mapping_counts = defaultdict(Counter)
     for cipher_char, voynich_char in alignments:
         mapping_counts[cipher_char][voynich_char] += 1
 
-    # Build tentative mapping (most frequent correspondence)
     tentative_mapping = {}
     for cipher_char, voynich_counts in mapping_counts.items():
         best_match = voynich_counts.most_common(1)[0]
@@ -469,7 +429,6 @@ def bootstrap_glyph_mappings(
         'mapping_quality': _assess_mapping_quality(tentative_mapping),
     }
 
-
 def _assess_mapping_quality(mapping: Dict) -> str:
     """Assess the quality of bootstrapped mappings."""
     if not mapping:
@@ -489,11 +448,6 @@ def _assess_mapping_quality(mapping: Dict) -> str:
                 "The cipher parameters may need refinement, or the "
                 "plaintext hypotheses need revision.")
 
-
-# ============================================================================
-# ENTRY POINT
-# ============================================================================
-
 def run(verbose: bool = True) -> Dict:
     """Run the zodiac known-plaintext attack."""
     if verbose:
@@ -503,20 +457,17 @@ def run(verbose: bool = True) -> Dict:
 
     results = {}
 
-    # 1. Run the known-plaintext matching
     if verbose:
         print("\n[1/2] Running known-plaintext matching across zodiac sections...")
     attack_results = zodiac_known_plaintext_attack(n_params=50, verbose=verbose)
     results['attack'] = attack_results
 
-    # 2. Bootstrap glyph mappings if consistent params found
     if verbose:
         print("\n[2/2] Attempting glyph mapping bootstrap...")
     consistency = attack_results.get('cross_section_consistency', {})
     best = consistency.get('best_param')
 
     if best:
-        # Get the actual params from the section results
         for folio, data in attack_results['section_results'].items():
             for match in data.get('top_5_matches', []):
                 if match['param_idx'] == best['param_idx']:
@@ -534,13 +485,11 @@ def run(verbose: bool = True) -> Dict:
         if verbose:
             print("  No consistent parameters found for bootstrap.")
 
-    # Summary
     if verbose:
         print(f"\n  Cross-section consistency: "
               f"{consistency.get('interpretation', 'N/A')}")
 
     return results
-
 
 if __name__ == '__main__':
     run()

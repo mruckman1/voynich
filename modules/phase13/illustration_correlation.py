@@ -17,7 +17,6 @@ import random
 from math import comb
 from typing import Dict, List, Optional, Set, Tuple
 
-
 class IllustrationTextCorrelator:
     """Correlates botanical illustration IDs with Phase 12 decoded text.
 
@@ -27,7 +26,6 @@ class IllustrationTextCorrelator:
     depicted in the illustration.
     """
 
-    # Minimum stem length for fuzzy matching (avoids false positives)
     MIN_STEM = 4
 
     def __init__(
@@ -43,7 +41,6 @@ class IllustrationTextCorrelator:
         self.folio_map = folio_name_map
         self.translations = final_translations
 
-        # Precompute corpus vocabulary for statistics
         self._vocab: Optional[Set[str]] = None
 
     @property
@@ -55,10 +52,6 @@ class IllustrationTextCorrelator:
                 self._vocab.update(self._extract_resolved_words(text))
         return self._vocab
 
-    # ------------------------------------------------------------------
-    # Word extraction
-    # ------------------------------------------------------------------
-
     @staticmethod
     def _extract_resolved_words(text: str) -> List[str]:
         """Extract only resolved (non-bracketed) words from folio text."""
@@ -67,10 +60,6 @@ class IllustrationTextCorrelator:
             for w in text.split()
             if not w.startswith('[') and not w.startswith('<')
         ]
-
-    # ------------------------------------------------------------------
-    # Matching strategies
-    # ------------------------------------------------------------------
 
     @staticmethod
     def _check_exact(word_set: Set[str], name: str) -> bool:
@@ -85,7 +74,6 @@ class IllustrationTextCorrelator:
         """
         if len(name) < cls.MIN_STEM:
             return None
-        # Try progressively shorter stems (strip 1-3 chars)
         for strip_len in range(1, min(4, len(name) - cls.MIN_STEM + 1)):
             stem = name[:-strip_len]
             for w in word_set:
@@ -105,15 +93,10 @@ class IllustrationTextCorrelator:
         first, second = parts[0], parts[1]
         for i in range(len(words)):
             if words[i] == first:
-                # Strict adjacency or within 2 positions
                 for j in range(i + 1, min(i + 3, len(words))):
                     if words[j] == second:
                         return True
         return False
-
-    # ------------------------------------------------------------------
-    # Per-folio correlation
-    # ------------------------------------------------------------------
 
     def correlate_folio(self, folio_id: str) -> Dict:
         """Run correlation analysis for a single folio.
@@ -152,26 +135,22 @@ class IllustrationTextCorrelator:
         if not words:
             return result
 
-        # 1. Exact matches for single-word names
         for name in entry['single_word_names']:
             if self._check_exact(word_set, name):
                 result['exact_matches'].append(name)
 
-        # 2. Bigram matches for multi-word names
         for name in entry['multi_word_names']:
             if self._check_bigram(words, name):
                 result['bigram_matches'].append(name)
 
-        # 3. Stem matches (only for names with no exact match)
         exact_set = set(result['exact_matches'])
         for name in entry['single_word_names']:
             if name in exact_set:
-                continue  # Already matched exactly
+                continue
             matched_word = self._check_stem(word_set, name)
             if matched_word and matched_word not in exact_set:
                 result['stem_matches'][name] = matched_word
 
-        # Classify overall result
         if result['exact_matches']:
             result['any_match'] = True
             result['match_type'] = 'exact'
@@ -183,10 +162,6 @@ class IllustrationTextCorrelator:
             result['match_type'] = 'stem'
 
         return result
-
-    # ------------------------------------------------------------------
-    # Corpus-wide correlation
-    # ------------------------------------------------------------------
 
     def correlate_all(self) -> Dict:
         """Run correlation across all botanical folios.
@@ -218,7 +193,6 @@ class IllustrationTextCorrelator:
             if r['testable'] and r['has_decoded_text'] and not r['any_match']
         )
 
-        # Match type breakdown
         exact_count = sum(
             1 for r in per_folio.values() if r['match_type'] == 'exact'
         )
@@ -252,7 +226,6 @@ class IllustrationTextCorrelator:
                 'of_all_botanical': round(rate_of_all, 4),
             },
         }
-
 
 class CorrelationStatistics:
     """Statistical significance tests for illustration-text correlation."""
@@ -313,7 +286,6 @@ class CorrelationStatistics:
         expected = avg_p * len(testable)
         n = len(testable)
 
-        # P(X >= observed) using binomial survival function
         p_value = _binomial_sf(observed, n, avg_p)
 
         return {
@@ -347,17 +319,14 @@ class CorrelationStatistics:
             if self.results['per_folio'][fid]['any_match']
         )
 
-        # Pool of all translated texts
         all_texts = list(self.correlator.translations.values())
         rng = random.Random(seed)
         null_counts = []
 
         for _ in range(n_permutations):
-            # Assign random texts to botanical folios
             shuffled = rng.sample(all_texts, len(testable))
             shuffled_trans = dict(zip(testable, shuffled))
 
-            # Count matches under shuffled mapping
             count = 0
             for fid, text in shuffled_trans.items():
                 entry = self.correlator.folio_map[fid]
@@ -398,28 +367,17 @@ class CorrelationStatistics:
             'significant_005': p_value < 0.05,
         }
 
-
-# ------------------------------------------------------------------
-# Pure-Python binomial survival function
-# ------------------------------------------------------------------
-
 def _binomial_sf(k: int, n: int, p: float) -> float:
     """P(X >= k) for X ~ Binomial(n, p). Pure Python, no scipy needed."""
     if p <= 0:
         return 0.0 if k > 0 else 1.0
     if p >= 1:
         return 1.0
-    # P(X >= k) = 1 - P(X <= k-1)
     total = 0.0
     for i in range(k):
         pmf = comb(n, i) * (p ** i) * ((1.0 - p) ** (n - i))
         total += pmf
     return max(0.0, 1.0 - total)
-
-
-# ------------------------------------------------------------------
-# Console report
-# ------------------------------------------------------------------
 
 def _print_report(
     results: Dict, binomial: Dict, permutation: Dict, verbose: bool = True,
@@ -452,7 +410,6 @@ def _print_report(
     verdict = 'SIGNIFICANT' if sig else 'NOT SIGNIFICANT'
     print(f'    -> {verdict} at p < 0.05')
 
-    # List matches
     matches = [
         (fid, r) for fid, r in results['per_folio'].items()
         if r['any_match']
@@ -466,7 +423,6 @@ def _print_report(
             print(f'    + {fid}: {r["common"]} ({sci}) <-> {name_str} '
                   f'[{r["match_type"]}, {r["source"]}]')
 
-    # List non-matches (testable only)
     non_matches = [
         (fid, r) for fid, r in results['per_folio'].items()
         if r['testable'] and r['has_decoded_text'] and not r['any_match']
@@ -478,7 +434,6 @@ def _print_report(
             print(f'    - {fid}: {r["common"]} ({sci}) '
                   f'— searched: {", ".join(r["searched_names"][:5])}')
 
-    # New World exclusions
     nw = [
         (fid, r) for fid, r in results['per_folio'].items()
         if r['new_world']
@@ -487,11 +442,6 @@ def _print_report(
         print(f'\n  New World (excluded):')
         for fid, r in nw:
             print(f'    ~ {fid}: {r["common"]} ({", ".join(r["species"])})')
-
-
-# ------------------------------------------------------------------
-# Top-level entry point
-# ------------------------------------------------------------------
 
 def run_illustration_correlation(
     phase12_data: Dict,

@@ -9,15 +9,11 @@ H2/TTR/Zipf, and compare to Language A targets. If a language matches
 better than Latin, it becomes the primary candidate for the SAA attack.
 """
 
-import sys
-import os
 import math
 import random
 import numpy as np
 from collections import Counter
 from typing import Dict, List, Optional
-
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from modules.statistical_analysis import (
     word_conditional_entropy, zipf_analysis,
@@ -27,11 +23,6 @@ from modules.phase4.latin_herbal_corpus import LatinHerbalCorpus
 from data.medieval_text_templates import (
     generate_italian_text, generate_german_text,
 )
-
-
-# ============================================================================
-# MEDIEVAL MEDICAL VOCABULARY FOR ADDITIONAL LANGUAGES
-# ============================================================================
 
 HEBREW_MEDICAL_VOCAB = {
     'high_freq': [
@@ -113,18 +104,16 @@ CZECH_MEDICAL_VOCAB = {
     ],
 }
 
-# All source languages
 SOURCE_LANGUAGE_VOCABS = {
-    'latin': None,  # Handled by LatinHerbalCorpus
-    'italian': None,  # Handled by generate_italian_text()
-    'german': None,  # Handled by generate_german_text()
+    'latin': None,
+    'italian': None,
+    'german': None,
     'hebrew': HEBREW_MEDICAL_VOCAB,
     'arabic': ARABIC_MEDICAL_VOCAB,
     'spanish': SPANISH_MEDICAL_VOCAB,
     'catalan': CATALAN_MEDICAL_VOCAB,
     'czech': CZECH_MEDICAL_VOCAB,
 }
-
 
 def _generate_from_vocab(vocab: Dict, n_words: int = 500,
                           seed: int = 42) -> str:
@@ -139,7 +128,6 @@ def _generate_from_vocab(vocab: Dict, n_words: int = 500,
         else:
             words.append(rng.choice(med))
     return ' '.join(words)
-
 
 class MultiLanguageSourceTest:
     """
@@ -190,10 +178,9 @@ class MultiLanguageSourceTest:
         """Compute distance between a language's metrics and Language A targets."""
         profile = self.extractor.compute_full_profile()
 
-        # Language A character-level H2 = target word-level H2 of source
-        target_h2 = profile['entropy']['H2']  # 1.487
-        target_ttr = profile['zipf']['type_token_ratio']  # 0.305
-        target_zipf = profile['zipf']['zipf_exponent']  # 0.931
+        target_h2 = profile['entropy']['H2']
+        target_ttr = profile['zipf']['type_token_ratio']
+        target_zipf = profile['zipf']['zipf_exponent']
 
         if 'error' in metrics:
             return {'error': metrics['error'], 'distance': float('inf')}
@@ -202,7 +189,6 @@ class MultiLanguageSourceTest:
         ttr_delta = abs(metrics['TTR'] - target_ttr)
         zipf_delta = abs(metrics['zipf_exponent'] - target_zipf)
 
-        # Weighted distance
         distance = math.sqrt(
             3.0 * h2_delta ** 2 +
             1.5 * ttr_delta ** 2 +
@@ -238,7 +224,6 @@ class MultiLanguageSourceTest:
                 'comparison': comparison,
             }
 
-        # Sort by distance (ascending)
         ranked = sorted(
             [(lang, data) for lang, data in results.items()
              if 'error' not in data.get('comparison', {})],
@@ -259,7 +244,6 @@ class MultiLanguageSourceTest:
         best = ranking_result.get('best_match', 'unknown')
         best_dist = ranking_result.get('best_distance', float('inf'))
 
-        # Check if best language's H2 is within tolerance
         best_data = ranking_result['results'].get(best, {})
         h2_match = best_data.get('comparison', {}).get('h2_within_tolerance', False)
 
@@ -287,7 +271,6 @@ class MultiLanguageSourceTest:
             'synthesis': synthesis,
         }
 
-        # Compact language results
         for lang, data in ranking_result['results'].items():
             if 'error' in data:
                 results['language_results'][lang] = {'error': data['error']}

@@ -9,14 +9,10 @@ Language B has 13 word types across 227 tokens with H2=0.74 — extreme
 regularity that makes it the ideal entry point for decryption.
 """
 
-import sys
-import os
 import math
 import numpy as np
 from collections import Counter, defaultdict
 from typing import Dict, List, Tuple, Optional
-
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from modules.phase2.cross_cutting import LanguageABSplitter
 from modules.statistical_analysis import (
@@ -27,8 +23,6 @@ from data.voynich_corpus import (
     get_all_tokens, SAMPLE_CORPUS, ZODIAC_LABELS, SECTIONS
 )
 
-
-# Phase 2 cross-cutting confirmed these values for Language B
 LANG_B_TARGETS = {
     'H1': 3.491,
     'H2': 0.741,
@@ -40,9 +34,7 @@ LANG_B_TARGETS = {
     'mean_word_length': 5.49,
 }
 
-# The 13 Language B words with their families
 LANG_B_VOCABULARY = {
-    # edy family (8 types)
     'chedy':    {'family': 'edy', 'onset': 'ch',  'body': 'edy'},
     'shedy':    {'family': 'edy', 'onset': 'sh',  'body': 'edy'},
     'otedy':    {'family': 'edy', 'onset': 'ot',  'body': 'edy'},
@@ -51,15 +43,12 @@ LANG_B_VOCABULARY = {
     'qokeedy':  {'family': 'edy', 'onset': 'qok', 'body': 'eedy'},
     'lkeedy':   {'family': 'edy', 'onset': 'lk',  'body': 'eedy'},
     'ykeedy':   {'family': 'edy', 'onset': 'yk',  'body': 'eedy'},
-    # aiin family (4 types)
     'qokaiin':  {'family': 'aiin', 'onset': 'qok', 'body': 'aiin'},
     'otaiin':   {'family': 'aiin', 'onset': 'ot',  'body': 'aiin'},
     'qokain':   {'family': 'aiin', 'onset': 'qok', 'body': 'ain'},
     'otaiir':   {'family': 'aiin', 'onset': 'ot',  'body': 'aiir'},
-    # residual (1 type — ambiguous, "eey" ending)
     'qokeey':   {'family': 'residual', 'onset': 'qok', 'body': 'eey'},
 }
-
 
 class LanguageBProfiler:
     """
@@ -148,7 +137,6 @@ class LanguageBProfiler:
         if not self.word_families:
             self.classify_word_families()
 
-        # Build set of edy/aiin words for quick lookup
         edy_words = set(w for w, _ in self.word_families.get('edy', []))
         aiin_words = set(w for w, _ in self.word_families.get('aiin', []))
 
@@ -178,7 +166,6 @@ class LanguageBProfiler:
                 'aiin_ratio': aiin_count / len(tokens) if tokens else 0,
             }
 
-            # Add zodiac metadata if available
             if folio_id in ZODIAC_LABELS:
                 zl = ZODIAC_LABELS[folio_id]
                 entry['zodiac_sign'] = zl.get('zodiac_sign', '')
@@ -204,7 +191,6 @@ class LanguageBProfiler:
         n = len(vocabulary)
         counts = np.zeros((n, n), dtype=float)
 
-        # Build transitions within each folio (don't cross boundaries)
         for folio_id, data in SAMPLE_CORPUS.items():
             if data['lang'] != 'B':
                 continue
@@ -217,7 +203,6 @@ class LanguageBProfiler:
                 if w1 in word_to_idx and w2 in word_to_idx:
                     counts[word_to_idx[w1]][word_to_idx[w2]] += 1
 
-        # Normalize rows to probabilities
         row_sums = counts.sum(axis=1, keepdims=True)
         row_sums[row_sums == 0] = 1
         matrix = counts / row_sums
@@ -233,7 +218,6 @@ class LanguageBProfiler:
             print(f'  Tokens: {len(self.lang_b_tokens)}')
             print(f'  Vocabulary: {len(self.word_freq)} types')
 
-        # Statistical profile
         profile = self.compute_profile()
         if verbose:
             ent = profile.get('entropy', {})
@@ -244,28 +228,24 @@ class LanguageBProfiler:
             print(f'  Zipf={zipf.get("zipf_exponent", 0):.4f}  '
                   f'TTR={zipf.get("type_token_ratio", 0):.4f}')
 
-        # Word families
         family_stats = self.compute_family_statistics()
         if verbose:
             for fam, stats in family_stats.items():
                 print(f'  Family {fam}: {stats["tokens"]} tokens '
                       f'({stats["proportion"]:.1%}), {stats["types"]} types')
 
-        # Folio-level data
         folio_data = self.extract_folio_level_data()
         if verbose:
             zodiac_folios = [f for f in folio_data if 'zodiac_sign' in f]
             print(f'  Language B folios: {len(folio_data)} '
                   f'({len(zodiac_folios)} zodiac)')
 
-        # Transition matrix
         trans_matrix, vocab = self.compute_word_transition_matrix()
         n_nonzero = int(np.sum(trans_matrix > 0))
         if verbose:
             print(f'  Transition matrix: {len(vocab)}x{len(vocab)}, '
                   f'{n_nonzero} non-zero entries')
 
-        # Word frequency table
         word_table = []
         for word, count in self.word_freq.most_common():
             info = LANG_B_VOCABULARY.get(word, {})

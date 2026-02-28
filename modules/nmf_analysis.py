@@ -11,21 +11,12 @@ evidence for the grammar-layer hypothesis.
 Effective rank: 2-3 = strong structure preservation, 8+ = near-random transitions.
 """
 
-import sys
-import os
 import numpy as np
 from collections import Counter, defaultdict
 from typing import Dict, List, Tuple, Optional
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 from modules.statistical_analysis import bigram_transition_matrix
 from data.voynich_corpus import get_all_tokens, get_section_text, SECTIONS
-
-
-# ============================================================================
-# NMF IMPLEMENTATION (numpy only, no sklearn dependency)
-# ============================================================================
 
 def nmf_multiplicative_update(
     V: np.ndarray, rank: int, max_iter: int = 200, tol: float = 1e-4
@@ -43,24 +34,20 @@ def nmf_multiplicative_update(
     n, m = V.shape
     eps = 1e-10
 
-    # Initialize with random non-negative values
     rng = np.random.RandomState(42)
     W = rng.rand(n, rank) + eps
     H = rng.rand(rank, m) + eps
 
     prev_error = None
     for iteration in range(max_iter):
-        # Update H
         numerator_h = W.T @ V
         denominator_h = W.T @ W @ H + eps
         H *= numerator_h / denominator_h
 
-        # Update W
         numerator_w = V @ H.T
         denominator_w = W @ H @ H.T + eps
         W *= numerator_w / denominator_w
 
-        # Check convergence
         if iteration % 10 == 0:
             error = float(np.linalg.norm(V - W @ H, 'fro'))
             if prev_error is not None and prev_error > 0:
@@ -70,11 +57,6 @@ def nmf_multiplicative_update(
 
     final_error = float(np.linalg.norm(V - W @ H, 'fro'))
     return W, H, final_error
-
-
-# ============================================================================
-# BIGRAM NMF ANALYZER
-# ============================================================================
 
 class BigramNMF:
     """Applies NMF to bigram transition matrices to find character classes."""
@@ -90,7 +72,6 @@ class BigramNMF:
         text = ' '.join(tokens)
         matrix, alphabet = bigram_transition_matrix(text)
 
-        # Convert to numpy array if needed
         if isinstance(matrix, list):
             matrix = np.array(matrix)
 
@@ -110,16 +91,14 @@ class BigramNMF:
 
         for rank in ranks:
             _, _, error = nmf_multiplicative_update(matrix, rank, max_iter=100)
-            # Normalize by matrix Frobenius norm
             norm = np.linalg.norm(matrix, 'fro')
             rel_error = error / max(norm, 1e-10)
             errors.append(rel_error)
 
-        # Find elbow: maximum second derivative
         if len(errors) >= 3:
             diffs = np.diff(errors)
             second_diffs = np.diff(diffs)
-            elbow_idx = int(np.argmax(np.abs(second_diffs))) + 2  # offset for double diff
+            elbow_idx = int(np.argmax(np.abs(second_diffs))) + 2
             optimal = ranks[min(elbow_idx, len(ranks) - 1)]
         else:
             optimal = ranks[0] if ranks else 2
@@ -145,19 +124,16 @@ class BigramNMF:
         components = []
 
         for k in range(n_components):
-            # Characters with highest loading on this component (as targets)
             w_col = W[:, k]
             top_targets_idx = np.argsort(w_col)[::-1][:5]
             top_targets = [(alphabet[i], float(w_col[i])) for i in top_targets_idx
                           if i < len(alphabet)]
 
-            # Characters that most strongly activate this component (as sources)
             h_row = H[k, :]
             top_sources_idx = np.argsort(h_row)[::-1][:5]
             top_sources = [(alphabet[i], float(h_row[i])) for i in top_sources_idx
                           if i < len(alphabet)]
 
-            # Classify component
             target_chars = set(c for c, _ in top_targets[:3])
             label = self._classify_component(target_chars)
 
@@ -199,20 +175,16 @@ class BigramNMF:
         Compare NMF-derived character classes with Strategy 4's positional classes.
         Returns overlap score measuring convergent evidence.
         """
-        # Build NMF class assignments
         nmf_classes = defaultdict(set)
         for comp in nmf_components:
             label = comp['label']
             for char, weight in comp['top_targets'][:3]:
                 nmf_classes[label].add(char)
 
-        # Build positional class assignments
         pos_classes = defaultdict(set)
         for char, cls in positional_classes.items():
             pos_classes[cls].add(char)
 
-        # Compute overlap
-        # Map NMF labels to positional labels
         label_map = {
             'gallows-like': 'PREFIX',
             'final-like': 'SUFFIX',
@@ -255,11 +227,6 @@ class BigramNMF:
             ),
         }
 
-
-# ============================================================================
-# MODULE ENTRY POINT
-# ============================================================================
-
 def run(verbose: bool = True) -> Dict:
     """
     Run bigram matrix factorization analysis.
@@ -275,7 +242,6 @@ def run(verbose: bool = True) -> Dict:
         print("TRACK 7: BIGRAM MATRIX FACTORIZATION (NMF)")
         print("=" * 70)
 
-    # Overall analysis
     tokens = get_all_tokens()
     if verbose:
         print(f"\n  Building bigram matrix ({len(tokens)} tokens)...")
@@ -286,7 +252,6 @@ def run(verbose: bool = True) -> Dict:
         print(f"    Matrix shape: {matrix.shape}")
         print(f"    Alphabet: {''.join(alphabet)}")
 
-    # Find optimal rank
     if verbose:
         print("\n  Finding optimal NMF rank...")
     optimal, rank_errors = analyzer.optimal_rank(matrix)
@@ -297,12 +262,10 @@ def run(verbose: bool = True) -> Dict:
             marker = " ← optimal" if rank == optimal else ""
             print(f"      rank {rank}: error={err:.4f}{marker}")
 
-    # Factorize at optimal rank
     if verbose:
         print(f"\n  Factorizing at rank {optimal}...")
     W, H, error = analyzer.factorize(matrix, optimal)
 
-    # Interpret components
     components = analyzer.interpret_components(W, H, alphabet)
 
     if verbose:
@@ -311,7 +274,6 @@ def run(verbose: bool = True) -> Dict:
             targets = ', '.join(f'{c}({w:.2f})' for c, w in comp['top_targets'][:3])
             print(f"    Component {comp['component']} [{comp['label']}]: {targets}")
 
-    # Section comparison
     if verbose:
         print("\n  Per-section NMF rank analysis...")
     section_ranks = {}
@@ -326,11 +288,9 @@ def run(verbose: bool = True) -> Dict:
                 if verbose:
                     print(f"    {section}: rank={sec_optimal}")
 
-    # Compare with positional classes (from Strategy 4)
     try:
         from modules.strategy4_positional_grammar import extract_glyph_classes
         pos_classes = extract_glyph_classes()
-        # extract_glyph_classes returns dict of char -> {class, ...}
         simple_pos = {}
         for char, data in pos_classes.items():
             if isinstance(data, dict):
@@ -346,7 +306,6 @@ def run(verbose: bool = True) -> Dict:
             'agreements': [],
         }
 
-    # Interpret effective rank
     if optimal <= 3:
         rank_interpretation = ('VERY LOW rank: strong structure preservation. '
                                'The bigram system has only a few underlying patterns, '

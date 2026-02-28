@@ -10,11 +10,6 @@ import numpy as np
 from collections import Counter, defaultdict
 from typing import Any, List, Dict, Tuple, Optional
 
-
-# ============================================================================
-# CHARACTER-LEVEL ENTROPY
-# ============================================================================
-
 def char_frequencies(text: str) -> Dict[str, float]:
     """Compute character frequency distribution (ignoring spaces)."""
     chars = [c for c in text if c != ' ']
@@ -24,14 +19,12 @@ def char_frequencies(text: str) -> Dict[str, float]:
     counts = Counter(chars)
     return {c: n / total for c, n in counts.items()}
 
-
 def first_order_entropy(text: str) -> float:
     """H1: Shannon entropy of individual characters."""
     freqs = char_frequencies(text)
     if not freqs:
         return 0.0
     return -sum(p * math.log2(p) for p in freqs.values() if p > 0)
-
 
 def conditional_entropy(text: str, order: int = 2) -> float:
     """
@@ -44,7 +37,6 @@ def conditional_entropy(text: str, order: int = 2) -> float:
     if n <= order:
         return 0.0
 
-    # Count n-gram and (n-1)-gram occurrences
     ngram_counts = Counter()
     context_counts = Counter()
 
@@ -54,7 +46,6 @@ def conditional_entropy(text: str, order: int = 2) -> float:
         context_counts[context] += 1
         ngram_counts[ngram] += 1
 
-    # H(X|context) = H(X, context) - H(context)
     total = sum(ngram_counts.values())
     total_ctx = sum(context_counts.values())
 
@@ -68,7 +59,6 @@ def conditional_entropy(text: str, order: int = 2) -> float:
 
     return h_joint - h_ctx
 
-
 def compute_all_entropy(text: str) -> Dict[str, float]:
     """Compute H1, H2, H3 for a text."""
     return {
@@ -76,11 +66,6 @@ def compute_all_entropy(text: str) -> Dict[str, float]:
         'H2': conditional_entropy(text, order=1),
         'H3': conditional_entropy(text, order=2),
     }
-
-
-# ============================================================================
-# WORD-LEVEL ENTROPY
-# ============================================================================
 
 def word_conditional_entropy(tokens: List[str], order: int = 1) -> float:
     """
@@ -127,7 +112,6 @@ def word_conditional_entropy(tokens: List[str], order: int = 1) -> float:
 
     return h_joint - h_ctx
 
-
 def word_zipf_analysis(tokens: List[str]) -> Dict[str, Any]:
     """
     Compute Zipf's law analysis at the word level.
@@ -135,15 +119,9 @@ def word_zipf_analysis(tokens: List[str]) -> Dict[str, Any]:
     """
     return zipf_analysis(tokens)
 
-
-# ============================================================================
-# WORD-LEVEL ANALYSIS
-# ============================================================================
-
 def word_frequencies(tokens: List[str]) -> Dict[str, int]:
     """Count word frequencies."""
     return dict(Counter(tokens))
-
 
 def zipf_analysis(tokens: List[str]) -> Dict[str, Any]:
     """
@@ -159,11 +137,9 @@ def zipf_analysis(tokens: List[str]) -> Dict[str, Any]:
     ranks = np.arange(1, n + 1, dtype=float)
     freqs = np.array(ranked, dtype=float)
 
-    # Log-log linear regression for Zipf's law: log(f) = -α·log(r) + C
     log_ranks = np.log(ranks)
     log_freqs = np.log(freqs + 1e-10)
 
-    # Least squares fit
     A = np.vstack([log_ranks, np.ones(n)]).T
     try:
         result = np.linalg.lstsq(A, log_freqs, rcond=None)
@@ -171,7 +147,6 @@ def zipf_analysis(tokens: List[str]) -> Dict[str, Any]:
     except np.linalg.LinAlgError:
         slope, intercept = -1.0, 0.0
 
-    # R² calculation
     predicted = slope * log_ranks + intercept
     ss_res = np.sum((log_freqs - predicted) ** 2)
     ss_tot = np.sum((log_freqs - np.mean(log_freqs)) ** 2)
@@ -188,11 +163,6 @@ def zipf_analysis(tokens: List[str]) -> Dict[str, Any]:
         'type_token_ratio': n / len(tokens) if tokens else 0,
     }
 
-
-# ============================================================================
-# BIGRAM TRANSITION MATRIX
-# ============================================================================
-
 def bigram_transition_matrix(text: str) -> Tuple[np.ndarray, List[str]]:
     """
     Build a character bigram transition probability matrix.
@@ -208,13 +178,11 @@ def bigram_transition_matrix(text: str) -> Tuple[np.ndarray, List[str]]:
         c1, c2 = chars[i], chars[i + 1]
         counts[char_to_idx[c1]][char_to_idx[c2]] += 1
 
-    # Normalize rows to probabilities
     row_sums = counts.sum(axis=1, keepdims=True)
-    row_sums[row_sums == 0] = 1  # avoid division by zero
+    row_sums[row_sums == 0] = 1
     matrix = counts / row_sums
 
     return matrix, alphabet
-
 
 def compare_bigram_matrices(mat_a: np.ndarray, mat_b: np.ndarray,
                             alph_a: List[str], alph_b: List[str]) -> float:
@@ -230,11 +198,9 @@ def compare_bigram_matrices(mat_a: np.ndarray, mat_b: np.ndarray,
     idx_a = [alph_a.index(c) for c in common]
     idx_b = [alph_b.index(c) for c in common]
 
-    # Extract sub-matrices for common characters
     sub_a = mat_a[np.ix_(idx_a, idx_a)]
     sub_b = mat_b[np.ix_(idx_b, idx_b)]
 
-    # Flatten and compute JS divergence
     p = sub_a.flatten() + 1e-10
     q = sub_b.flatten() + 1e-10
     p = p / p.sum()
@@ -245,11 +211,6 @@ def compare_bigram_matrices(mat_a: np.ndarray, mat_b: np.ndarray,
     kl_qm = np.sum(q * np.log2(q / m))
 
     return 0.5 * (kl_pm + kl_qm)
-
-
-# ============================================================================
-# POSITIONAL GLYPH ANALYSIS
-# ============================================================================
 
 def positional_glyph_distribution(tokens: List[str]) -> Dict[str, Dict[str, int]]:
     """
@@ -268,7 +229,6 @@ def positional_glyph_distribution(tokens: List[str]) -> Dict[str, Dict[str, int]
                 positions[c]['medial'] += 1
 
     return dict(positions)
-
 
 def classify_glyphs_by_position(tokens: List[str],
                                 threshold: float = 0.7) -> Dict[str, str]:
@@ -301,7 +261,6 @@ def classify_glyphs_by_position(tokens: List[str],
 
     return classifications
 
-
 def word_positional_entropy(tokens: List[str]) -> Dict[str, float]:
     """
     Compute entropy at each character position within words.
@@ -312,7 +271,6 @@ def word_positional_entropy(tokens: List[str]) -> Dict[str, float]:
     for t in tokens:
         by_length[len(t)].append(t)
 
-    # Focus on the most common word lengths (3-7 chars)
     position_entropies = {}
     for pos in range(10):
         chars_at_pos = []
@@ -327,11 +285,6 @@ def word_positional_entropy(tokens: List[str]) -> Dict[str, float]:
             position_entropies[f'pos_{pos}'] = round(h, 4)
 
     return position_entropies
-
-
-# ============================================================================
-# COMPARATIVE STATISTICAL PROFILE
-# ============================================================================
 
 def full_statistical_profile(text: str, label: str = "text") -> Dict:
     """
@@ -351,7 +304,6 @@ def full_statistical_profile(text: str, label: str = "text") -> Dict:
         'positional_distribution': positional_glyph_distribution(tokens),
     }
 
-    # Word length distribution
     lengths = [len(t) for t in tokens]
     if lengths:
         profile['mean_word_length'] = np.mean(lengths)
@@ -360,7 +312,6 @@ def full_statistical_profile(text: str, label: str = "text") -> Dict:
 
     return profile
 
-
 def profile_distance(prof_a: Dict, prof_b: Dict) -> float:
     """
     Compute a composite distance metric between two statistical profiles.
@@ -368,30 +319,25 @@ def profile_distance(prof_a: Dict, prof_b: Dict) -> float:
     Lower = more similar.
     """
     distance = 0.0
-    weights = {'H1': 1.0, 'H2': 3.0, 'H3': 3.0}  # Weight conditional entropy heavily
+    weights = {'H1': 1.0, 'H2': 3.0, 'H3': 3.0}
 
-    # Entropy distance
     for key, w in weights.items():
         ea = prof_a.get('entropy', {}).get(key, 0)
         eb = prof_b.get('entropy', {}).get(key, 0)
         distance += w * (ea - eb) ** 2
 
-    # Zipf exponent distance
     za = prof_a.get('zipf', {}).get('zipf_exponent', 1.0)
     zb = prof_b.get('zipf', {}).get('zipf_exponent', 1.0)
     distance += 2.0 * (za - zb) ** 2
 
-    # Word length distribution distance
     mla = prof_a.get('mean_word_length', 4.0)
     mlb = prof_b.get('mean_word_length', 4.0)
     distance += 1.0 * (mla - mlb) ** 2
 
-    # Type-token ratio distance
     ttr_a = prof_a.get('zipf', {}).get('type_token_ratio', 0.5)
     ttr_b = prof_b.get('zipf', {}).get('type_token_ratio', 0.5)
     distance += 1.5 * (ttr_a - ttr_b) ** 2
 
-    # Positional entropy pattern distance
     pe_a = prof_a.get('positional_entropy', {})
     pe_b = prof_b.get('positional_entropy', {})
     common_pos = set(pe_a.keys()) & set(pe_b.keys())
@@ -400,7 +346,6 @@ def profile_distance(prof_a: Dict, prof_b: Dict) -> float:
         distance += 2.0 * pos_dist / len(common_pos)
 
     return math.sqrt(distance)
-
 
 def word_length_distribution(tokens: List[str]) -> Dict:
     """

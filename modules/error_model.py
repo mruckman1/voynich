@@ -12,22 +12,14 @@ The spatial distribution of errors tells us about the encryption process:
 - Random distribution → deliberate features
 """
 
-import sys
 import os
 import math
 import numpy as np
 from collections import Counter, defaultdict
 from typing import Dict, List, Tuple, Optional
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 from modules.statistical_analysis import conditional_entropy
 from data.voynich_corpus import get_all_tokens, SAMPLE_CORPUS, SECTIONS
-
-
-# ============================================================================
-# ERROR MODEL
-# ============================================================================
 
 class ErrorModel:
     """
@@ -77,7 +69,6 @@ class ErrorModel:
             if prob > 0:
                 return -math.log2(prob)
 
-        # Backoff to unigram
         prob = unigram_probs.get(token, 1e-6)
         return -math.log2(prob)
 
@@ -86,7 +77,6 @@ class ErrorModel:
         Compute surprise score for every token in the manuscript.
         Returns list of {folio, position, token, surprise, is_anomalous}.
         """
-        # Build global models
         all_tokens = get_all_tokens()
         bigram_model = self._build_local_bigram_model(all_tokens)
 
@@ -94,7 +84,6 @@ class ErrorModel:
         token_counts = Counter(all_tokens)
         unigram_probs = {t: c / total_tokens for t, c in token_counts.items()}
 
-        # Scan each folio
         results = []
         for folio, data in SAMPLE_CORPUS.items():
             tokens = []
@@ -154,7 +143,6 @@ class ErrorModel:
         Classify the spatial distribution of errors.
         Tests for: page-end clustering, random distribution, illustration proximity.
         """
-        # Collect position fractions (relative position within page)
         position_fractions = []
         for folio, errors in error_map.items():
             for err in errors:
@@ -163,7 +151,6 @@ class ErrorModel:
                      if r['folio'] == folio and r['position'] == 0),
                     max(err['position'] + 1, 1)
                 )
-                # Find total tokens for this folio
                 for r in scan_results:
                     if r['folio'] == folio:
                         total = r['total_tokens']
@@ -179,26 +166,22 @@ class ErrorModel:
 
         fractions = np.array(position_fractions)
 
-        # Test: are errors clustered near page ends (last 20%)?
         near_end = np.sum(fractions > 0.8) / len(fractions)
         near_start = np.sum(fractions < 0.2) / len(fractions)
         middle = np.sum((fractions >= 0.2) & (fractions <= 0.8)) / len(fractions)
 
-        # Runs test for randomness
         median_frac = np.median(fractions)
         above = fractions > median_frac
         n_runs = 1 + np.sum(np.diff(above.astype(int)) != 0)
         n_above = np.sum(above)
         n_below = len(above) - n_above
 
-        # Expected runs for random sequence
         if n_above > 0 and n_below > 0:
             expected_runs = (2 * n_above * n_below) / (n_above + n_below) + 1
             runs_ratio = n_runs / max(expected_runs, 1)
         else:
             runs_ratio = 1.0
 
-        # Classify pattern
         if near_end > 0.35:
             pattern = 'page_end_clustering'
             interpretation = ('Errors cluster near page endings, suggesting scribe fatigue '
@@ -237,7 +220,6 @@ class ErrorModel:
         Identify the top-N pages with fewest anomalies (highest cipher confidence).
         These are the best candidates for decryption attempts.
         """
-        # Count errors per folio
         folio_error_counts = defaultdict(int)
         folio_token_counts = defaultdict(int)
 
@@ -249,7 +231,6 @@ class ErrorModel:
         for folio, errors in error_map.items():
             folio_error_counts[folio] = len(errors)
 
-        # All folios (including those with 0 errors)
         all_folios = set(r['folio'] for r in scan_results)
 
         folio_scores = []
@@ -264,15 +245,9 @@ class ErrorModel:
                 'error_rate': error_rate,
             })
 
-        # Sort by error rate (ascending = most reliable)
         folio_scores.sort(key=lambda x: x['error_rate'])
 
         return folio_scores[:n]
-
-
-# ============================================================================
-# MODULE ENTRY POINT
-# ============================================================================
 
 def run(verbose: bool = True) -> Dict:
     """
@@ -288,7 +263,6 @@ def run(verbose: bool = True) -> Dict:
         print("TRACK 3: SCRIBE ERROR MODELING")
         print("=" * 70)
 
-    # Scan manuscript
     if verbose:
         print("\n  Scanning manuscript for anomalous tokens...")
     scan_results = model.scan_manuscript()
@@ -297,7 +271,6 @@ def run(verbose: bool = True) -> Dict:
         print(f"    Scanned {len(scan_results)} tokens across "
               f"{len(set(r['folio'] for r in scan_results))} folios")
 
-    # Compute threshold
     scores = [r['surprise'] for r in scan_results]
     threshold = model.anomaly_threshold(scores)
 
@@ -307,13 +280,11 @@ def run(verbose: bool = True) -> Dict:
         print(f"    Anomalous tokens: {n_anomalous}/{len(scores)} "
               f"({n_anomalous/max(len(scores),1)*100:.1f}%)")
 
-    # Build error map
     error_map = model.spatial_error_map(scan_results, threshold)
 
     if verbose:
         print(f"    Folios with errors: {len(error_map)}")
 
-    # Analyze error patterns
     if verbose:
         print("\n  Analyzing error distribution patterns...")
     patterns = model.error_pattern_analysis(error_map, scan_results)
@@ -324,7 +295,6 @@ def run(verbose: bool = True) -> Dict:
         print(f"    Near page end: {patterns.get('near_end_fraction', 0):.0%}")
         print(f"    Near page start: {patterns.get('near_start_fraction', 0):.0%}")
 
-    # Reliable pages
     if verbose:
         print("\n  Identifying most reliable pages...")
     reliable = model.reliable_pages(error_map, scan_results, n=20)
@@ -336,7 +306,6 @@ def run(verbose: bool = True) -> Dict:
                   f"{page['n_tokens']} tokens "
                   f"(rate={page['error_rate']:.4f})")
 
-    # Summary statistics
     surprise_arr = np.array(scores)
     summary_stats = {
         'mean_surprise': float(np.mean(surprise_arr)),

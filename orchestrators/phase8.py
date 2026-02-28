@@ -14,7 +14,7 @@ import os
 import time
 from typing import Dict, List
 
-from orchestrators._utils import ensure_output_dir
+from orchestrators._utils import vprint, ensure_output_dir
 from orchestrators._config import LATIN_CORPUS_TOKENS_DEFAULT
 from orchestrators._foundation import build_morphological_context
 
@@ -23,11 +23,9 @@ from modules.phase8.viterbi_decoder import ViterbiDecoder
 from modules.phase8.morphological_synthesizer import MorphologicalSynthesizer
 from modules.phase8.folio_translator import FolioTranslator
 
-
 def load_phase7_data(filepath: str = './output/phase7/phase7_report.json') -> Dict:
     with open(filepath, 'r') as f:
         return json.load(f)
-
 
 def run_phase8_translation(verbose: bool = True, output_dir: str = './output/phase8') -> Dict:
     ensure_output_dir(output_dir)
@@ -39,9 +37,7 @@ def run_phase8_translation(verbose: bool = True, output_dir: str = './output/pha
         print('Viterbi Translation & Morphological Synthesis')
         print('=' * 70)
 
-    # 1. Load Phase 7 Dictionaries & Rebuild Corpora
-    if verbose: print('\n[1/4] Loading Context and Dictionaries...')
-    # Derive Phase 7 path from output_dir (sibling directory)
+    vprint(verbose, '\n[1/4] Loading Context and Dictionaries...')
     parent_dir = os.path.dirname(output_dir)
     p7_path = os.path.join(parent_dir, 'phase7', 'phase7_report.json')
     p7_data = load_phase7_data(p7_path)
@@ -55,8 +51,7 @@ def run_phase8_translation(verbose: bool = True, output_dir: str = './output/pha
     l_parser = LatinMorphologyParser(ctx.latin_corpus)
     l_parser.process_corpus()
 
-    # 2. Viterbi Contextual Smoothing
-    if verbose: print('\n[2/4] Running HMM Viterbi Decoder for Context Correction...')
+    vprint(verbose, '\n[2/4] Running HMM Viterbi Decoder for Context Correction...')
     decoder = ViterbiDecoder(base_stem_map, ctx.voynich_morphemer, l_parser)
     refined_stem_map, viterbi_stats = decoder.run_viterbi_smoothing()
 
@@ -64,12 +59,10 @@ def run_phase8_translation(verbose: bool = True, output_dir: str = './output/pha
         corrections = viterbi_stats['total_corrections']
         print(f"  → Viterbi smoothed {corrections} contextual stemming errors")
 
-    # 3. Morphological Synthesis
-    if verbose: print('\n[3/4] Initializing Latin Morphological Synthesizer...')
+    vprint(verbose, '\n[3/4] Initializing Latin Morphological Synthesizer...')
     synthesizer = MorphologicalSynthesizer(base_affix_map)
 
-    # 4. Folio Translation
-    if verbose: print('\n[4/4] Translating Complete Folios...')
+    vprint(verbose, '\n[4/4] Translating Complete Folios...')
     translator = FolioTranslator(ctx.extractor, ctx.voynich_morphemer, refined_stem_map, synthesizer)
     folio_translations = translator.translate_all_folios()
 

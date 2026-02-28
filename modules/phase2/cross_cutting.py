@@ -9,13 +9,9 @@ B) qo- Word Predictions — test each model's prediction about qo- words
 C) Information-Theoretic Reverse Engineering — derive minimum FSM
 """
 
-import sys
-import os
 import math
 from collections import Counter
 from typing import Dict, List, Tuple, Optional
-
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from modules.statistical_analysis import (
     full_statistical_profile, profile_distance, compute_all_entropy,
@@ -25,11 +21,6 @@ from modules.phase2.base_model import Phase2GenerativeModel, VOYNICH_TARGETS
 from data.voynich_corpus import (
     get_all_tokens, get_section_text, SECTIONS, SAMPLE_CORPUS
 )
-
-
-# ============================================================================
-# INVESTIGATION A: Language A/B Inversion
-# ============================================================================
 
 class LanguageABSplitter:
     """
@@ -71,7 +62,6 @@ class LanguageABSplitter:
         profile_a = full_statistical_profile(lang_a, 'language_a') if lang_a else {}
         profile_b = full_statistical_profile(lang_b, 'language_b') if lang_b else {}
 
-        # Compare the two profiles
         comparison = {}
         if profile_a and profile_b:
             comparison = {
@@ -119,9 +109,6 @@ class LanguageABSplitter:
         for lang_name, lang_text in [('lang_a', lang_a_text), ('lang_b', lang_b_text)]:
             model = model_class(**model_params)
 
-            # For models that use the Voynich corpus directly (Model 4, 6),
-            # we'd need to filter by language. For generative models, we
-            # just compare the generated output against each language's profile.
             generated = model.generate(plaintext=plaintext, n_words=300)
             if not generated:
                 results[lang_name] = {'error': 'No output generated'}
@@ -143,7 +130,6 @@ class LanguageABSplitter:
             if verbose:
                 print(f'  {lang_name}: distance={dist:.4f}, H2={score.get("H2", 0):.4f}')
 
-        # Which language does the model match better?
         dist_a = results.get('lang_a', {}).get('distance_to_target', float('inf'))
         dist_b = results.get('lang_b', {}).get('distance_to_target', float('inf'))
         results['comparison'] = {
@@ -152,11 +138,6 @@ class LanguageABSplitter:
         }
 
         return results
-
-
-# ============================================================================
-# INVESTIGATION B: qo- Word Predictions
-# ============================================================================
 
 class QoPredictionTester:
     """
@@ -187,8 +168,6 @@ class QoPredictionTester:
         """
         qo_freq = len(self.qo_words) / max(len(self.all_tokens), 1)
 
-        # Under verbose cipher, qo- frequency should match a letter frequency
-        # Latin 'e' ≈ 12%, 'i' ≈ 9.5%, 'a' ≈ 8.5%
         best_letter_match = None
         best_diff = float('inf')
         from modules.phase2.verbose_cipher import LATIN_LETTER_FREQ
@@ -198,7 +177,6 @@ class QoPredictionTester:
                 best_diff = diff
                 best_letter_match = letter
 
-        # Test: variety of qo- word endings
         qo_suffixes = Counter(w[2:] for w in self.qo_words if len(w) > 2)
         n_unique_suffixes = len(qo_suffixes)
 
@@ -223,7 +201,6 @@ class QoPredictionTester:
         qo_freq = len(self.qo_words) / max(len(self.all_tokens), 1)
 
         from data.latin_syllables import LATIN_SYLLABLES
-        # Find syllable with closest frequency
         best_syl = None
         best_diff = float('inf')
         for syl, freq in LATIN_SYLLABLES.items():
@@ -232,7 +209,6 @@ class QoPredictionTester:
                 best_diff = diff
                 best_syl = syl
 
-        # "que" is the strongest candidate (enclitic, end-position)
         que_freq = LATIN_SYLLABLES.get('que', 0)
         que_match = abs(qo_freq - que_freq) < 0.03
 
@@ -244,7 +220,7 @@ class QoPredictionTester:
             'que_hypothesis': {
                 'que_frequency': que_freq,
                 'frequency_match': que_match,
-                'end_bias_consistent': True,  # que is enclitic -> appears at ends
+                'end_bias_consistent': True,
             },
             'consistent': que_match,
         }
@@ -259,7 +235,6 @@ class QoPredictionTester:
         non_qo = [t for t in self.all_tokens if not t.startswith('qo') and len(t) > 2]
         non_qo_suffixes = Counter(t[2:] for t in non_qo)
 
-        # Normalize
         qo_total = sum(qo_suffixes.values())
         non_qo_total = sum(non_qo_suffixes.values())
 
@@ -270,14 +245,12 @@ class QoPredictionTester:
                 'error': 'Insufficient data',
             }
 
-        # Compare suffix distributions (Jensen-Shannon divergence)
         all_suffixes = set(qo_suffixes.keys()) | set(non_qo_suffixes.keys())
         p = [(qo_suffixes.get(s, 0) + 1e-10) / (qo_total + len(all_suffixes) * 1e-10)
              for s in all_suffixes]
         q = [(non_qo_suffixes.get(s, 0) + 1e-10) / (non_qo_total + len(all_suffixes) * 1e-10)
              for s in all_suffixes]
 
-        # JS divergence
         import numpy as np
         p_arr = np.array(p)
         q_arr = np.array(q)
@@ -290,7 +263,7 @@ class QoPredictionTester:
             'distributions_similar': js < 0.5,
             'n_qo_suffixes': len(qo_suffixes),
             'n_non_qo_suffixes': len(non_qo_suffixes),
-            'consistent': js < 0.5,  # Low JS = similar distributions = independent slots
+            'consistent': js < 0.5,
         }
 
     def run_all_predictions(self, verbose: bool = False) -> Dict:
@@ -307,11 +280,6 @@ class QoPredictionTester:
                 print(f'  {model:25s}: {status} — {result.get("prediction", "")}')
 
         return results
-
-
-# ============================================================================
-# INVESTIGATION C: Information-Theoretic Reverse Engineering
-# ============================================================================
 
 class MinimalFSMDerivation:
     """
@@ -338,43 +306,27 @@ class MinimalFSMDerivation:
         ttr = VOYNICH_TARGETS['type_token_ratio']
         zipf_exp = VOYNICH_TARGETS['zipf_exponent']
 
-        # Effective choices per position
         effective_choices = 2 ** h2
 
-        # Estimate active vocabulary from TTR
-        # TTR ≈ vocab_size / total_tokens
-        # For 36,238 tokens: vocab_size ≈ 36,238 * 0.164 ≈ 5,951
-        # But the ACTIVE vocabulary (top words) is much smaller
-        # From Zipf with exponent 1.24, the top-50 words account for ~80% of tokens
-        total_tokens = 36238  # Full Voynich corpus
+        total_tokens = 36238
         vocab_size = int(total_tokens * ttr)
 
-        # Estimate how many words account for 80% of text
-        # With Zipf exponent α, cumulative proportion of top-k words:
-        # C(k) ≈ k^(1-α) / N^(1-α)
-        # For 80%: k^(1-α) = 0.8 * N^(1-α)
-        # k = (0.8)^(1/(1-α)) * N
         alpha = zipf_exp
         if alpha != 1.0:
             core_vocab = int((0.8 ** (1.0 / max(1.0 - alpha, 0.01))) * vocab_size)
         else:
-            core_vocab = int(vocab_size * 0.2)  # 80/20 rule approximation
+            core_vocab = int(vocab_size * 0.2)
         core_vocab = max(10, min(core_vocab, 200))
 
-        # FSM parameters
-        estimated_states = core_vocab  # Each active word = one state
+        estimated_states = core_vocab
         estimated_transitions = int(estimated_states * effective_choices)
 
-        # Information content
-        information_per_word = h2  # bits per word position
+        information_per_word = h2
         total_info_bits = information_per_word * total_tokens
 
-        # Equivalent plaintext
-        # 1 Latin word ≈ 5 characters ≈ 5 * 4.5 bits/char ≈ 22.5 bits
         bits_per_latin_word = 22.5
         equivalent_latin_words = int(total_info_bits / bits_per_latin_word)
 
-        # Kolmogorov bound
         kolmogorov_bound_kb = total_info_bits / (8 * 1024)
 
         return {
@@ -423,15 +375,10 @@ class MinimalFSMDerivation:
                 'minimum_states': min_states,
                 'ratio': round(ratio, 2),
                 'model_H2': round(h2, 4),
-                'compatible': 0.3 <= ratio <= 3.0,  # Within an order of magnitude
+                'compatible': 0.3 <= ratio <= 3.0,
             }
 
         return comparisons
-
-
-# ============================================================================
-# UNIFIED RUNNER
-# ============================================================================
 
 def run_cross_cutting(model_outputs: Optional[Dict] = None,
                       verbose: bool = True) -> Dict:
@@ -448,7 +395,6 @@ def run_cross_cutting(model_outputs: Optional[Dict] = None,
     """
     results = {}
 
-    # Investigation A: Language A/B
     if verbose:
         print('\n--- Investigation A: Language A/B Inversion ---')
     splitter = LanguageABSplitter()
@@ -458,13 +404,11 @@ def run_cross_cutting(model_outputs: Optional[Dict] = None,
         print(f'  A/B distance: {comp.get("distance", "N/A")}')
         print(f'  H2 diff: {comp.get("H2_diff", "N/A")}')
 
-    # Investigation B: qo- Predictions
     if verbose:
         print('\n--- Investigation B: qo- Word Predictions ---')
     qo_tester = QoPredictionTester()
     results['qo_predictions'] = qo_tester.run_all_predictions(verbose=verbose)
 
-    # Investigation C: Information-Theoretic FSM
     if verbose:
         print('\n--- Investigation C: Minimal FSM Derivation ---')
     fsm = MinimalFSMDerivation()

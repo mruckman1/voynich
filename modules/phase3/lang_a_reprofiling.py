@@ -8,14 +8,10 @@ Language A alone falls within any cipher family's null distribution.
 Also tests the verbose cipher model specifically for Language A.
 """
 
-import sys
-import os
 import math
 import numpy as np
 from collections import Counter
 from typing import Dict, List, Optional
-
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from modules.phase2.cross_cutting import LanguageABSplitter
 from modules.null_framework import (
@@ -27,8 +23,6 @@ from modules.statistical_analysis import (
 from modules.phase2.verbose_cipher import VerboseCipher
 from modules.phase2.base_model import VOYNICH_TARGETS
 
-
-# Language A targets from Phase 2 cross-cutting results
 LANG_A_TARGETS = {
     'H1': 3.634,
     'H2': 1.487,
@@ -39,7 +33,6 @@ LANG_A_TARGETS = {
     'total_tokens': 187,
     'mean_word_length': 4.43,
 }
-
 
 class LanguageAReprofiler:
     """
@@ -83,7 +76,6 @@ class LanguageAReprofiler:
             verbose=False,
         )
 
-        # Override the Voynich metrics with Language A metrics
         engine.voynich_metrics = {
             'H1': LANG_A_TARGETS['H1'],
             'H2': LANG_A_TARGETS['H2'],
@@ -93,7 +85,6 @@ class LanguageAReprofiler:
             'mean_word_length': LANG_A_TARGETS['mean_word_length'],
         }
 
-        # Run distributions for all cipher x language combinations
         percentile_ranks = {}
         p_values = {}
         compatible_families = []
@@ -114,7 +105,6 @@ class LanguageAReprofiler:
 
                 dist = engine.compute_metric_distributions(samples)
 
-                # Compute p-values for each metric
                 lang_p_values = {}
                 for metric in ['H2', 'H3', 'zipf_exponent', 'type_token_ratio']:
                     target_val = engine.voynich_metrics.get(metric, 0)
@@ -127,7 +117,6 @@ class LanguageAReprofiler:
 
                 p_values[cipher_name][lang] = lang_p_values
 
-                # Percentile ranks
                 lang_percentiles = {}
                 for metric in ['H2', 'H3', 'zipf_exponent', 'type_token_ratio']:
                     target_val = engine.voynich_metrics.get(metric, 0)
@@ -138,8 +127,6 @@ class LanguageAReprofiler:
 
                 percentile_ranks[cipher_name][lang] = lang_percentiles
 
-                # A cipher family is "compatible" if Language A's H2
-                # is within the 5th-95th percentile range
                 h2_dist = dist.get('H2', np.array([]))
                 if len(h2_dist) > 0:
                     p5 = np.percentile(h2_dist, 5)
@@ -176,7 +163,6 @@ class LanguageAReprofiler:
         Phase 2 verbose cipher failed on combined corpus (H2=2.08) but
         Language A's H2=1.49 is closer to the verbose cipher range.
         """
-        # Run a coarse sweep first
         model = VerboseCipher(seed=42)
         sweep_results = model.run_sweep(
             resolution='coarse',
@@ -184,7 +170,6 @@ class LanguageAReprofiler:
             verbose=self.verbose,
         )
 
-        # Score against Language A targets instead of combined
         lang_a_scored = []
         for entry in sweep_results.get('best_results', []):
             profile = entry.get('score', {})
@@ -241,21 +226,18 @@ class LanguageAReprofiler:
         If Language A alone is LESS anomalous, blending with Language B
         was masking a viable cipher family.
         """
-        # Combined corpus targets
         combined_targets = {
-            'H2': VOYNICH_TARGETS['H2'],           # 1.4058
-            'type_token_ratio': VOYNICH_TARGETS['type_token_ratio'],  # 0.1643
-            'zipf_exponent': VOYNICH_TARGETS['zipf_exponent'],        # 1.2437
+            'H2': VOYNICH_TARGETS['H2'],
+            'type_token_ratio': VOYNICH_TARGETS['type_token_ratio'],
+            'zipf_exponent': VOYNICH_TARGETS['zipf_exponent'],
         }
 
-        # Language A targets
         lang_a_targets = {
-            'H2': LANG_A_TARGETS['H2'],             # 1.487
-            'type_token_ratio': LANG_A_TARGETS['type_token_ratio'],  # 0.305
-            'zipf_exponent': LANG_A_TARGETS['zipf_exponent'],        # 0.931
+            'H2': LANG_A_TARGETS['H2'],
+            'type_token_ratio': LANG_A_TARGETS['type_token_ratio'],
+            'zipf_exponent': LANG_A_TARGETS['zipf_exponent'],
         }
 
-        # Natural language reference ranges (Latin medical text)
         natural_ranges = {
             'H2': (1.2, 2.0),
             'type_token_ratio': (0.15, 0.40),
@@ -305,7 +287,6 @@ class LanguageAReprofiler:
 
         results = {}
 
-        # Compute Language A profile
         if verbose:
             print('\n  --- Language A Profile ---')
         profile = self.compute_lang_a_profile()
@@ -327,14 +308,12 @@ class LanguageAReprofiler:
             'token_count': profile.get('token_count', 0),
         }
 
-        # A vs Combined comparison
         if verbose:
             print('\n  --- Language A vs Combined Corpus ---')
         results['a_vs_combined'] = self.compare_a_vs_combined()
         if verbose:
             print(f'  {results["a_vs_combined"]["interpretation"]}')
 
-        # Null framework against Language A
         if verbose:
             print('\n  --- Null Framework (Language A targets) ---')
         results['null_comparison'] = self.run_null_against_lang_a()
@@ -346,14 +325,12 @@ class LanguageAReprofiler:
                       f'H2 range [{cf["h2_range"][0]:.3f}, {cf["h2_range"][1]:.3f}], '
                       f'p={cf["h2_p_value"]:.3f}')
 
-        # Verbose cipher test
         if verbose:
             print('\n  --- Verbose Cipher for Language A ---')
         results['verbose_cipher'] = self.test_verbose_cipher_for_lang_a()
         if verbose:
             print(f'  {results["verbose_cipher"]["interpretation"]}')
 
-        # Synthesis
         results['synthesis'] = {
             'lang_a_less_anomalous': results['a_vs_combined']['lang_a_less_anomalous'],
             'any_cipher_compatible': results['null_comparison']['any_family_compatible'],
@@ -365,7 +342,6 @@ class LanguageAReprofiler:
             print(f'\n  Conclusion: {results["synthesis"]["conclusion"]}')
 
         return results
-
 
 def _synthesize_lang_a(results: Dict) -> str:
     """Generate conclusion about Language A."""

@@ -12,18 +12,13 @@ co-occurrence matrix. If 5-8 coherent classes emerge with
 interpretable transition patterns, the model is supported.
 """
 
-import sys
-import os
 import math
 import numpy as np
 from collections import Counter, defaultdict
 from typing import Dict, List, Tuple
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-
 from modules.statistical_analysis import word_conditional_entropy
 from modules.phase4.lang_a_extractor import LanguageAExtractor
-
 
 class SemanticCompressionModel:
     """
@@ -39,7 +34,6 @@ class SemanticCompressionModel:
     def __init__(self, extractor: LanguageAExtractor):
         self.extractor = extractor
 
-    # Maximum vocabulary size for matrix operations
     MAX_VOCAB = 150
 
     def build_cooccurrence_matrix(self, window: int = 5) -> Tuple[np.ndarray, List[str]]:
@@ -87,12 +81,10 @@ class SemanticCompressionModel:
                 'vocabulary_size': len(vocab),
             }
 
-        # Normalize matrix to similarity
         row_sums = matrix.sum(axis=1, keepdims=True)
         row_sums[row_sums == 0] = 1
         similarity = matrix / row_sums
 
-        # Make symmetric
         similarity = (similarity + similarity.T) / 2
         np.fill_diagonal(similarity, 1.0)
 
@@ -114,7 +106,6 @@ class SemanticCompressionModel:
                 best_k = k
                 best_labels = labels
 
-        # Build cluster membership
         clusters = defaultdict(list)
         if best_labels is not None:
             for i, label in enumerate(best_labels):
@@ -135,29 +126,23 @@ class SemanticCompressionModel:
         if k >= n:
             return None
 
-        # Compute degree matrix and Laplacian
         degree = np.diag(similarity.sum(axis=1))
         laplacian = degree - similarity
 
-        # Normalized Laplacian
         d_inv_sqrt = np.diag(1.0 / np.sqrt(np.maximum(np.diag(degree), 1e-10)))
         L_norm = d_inv_sqrt @ laplacian @ d_inv_sqrt
 
-        # Eigendecomposition
         try:
             eigenvalues, eigenvectors = np.linalg.eigh(L_norm)
         except np.linalg.LinAlgError:
             return None
 
-        # Take the first k eigenvectors (smallest eigenvalues)
         features = eigenvectors[:, :k]
 
-        # Normalize rows
         norms = np.linalg.norm(features, axis=1, keepdims=True)
         norms[norms == 0] = 1
         features = features / norms
 
-        # K-means clustering on the eigenvector features
         labels = self._simple_kmeans(features, k)
         return labels
 
@@ -167,19 +152,16 @@ class SemanticCompressionModel:
         rng = np.random.RandomState(seed)
         n = X.shape[0]
 
-        # Initialize centroids randomly
         indices = rng.choice(n, size=k, replace=False)
         centroids = X[indices].copy()
 
         labels = np.zeros(n, dtype=int)
 
         for _ in range(max_iter):
-            # Assign points to nearest centroid
             for i in range(n):
                 dists = np.linalg.norm(X[i] - centroids, axis=1)
                 labels[i] = np.argmin(dists)
 
-            # Update centroids
             new_centroids = np.zeros_like(centroids)
             for j in range(k):
                 mask = labels == j
@@ -200,19 +182,16 @@ class SemanticCompressionModel:
         if n < 2:
             return 0.0
 
-        # Convert similarity to distance
         distance = 1.0 - similarity / (similarity.max() + 1e-10)
 
         scores = []
         for i in range(n):
-            # Average distance to same-cluster points
             same_cluster = [j for j in range(n) if labels[j] == labels[i] and j != i]
             if not same_cluster:
                 scores.append(0.0)
                 continue
             a_i = np.mean([distance[i][j] for j in same_cluster])
 
-            # Average distance to nearest other cluster
             other_clusters = set(labels) - {labels[i]}
             if not other_clusters:
                 scores.append(0.0)
@@ -239,7 +218,6 @@ class SemanticCompressionModel:
         """
         matrix, vocab = self.build_cooccurrence_matrix()
 
-        # Ensure non-negative
         matrix = np.maximum(matrix, 0)
 
         best_error = float('inf')
@@ -256,14 +234,12 @@ class SemanticCompressionModel:
                 best_k = k
                 best_W = W
 
-        # Assign words to topics based on highest weight in W
         topics = defaultdict(list)
         if best_W is not None:
             assignments = np.argmax(best_W, axis=1)
             for i, topic in enumerate(assignments):
                 topics[int(topic)].append((vocab[i], float(best_W[i, topic])))
 
-        # Sort words within each topic by weight
         for topic in topics:
             topics[topic].sort(key=lambda x: -x[1])
 
@@ -287,12 +263,10 @@ class SemanticCompressionModel:
         H = rng.rand(k, m) + 0.1
 
         for _ in range(max_iter):
-            # Update H
             numerator = W.T @ V
             denominator = W.T @ W @ H + 1e-10
             H *= numerator / denominator
 
-            # Update W
             numerator = V @ H.T
             denominator = W @ H @ H.T + 1e-10
             W *= numerator / denominator
@@ -348,13 +322,11 @@ class SemanticCompressionModel:
         """
         tokens = self.extractor.extract_lang_a_tokens()
 
-        # Map each token to its cluster
         word_to_cluster = {}
         for c, words in clusters.items():
             for w in words:
                 word_to_cluster[w] = c
 
-        # Build cluster transition matrix
         n_clusters = max(clusters.keys()) + 1 if clusters else 0
         trans = np.zeros((n_clusters, n_clusters), dtype=float)
 
@@ -364,12 +336,10 @@ class SemanticCompressionModel:
             if c1 >= 0 and c2 >= 0:
                 trans[c1][c2] += 1
 
-        # Normalize
         row_sums = trans.sum(axis=1, keepdims=True)
         row_sums[row_sums == 0] = 1
         trans_prob = trans / row_sums
 
-        # Check for dominant transitions (any P > 0.5)
         dominant_transitions = []
         for i in range(n_clusters):
             for j in range(n_clusters):
@@ -428,7 +398,6 @@ class SemanticCompressionModel:
         spectral = self.apply_spectral_clustering()
         nmf = self.apply_nmf_topic_model()
 
-        # Evaluate coherence of spectral clusters
         clusters = spectral.get('clusters', {})
         coherence = self.evaluate_cluster_coherence(clusters) if clusters else {'coherent': False}
         transitions = self.test_transition_structure(clusters) if clusters else {'has_structure': False}

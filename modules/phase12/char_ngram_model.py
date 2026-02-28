@@ -17,7 +17,6 @@ import math
 from collections import Counter
 from typing import Dict, List, Tuple
 
-
 class LatinCharNgramModel:
     """
     Character-level n-gram language model trained on Latin corpus tokens.

@@ -35,11 +35,9 @@ from modules.phase12.syntactic_scaffolder import SyntacticScaffolder
 from modules.phase12.ngram_mask_solver import NgramMaskSolver
 from data.botanical_identifications import PLANT_IDS
 
-
 def _count_brackets(text: str) -> int:
     """Count all bracketed tokens in text."""
     return len(re.findall(r'\[[^\]]+\]|<[^>]+>', text))
-
 
 def _find_phase_output(phase_num: int, filename: str) -> str:
     """Locate a prior phase's output file, checking multiple directories."""
@@ -55,7 +53,6 @@ def _find_phase_output(phase_num: int, filename: str) -> str:
         f'Searched: {candidates}. Run phase {phase_num} first.'
     )
 
-
 def _find_combined_report() -> str:
     """Locate the combined report JSON."""
     candidates = [
@@ -68,7 +65,6 @@ def _find_combined_report() -> str:
     raise FileNotFoundError(
         f'Cannot find combined_report.json. Searched: {candidates}'
     )
-
 
 def _run_full_decode(
     ctx, folio_limit: Optional[int], verbose: bool
@@ -83,7 +79,6 @@ def _run_full_decode(
     l_tokens = ctx.latin_tokens
     l_corpus = ctx.latin_corpus
 
-    # Build Phase 12 components
     latin_skel = LatinPhoneticSkeletonizer(l_tokens)
     trans_matrix, trans_vocab = l_corpus.build_transition_matrix()
 
@@ -104,7 +99,6 @@ def _run_full_decode(
         print(f'  → Latin skeletons: {len(latin_skel.skeleton_index)} unique')
         print(f'  → Transition matrix: {trans_matrix.shape[0]}x{trans_matrix.shape[1]}')
 
-    # Decode all folios
     by_folio = extractor.extract_lang_a_by_folio()
     folio_items = list(by_folio.items())
     if folio_limit is not None:
@@ -113,7 +107,6 @@ def _run_full_decode(
     if verbose:
         print(f'  → Decoding {len(folio_items)} folios...')
 
-    # Phase 12.2: Budgeted CSP
     csp_translations = {}
     total_bracket_count = 0
     total_word_count = 0
@@ -131,12 +124,10 @@ def _run_full_decode(
         print(f'  → CSP decoded {len(csp_translations)} folios, '
               f'{total_word_count} words, {total_bracket_count} brackets')
 
-    # Phase 12.3: Syntactic Scaffolding
     scaffolded_translations = {}
     for folio, decoded_text in csp_translations.items():
         scaffolded_translations[folio] = scaffolder.scaffold(decoded_text)
 
-    # Phase 12.4: N-Gram Mask Solving
     final_translations = {}
     total_resolved = 0
     total_unresolved = 0
@@ -151,7 +142,6 @@ def _run_full_decode(
         print(f'  → N-gram resolved: {total_resolved}, '
               f'still unresolved: {total_unresolved}')
 
-    # Per-folio stats
     per_folio_stats = {}
     from collections import Counter
     for folio, text in final_translations.items():
@@ -189,7 +179,6 @@ def _run_full_decode(
         '_latin_skel': latin_skel,
     }
 
-
 def run_phase13_synthesis(
     phases: Optional[List[str]] = None,
     verbose: bool = True,
@@ -225,9 +214,6 @@ def run_phase13_synthesis(
         'data', 'english_glossary.json'
     )
 
-    # ================================================================
-    # SUB-PHASE 0: Full-Corpus Decode
-    # ================================================================
     decode_data = None
     ctx = None
     fuzzy_skel = None
@@ -251,7 +237,6 @@ def run_phase13_synthesis(
             'final_unresolved_rate': decode_data['ngram_metrics']['final_unresolved_rate'],
         }
 
-        # Save full translations
         translations_path = os.path.join(output_dir, 'phase13_full_translations.json')
         save_json(translations_path, decode_data)
 
@@ -263,7 +248,6 @@ def run_phase13_synthesis(
                   f'unresolved rate: {unres:.1%}')
             print(f'  → Saved: {translations_path}')
     else:
-        # Try to load cached decode
         cached_path = os.path.join(output_dir, 'phase13_full_translations.json')
         if os.path.exists(cached_path):
             if verbose:
@@ -271,7 +255,6 @@ def run_phase13_synthesis(
             with open(cached_path, 'r') as f:
                 decode_data = json.load(f)
         else:
-            # Fall back to Phase 12 output
             try:
                 p12_path = _find_phase_output(12, 'phase12_reconstruction.json')
                 if verbose:
@@ -282,9 +265,6 @@ def run_phase13_synthesis(
                 print('ERROR: No decoded translations found. Run with --decode or run Phase 12 first.')
                 return results
 
-    # ================================================================
-    # SUB-PHASE 1: English Glosser
-    # ================================================================
     english_translations = {}
     if 'gloss' in run_phases:
         if verbose:
@@ -301,7 +281,6 @@ def run_phase13_synthesis(
         )
         results['english_glosser'] = gloss_metrics
 
-        # Load back for HTML viewer
         with open(gloss_output, 'r') as f:
             english_data = json.load(f)
         english_translations = english_data.get('english_translations', {})
@@ -310,16 +289,12 @@ def run_phase13_synthesis(
             print(f'  → Glossed {gloss_metrics.get("folios_glossed", 0)} folios')
             print(f'  → Coverage: {gloss_metrics.get("glossed_rate", 0):.1%}')
 
-    # ================================================================
-    # SUB-PHASE 2: Interlinear HTML Viewer
-    # ================================================================
     if 'html' in run_phases:
         if verbose:
             print('\n[2/5] Generating Interlinear HTML Viewer...')
 
         from modules.phase13.html_viewer import generate_interlinear_html
 
-        # Load Phase 7 data for morphology
         try:
             p7_path = _find_phase_output(7, 'phase7_report.json')
             with open(p7_path, 'r') as f:
@@ -327,13 +302,11 @@ def run_phase13_synthesis(
         except FileNotFoundError:
             phase7_data = {}
 
-        # Get EVA tokens per folio
         eva_by_folio = {}
         if ctx is not None:
             by_folio = ctx.extractor.extract_lang_a_by_folio()
             eva_by_folio = {f: tokens for f, tokens in by_folio.items()}
         else:
-            # Build minimal extractor just for EVA tokens
             from modules.phase4.lang_a_extractor import LanguageAExtractor
             ext = LanguageAExtractor(verbose=False)
             by_folio = ext.extract_lang_a_by_folio()
@@ -354,16 +327,12 @@ def run_phase13_synthesis(
         if verbose:
             print(f'  → HTML saved: {html_path}')
 
-    # ================================================================
-    # SUB-PHASE 3: HITL Console (interactive, skipped by default)
-    # ================================================================
     if 'hitl' in run_phases:
         if verbose:
             print('\n[3/5] Starting HITL Console...')
 
         from modules.phase13.hitl_console import run_hitl_console
 
-        # Need skeletonizers for candidate generation
         if fuzzy_skel is None or latin_skel is None:
             if ctx is None:
                 ctx = build_morphological_context(
@@ -387,9 +356,6 @@ def run_phase13_synthesis(
             print('\n[3/5] HITL Console skipped (use --hitl to enable)')
         results['hitl_console'] = {'skipped': True}
 
-    # ================================================================
-    # SUB-PHASE 4: Academic Whitepaper
-    # ================================================================
     if 'whitepaper' in run_phases:
         if verbose:
             print('\n[4/5] Generating Academic Whitepaper...')
@@ -413,9 +379,6 @@ def run_phase13_synthesis(
             )
             results['whitepaper'] = wp_metrics
 
-    # ================================================================
-    # SUB-PHASE 5: Illustration-Text Correlation
-    # ================================================================
     if 'correlation' in run_phases:
         if verbose:
             print('\n[5/5] Running Illustration-Text Correlation...')
@@ -443,9 +406,6 @@ def run_phase13_synthesis(
                   '(use --correlation)')
         results['illustration_correlation'] = {'skipped': True}
 
-    # ================================================================
-    # Save & Report
-    # ================================================================
     elapsed = time.time() - t0
     results['elapsed_seconds'] = round(elapsed, 2)
     results['conclusion'] = (

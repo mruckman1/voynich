@@ -13,20 +13,14 @@ Fixes Phase 5's SAA with three structural changes:
 Phase 6  ·  Voynich Convergence Attack
 """
 
-import sys
-import os
 import math
 import random
 import numpy as np
 from collections import Counter
 from typing import Dict, List, Tuple, Optional, Set
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-
 from modules.phase5.nmf_scaffold import NMFScaffold
 
-
-# Known Latin herbal phrases for validation (same as Phase 5)
 RECOGNIZABLE_PHRASES = [
     'calida et sicca', 'frigida et humida', 'calida et humida',
     'frigida et sicca', 'in primo gradu', 'in secundo gradu',
@@ -35,7 +29,6 @@ RECOGNIZABLE_PHRASES = [
     'et sanabitur', 'cum aqua', 'cum vino', 'cum melle',
     'da bibere', 'et coque', 'contra venenum',
 ]
-
 
 class FixedSAA:
     """
@@ -79,7 +72,6 @@ class FixedSAA:
         self.v_word_to_idx = {w: i for i, w in enumerate(voynich_vocab)}
         self.l_word_to_idx = {w: i for i, w in enumerate(latin_vocab)}
 
-        # Build candidate index sets for crib checking
         self._candidate_indices: Dict[int, Set[int]] = {}
         for v_word, candidates in rank_pairs.items():
             if v_word in self.v_word_to_idx:
@@ -91,7 +83,6 @@ class FixedSAA:
                 if l_indices:
                     self._candidate_indices[v_idx] = l_indices
 
-        # NMF topic matrix
         self._topic_matrix = None
         if nmf_scaffold is not None:
             self._topic_matrix = nmf_scaffold.build_topic_coherence_matrix(voynich_vocab)
@@ -111,8 +102,6 @@ class FixedSAA:
         used_l_indices: Set[int] = set()
         locked_indices: Set[int] = set()
 
-        # Phase 1: Lock the top-N most frequent Voynich words
-        # (Voynich vocab is sorted by frequency from the tier split)
         for v_idx in range(min(self.n_locked, self.n_v)):
             v_word = self.v_vocab[v_idx]
             assigned = False
@@ -129,7 +118,6 @@ class FixedSAA:
                             break
 
             if not assigned:
-                # Assign closest rank
                 for l_idx in range(self.n_l):
                     if l_idx not in used_l_indices:
                         perm[v_idx] = l_idx
@@ -137,7 +125,6 @@ class FixedSAA:
                         locked_indices.add(v_idx)
                         break
 
-        # Phase 2: Assign remaining words (not locked)
         for v_idx in range(self.n_v):
             if perm[v_idx] != -1:
                 continue
@@ -156,14 +143,12 @@ class FixedSAA:
                             break
 
             if not assigned:
-                # Find nearest unused Latin index
                 for l_idx in range(self.n_l):
                     if l_idx not in used_l_indices:
                         perm[v_idx] = l_idx
                         used_l_indices.add(l_idx)
                         break
 
-        # Safety: any remaining unassigned get wrapped around
         for v_idx in range(self.n_v):
             if perm[v_idx] == -1:
                 perm[v_idx] = v_idx % self.n_l
@@ -238,7 +223,6 @@ class FixedSAA:
         old_li, old_lj = perm[i], perm[j]
         delta = 0.0
 
-        # Matrix distance delta for rows/columns i and j
         if self.alpha > 0:
             for k in range(self.n_v):
                 lk = perm[k]
@@ -247,31 +231,26 @@ class FixedSAA:
                 if k == i or k == j:
                     continue
 
-                # Row i: was using old_li, now uses old_lj
                 vi_k = self.v_matrix[i, k]
                 old_l = self.l_matrix[old_li, lk] if old_li < self.n_l else 0
                 new_l = self.l_matrix[old_lj, lk] if old_lj < self.n_l else 0
                 delta += self.alpha * ((vi_k - new_l) ** 2 - (vi_k - old_l) ** 2)
 
-                # Column i
                 vk_i = self.v_matrix[k, i]
                 old_l2 = self.l_matrix[lk, old_li] if old_li < self.n_l else 0
                 new_l2 = self.l_matrix[lk, old_lj] if old_lj < self.n_l else 0
                 delta += self.alpha * ((vk_i - new_l2) ** 2 - (vk_i - old_l2) ** 2)
 
-                # Row j: was using old_lj, now uses old_li
                 vj_k = self.v_matrix[j, k]
                 old_l3 = self.l_matrix[old_lj, lk] if old_lj < self.n_l else 0
                 new_l3 = self.l_matrix[old_li, lk] if old_li < self.n_l else 0
                 delta += self.alpha * ((vj_k - new_l3) ** 2 - (vj_k - old_l3) ** 2)
 
-                # Column j
                 vk_j = self.v_matrix[k, j]
                 old_l4 = self.l_matrix[lk, old_lj] if old_lj < self.n_l else 0
                 new_l4 = self.l_matrix[lk, old_li] if old_li < self.n_l else 0
                 delta += self.alpha * ((vk_j - new_l4) ** 2 - (vk_j - old_l4) ** 2)
 
-            # Cross terms: (i,j) and (j,i)
             if old_li < self.n_l and old_lj < self.n_l:
                 vi_j = self.v_matrix[i, j]
                 old_cross = self.l_matrix[old_li, old_lj]
@@ -283,7 +262,6 @@ class FixedSAA:
                 new_cross2 = self.l_matrix[old_li, old_lj]
                 delta += self.alpha * ((vj_i - new_cross2) ** 2 - (vj_i - old_cross2) ** 2)
 
-        # Crib violation delta
         if self.beta > 0:
             for idx, old_val, new_val in [(i, old_li, old_lj), (j, old_lj, old_li)]:
                 if idx in self._candidate_indices:
@@ -292,7 +270,6 @@ class FixedSAA:
                     new_v = 1.0 if new_val not in valid else 0.0
                     delta += self.beta * (new_v - old_v)
 
-        # Rank deviation delta
         if self.gamma > 0:
             old_dev = abs(i - old_li) + abs(j - old_lj)
             new_dev = abs(i - old_lj) + abs(j - old_li)
@@ -310,12 +287,10 @@ class FixedSAA:
         """
         rng = random.Random(seed)
 
-        # Initialize bijective permutation with top-N locked
         current, locked_indices = self._initialize_bijective(rng)
         non_locked = [i for i in range(self.n_v) if i not in locked_indices]
 
         if not non_locked:
-            # Everything locked — just return the initialization
             mapping = {}
             for i, l_idx in enumerate(current):
                 if i < len(self.v_vocab) and l_idx < len(self.l_vocab):
@@ -339,7 +314,6 @@ class FixedSAA:
         for iteration in range(1, n_iter + 1):
             T = T_0 * (T_final / T_0) ** (iteration / n_iter)
 
-            # Propose swap: pick two non-locked indices
             i = rng.choice(non_locked)
             j = rng.choice(non_locked)
             if i == j:
@@ -348,7 +322,6 @@ class FixedSAA:
             d = self._delta_cost_swap(current, i, j)
 
             if d < 0 or rng.random() < math.exp(-d / max(T, 1e-10)):
-                # Accept swap
                 current[i], current[j] = current[j], current[i]
                 current_cost += d
                 n_accepted += 1
@@ -362,13 +335,11 @@ class FixedSAA:
 
         cost_trajectory.append((n_iter, best_cost))
 
-        # Build mapping
         mapping = {}
         for i, l_idx in enumerate(best):
             if i < len(self.v_vocab) and l_idx < len(self.l_vocab):
                 mapping[self.v_vocab[i]] = self.l_vocab[l_idx]
 
-        # Check bijectivity
         reverse = {}
         collisions = 0
         for v, l in mapping.items():

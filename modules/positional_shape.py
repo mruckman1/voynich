@@ -9,26 +9,17 @@ certain cipher families, enabling definitive exclusions.
 The Voynich curve: low at positions 0-1, peak at 3-4, declining at 6+.
 """
 
-import sys
-import os
 import time
 import numpy as np
 from collections import defaultdict
 from typing import Dict, List, Tuple, Optional
 from scipy.spatial.distance import cosine as cosine_distance
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 from modules.statistical_analysis import word_positional_entropy
 from data.voynich_corpus import get_all_tokens, get_section_text, SECTIONS
 from modules.null_framework import (
     CIPHER_FAMILIES, SOURCE_LANGUAGES, _generate_plaintext
 )
-
-
-# ============================================================================
-# ENTROPY SHAPE ATLAS
-# ============================================================================
 
 class EntropyShapeAtlas:
     """
@@ -147,7 +138,6 @@ class EntropyShapeAtlas:
 
                 cos_dist = self.shape_distance(voynich_shape, mean)
 
-                # Z-score: how many SDs is the Voynich curve from the mean?
                 with np.errstate(divide='ignore', invalid='ignore'):
                     z_scores = np.where(std > 0.001,
                                         np.abs(voynich_shape - mean) / std,
@@ -168,7 +158,7 @@ class EntropyShapeAtlas:
         at the majority of positions.
         """
         excluded = []
-        z_threshold = 2.576  # 99% two-tailed
+        z_threshold = 2.576
 
         for cipher_name, lang_data in self.atlas.items():
             for lang, shape_data in lang_data.items():
@@ -182,7 +172,6 @@ class EntropyShapeAtlas:
                         if z > z_threshold:
                             n_outside += 1
 
-                # Exclude if majority of positions are outside CI
                 fraction_outside = n_outside / self.n_positions
                 if fraction_outside > 0.5:
                     excluded.append({
@@ -196,11 +185,6 @@ class EntropyShapeAtlas:
                     })
 
         return excluded
-
-
-# ============================================================================
-# MODULE ENTRY POINT
-# ============================================================================
 
 def run(verbose: bool = True, n_samples: int = 100) -> Dict:
     """
@@ -217,7 +201,6 @@ def run(verbose: bool = True, n_samples: int = 100) -> Dict:
         print("TRACK 1: POSITIONAL ENTROPY SHAPE MATCHING")
         print("=" * 70)
 
-    # Step 1: Voynich shape
     if verbose:
         print("\n  Computing Voynich positional entropy shape...")
     voynich_shape = atlas.compute_voynich_shape()
@@ -226,7 +209,6 @@ def run(verbose: bool = True, n_samples: int = 100) -> Dict:
         print(f"    Curve: {[f'{v:.3f}' for v in voynich_shape]}")
         print(f"    Peak position: {np.argmax(voynich_shape)}")
 
-    # Step 2: Per-section shapes
     section_shapes = {}
     for section in SECTIONS:
         shape = atlas.compute_voynich_shape(section=section)
@@ -236,10 +218,8 @@ def run(verbose: bool = True, n_samples: int = 100) -> Dict:
                 'peak_position': int(np.argmax(shape)),
             }
 
-    # Step 3: Build atlas
     atlas.build_atlas()
 
-    # Step 4: Rank families
     if verbose:
         print("\n  Ranking cipher families by shape match...")
     rankings = atlas.rank_cipher_families(voynich_shape)
@@ -250,7 +230,6 @@ def run(verbose: bool = True, n_samples: int = 100) -> Dict:
         for i, (cipher, lang, cos_d, mean_z) in enumerate(rankings[:10]):
             print(f"  {i+1:<5} {cipher:<25} {lang:<10} {cos_d:<8.4f} {mean_z:<8.2f}")
 
-    # Step 5: Exclusion test
     if verbose:
         print("\n  Running exclusion test (99% CI)...")
     exclusions = atlas.exclusion_test(voynich_shape)
@@ -263,7 +242,6 @@ def run(verbose: bool = True, n_samples: int = 100) -> Dict:
         else:
             print("  No cipher families definitively excluded at 99% CI.")
 
-    # Identify which cipher families have ALL language variants excluded
     excluded_families = set()
     for cipher_name in CIPHER_FAMILIES:
         all_excluded = all(

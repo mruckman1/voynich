@@ -13,13 +13,9 @@ only to {contra} (rank 2), etc.
 Phase 5  ·  Voynich Convergence Attack
 """
 
-import sys
-import os
 import math
 from collections import Counter
 from typing import Dict, List, Tuple, Optional
-
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from modules.phase5.tier_splitter import TierSplitter
 from modules.phase5.latin_corpus_expanded import ExpandedLatinHerbalCorpus
@@ -27,7 +23,6 @@ from modules.phase4.known_plaintext_botanical import (
     BotanicalKnownPlaintext, HUMORAL_EXPECTED_VOCAB,
 )
 from modules.phase4.lang_a_extractor import LanguageAExtractor
-
 
 class RankPairedCribs:
     """
@@ -109,12 +104,10 @@ class RankPairedCribs:
         if not v_ranked or not l_ranked:
             return []
 
-        # Build rank pairs
         pairs = []
-        used_latin = set()  # Track which Latin words are already top candidates
+        used_latin = set()
 
         for v_rank, (v_word, v_freq) in enumerate(v_ranked):
-            # Find Latin words at similar ranks
             l_start = max(0, v_rank - self.rank_window)
             l_end = min(len(l_ranked), v_rank + self.rank_window + 1)
 
@@ -122,7 +115,6 @@ class RankPairedCribs:
             for l_rank in range(l_start, l_end):
                 if l_rank < len(l_ranked):
                     l_word, l_freq = l_ranked[l_rank]
-                    # Prefer candidates not already used as primary
                     priority = 0 if l_word not in used_latin else 1
                     candidates.append({
                         'latin_word': l_word,
@@ -132,15 +124,12 @@ class RankPairedCribs:
                         'priority': priority,
                     })
 
-            # Sort by priority (unused first), then rank distance
             candidates.sort(key=lambda c: (c['priority'], c['rank_distance']))
 
-            # Take top 3-5 candidates
             top_candidates = candidates[:5]
             if top_candidates:
                 used_latin.add(top_candidates[0]['latin_word'])
 
-            # Confidence based on rank distance of best candidate
             if top_candidates:
                 best_dist = top_candidates[0]['rank_distance']
                 if best_dist == 0:
@@ -179,7 +168,6 @@ class RankPairedCribs:
         specific_words = cross_ref.get('specific_words', [])
         universal_words = cross_ref.get('universal_words', [])
 
-        # Build lookup: voynich_word → humoral quality
         word_to_quality = {}
         for entry in specific_words:
             word_to_quality[entry['word']] = entry['quality']
@@ -193,12 +181,10 @@ class RankPairedCribs:
             v_word = pair['voynich_word']
 
             if v_word in word_to_quality:
-                # Botanical override: constrain to humoral vocabulary
                 quality = word_to_quality[v_word]
                 humoral_vocab = HUMORAL_EXPECTED_VOCAB.get(quality, [])
 
                 if humoral_vocab:
-                    # Replace candidates with humoral-specific words
                     botanical_candidates = [
                         {
                             'latin_word': lw,
@@ -217,14 +203,13 @@ class RankPairedCribs:
                     n_overrides += 1
 
             elif v_word in universal_set:
-                # Universal words: keep rank-paired candidates but boost confidence
                 pair = dict(pair)
                 pair['universal'] = True
 
             updated.append(pair)
 
         if self.splitter.extractor.__class__.__name__ == 'LanguageAExtractor':
-            pass  # Normal flow
+            pass
 
         return updated
 
@@ -256,7 +241,6 @@ class RankPairedCribs:
         pairs = self.build_rank_pairs()
         pairs = self.apply_botanical_overrides(pairs)
 
-        # Check for top-candidate collisions
         top_candidates = {}
         collisions = []
         for pair in pairs:
@@ -271,7 +255,6 @@ class RankPairedCribs:
                 else:
                     top_candidates[top] = pair['voynich_word']
 
-        # Rank correlation (Spearman-like)
         v_ranks = []
         l_ranks = []
         for pair in pairs:
@@ -280,21 +263,17 @@ class RankPairedCribs:
                 l_ranks.append(pair['candidates'][0]['latin_rank'])
 
         if len(v_ranks) > 2:
-            # Simple rank correlation
             n = len(v_ranks)
             d_squared = sum((v - l) ** 2 for v, l in zip(v_ranks, l_ranks))
             rank_correlation = 1 - (6 * d_squared) / (n * (n ** 2 - 1))
         else:
             rank_correlation = 0.0
 
-        # Coverage
         n_with_candidates = sum(1 for p in pairs if p['candidates'])
         n_total = len(pairs)
 
-        # Confidence distribution
         conf_dist = Counter(p['confidence'] for p in pairs)
 
-        # Botanical overrides
         n_botanical = sum(1 for p in pairs if 'botanical_override' in p)
 
         return {

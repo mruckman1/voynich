@@ -30,11 +30,6 @@ from data.voynich_corpus import (
     get_all_tokens, get_section_text
 )
 
-
-# ============================================================================
-# PLAINTEXT CORPUS GENERATION
-# ============================================================================
-
 def generate_medical_plaintext(n_words: int = 500) -> str:
     """
     Generate a synthetic but realistic medieval Latin medical text
@@ -49,8 +44,6 @@ def generate_medical_plaintext(n_words: int = 500) -> str:
     vocab = list(HARTLIEB_MEDICAL_VOCAB.keys())
     formulas = LATIN_RECIPE_FORMULAS.copy()
 
-    # Build a weighted vocabulary biased toward medical terms
-    # (recipe sections would repeat herbs and actions frequently)
     weighted_vocab = []
     high_freq = ['recipe', 'accipe', 'cum', 'et', 'in', 'de', 'ad',
                  'aqua', 'herba', 'matrix', 'balneum', 'contra']
@@ -62,14 +55,11 @@ def generate_medical_plaintext(n_words: int = 500) -> str:
     words_generated = 0
 
     while words_generated < n_words:
-        # Alternate between formulaic phrases and vocabulary items
         if rng.random() < 0.35:
-            # Use a formula template
             formula = rng.choice(formulas)
             herb = rng.choice([v for v in vocab if len(v) > 5])
             line = formula.replace('{herb}', herb)
         else:
-            # Generate a pseudo-sentence from vocabulary
             sent_len = rng.randint(4, 10)
             words = [rng.choice(weighted_vocab) for _ in range(sent_len)]
             line = ' '.join(words)
@@ -78,7 +68,6 @@ def generate_medical_plaintext(n_words: int = 500) -> str:
         words_generated += len(line.split())
 
     return ' '.join(lines)
-
 
 def generate_section_specific_plaintext(section: str, n_words: int = 300) -> str:
     """
@@ -135,11 +124,6 @@ def generate_section_specific_plaintext(section: str, n_words: int = 300) -> str
             words.append(rng.choice(vocab))
     return ' '.join(words)
 
-
-# ============================================================================
-# TARGET PROFILES (from real Voynich data)
-# ============================================================================
-
 def compute_voynich_target_profiles() -> Dict[str, Dict]:
     """
     Compute the statistical profiles of the actual Voynich manuscript
@@ -147,19 +131,16 @@ def compute_voynich_target_profiles() -> Dict[str, Dict]:
     """
     profiles = {}
 
-    # Overall profile
     all_tokens = get_all_tokens()
     all_text = ' '.join(all_tokens)
     profiles['overall'] = full_statistical_profile(all_text, 'Voynich-All')
 
-    # Per-section profiles
     for section in ['herbal_a', 'herbal_b', 'astronomical',
                     'biological', 'pharmaceutical', 'recipes']:
         text = get_section_text(section)
         if text.strip():
             profiles[section] = full_statistical_profile(text, f'Voynich-{section}')
 
-    # Per-language profiles
     for lang in ['A', 'B']:
         tokens = get_all_tokens(lang=lang)
         if tokens:
@@ -167,11 +148,6 @@ def compute_voynich_target_profiles() -> Dict[str, Dict]:
             profiles[f'lang_{lang}'] = full_statistical_profile(text, f'Voynich-Lang{lang}')
 
     return profiles
-
-
-# ============================================================================
-# PARAMETER SPACE SEARCH
-# ============================================================================
 
 def search_parameter_space(
         resolution: str = 'coarse',
@@ -200,7 +176,6 @@ def search_parameter_space(
         print(f"  Target section:  {target_section}")
         print(f"  Source language:  {source_language}")
 
-    # Step 1: Compute target profiles
     if verbose:
         print("\n[1/4] Computing Voynich target profiles...")
     targets = compute_voynich_target_profiles()
@@ -210,7 +185,6 @@ def search_parameter_space(
         e = target_prof['entropy']
         print(f"  Target entropy: H1={e['H1']:.3f} H2={e['H2']:.3f} H3={e['H3']:.3f}")
 
-    # Step 2: Generate plaintext
     if verbose:
         print("\n[2/4] Generating medical Latin plaintext corpus...")
     if target_section == 'overall':
@@ -220,17 +194,14 @@ def search_parameter_space(
 
     if verbose:
         print(f"  Plaintext length: {len(plaintext.split())} words, {len(plaintext)} chars")
-        # Show plaintext profile for comparison
         plain_prof = full_statistical_profile(plaintext, 'Plaintext')
         pe = plain_prof['entropy']
         print(f"  Plaintext entropy: H1={pe['H1']:.3f} H2={pe['H2']:.3f} H3={pe['H3']:.3f}")
 
-    # Step 3: Generate parameter grid
     grid = generate_parameter_grid(resolution)
     if verbose:
         print(f"\n[3/4] Searching {len(grid)} parameter combinations...")
 
-    # Step 4: Search
     results = []
     start_time = time.time()
     progress_interval = max(1, len(grid) // 10)
@@ -251,7 +222,6 @@ def search_parameter_space(
             cipher_prof = full_statistical_profile(ciphertext, f'params_{idx}')
             distance = profile_distance(cipher_prof, target_prof)
 
-            # Also compute bigram matrix distance for finer comparison
             ct_mat, ct_alph = bigram_transition_matrix(ciphertext)
             vt_text = get_section_text(target_section) if target_section != 'overall' \
                 else ' '.join(get_all_tokens())
@@ -261,7 +231,6 @@ def search_parameter_space(
             else:
                 bigram_dist = float('inf')
 
-            # Composite score (weighted combination)
             composite = 0.6 * distance + 0.4 * bigram_dist
 
             results.append({
@@ -304,11 +273,6 @@ def search_parameter_space(
 
     return results[:max_results]
 
-
-# ============================================================================
-# MULTI-LANGUAGE COMPARISON
-# ============================================================================
-
 def compare_source_languages(
         languages: Optional[List[str]] = None,
         resolution: str = 'coarse'
@@ -345,7 +309,6 @@ def compare_source_languages(
         )
         results[lang] = lang_results
 
-    # Summary comparison
     print(f"\n{'='*70}")
     print("LANGUAGE COMPARISON SUMMARY")
     print(f"{'='*70}")
@@ -354,7 +317,6 @@ def compare_source_languages(
         print(f"  {lang:20s}: best composite = {best['composite_score']:.4f}")
 
     return results
-
 
 def _generate_latin_general(n: int) -> str:
     """Generate generic Latin text (non-medical)."""
@@ -368,7 +330,6 @@ def _generate_latin_general(n: int) -> str:
              'liber', 'scientia', 'natura', 'virtus', 'gratia']
     return ' '.join(rng.choice(words) for _ in range(n))
 
-
 def _generate_german_medical(n: int) -> str:
     """Generate Middle High German medical vocabulary."""
     import random
@@ -380,7 +341,6 @@ def _generate_german_medical(n: int) -> str:
              'geburt', 'mutter', 'bauch', 'haupt', 'herz',
              'arznei', 'heilung', 'bad', 'warm', 'kalt']
     return ' '.join(rng.choice(words) for _ in range(n))
-
 
 def _generate_italian_medical(n: int) -> str:
     """Generate medieval Italian medical vocabulary."""
@@ -394,11 +354,6 @@ def _generate_italian_medical(n: int) -> str:
              'rimedio', 'medicina', 'olio', 'miele', 'polvere']
     return ' '.join(rng.choice(words) for _ in range(n))
 
-
-# ============================================================================
-# ENTRY POINT
-# ============================================================================
-
 def run(verbose: bool = True) -> Dict:
     """Run Strategy 1 and return results."""
     results = {
@@ -406,7 +361,6 @@ def run(verbose: bool = True) -> Dict:
         'sections_analyzed': {},
     }
 
-    # Run for overall and key sections
     for section in ['overall', 'recipes', 'pharmaceutical', 'herbal_a']:
         section_results = search_parameter_space(
             resolution='coarse',
@@ -417,7 +371,6 @@ def run(verbose: bool = True) -> Dict:
         results['sections_analyzed'][section] = section_results
 
     return results
-
 
 if __name__ == '__main__':
     run()

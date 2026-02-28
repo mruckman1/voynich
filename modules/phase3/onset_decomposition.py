@@ -14,14 +14,10 @@ The full corpus test checks if Language A words fill more grid cells.
 Priority: HIGH
 """
 
-import sys
-import os
 import math
 import numpy as np
 from collections import Counter, defaultdict
 from typing import Dict, List, Tuple, Optional
-
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from modules.phase3.lang_b_profiler import (
     LanguageBProfiler, LANG_B_VOCABULARY, LANG_B_TARGETS
@@ -30,25 +26,19 @@ from data.voynich_corpus import (
     get_all_tokens, SAMPLE_CORPUS, ZODIAC_LABELS, SECTIONS
 )
 
-
-# Onset decomposition grid axes
 BASES = ['ch', 'sh', 'k', 't']
 MODIFIERS = ['', 'l', 'qo', 'y', 'o']
 
-# Known Language B suffix patterns (bodies)
 LANG_B_BODIES = ['edy', 'eedy', 'eey', 'aiin', 'ain', 'aiir']
 
-# Classical planets for mapping hypothesis
 CLASSICAL_PLANETS = ['Sun', 'Moon', 'Mars', 'Mercury', 'Jupiter', 'Venus', 'Saturn']
 
-# Zodiac ruling planets (traditional)
 ZODIAC_RULING_PLANETS = {
     'Aries': 'Mars', 'Taurus': 'Venus', 'Gemini': 'Mercury',
     'Cancer': 'Moon', 'Leo': 'Sun', 'Virgo': 'Mercury',
     'Libra': 'Venus', 'Scorpio': 'Mars', 'Sagittarius': 'Jupiter',
     'Capricorn': 'Saturn', 'Aquarius': 'Saturn', 'Pisces': 'Jupiter',
 }
-
 
 class OnsetDecomposition:
     """
@@ -73,7 +63,6 @@ class OnsetDecomposition:
             body = info['body']
             family = info['family']
         else:
-            # Heuristic: try known body patterns longest-first
             onset, body, family = '', word, 'unknown'
             for suffix in sorted(LANG_B_BODIES, key=len, reverse=True):
                 if word.endswith(suffix) and len(word) > len(suffix):
@@ -87,7 +76,6 @@ class OnsetDecomposition:
                         family = 'residual'
                     break
 
-        # Decompose onset into modifier + base
         modifier, base = self._decompose_onset(onset)
 
         return {
@@ -109,19 +97,15 @@ class OnsetDecomposition:
         if not onset:
             return ('', '')
 
-        # Try modifiers longest first
         for mod in sorted(MODIFIERS, key=len, reverse=True):
             if mod and onset.startswith(mod):
                 remainder = onset[len(mod):]
                 if remainder in BASES or remainder in ('ch', 'sh', 'k', 't'):
                     return (mod, remainder)
 
-        # No modifier — onset itself might be a base
         if onset in BASES:
             return ('', onset)
 
-        # Check if entire onset matches a known pattern
-        # e.g., 'ot' = modifier 'o' + base 't'
         for mod in MODIFIERS:
             if mod and onset.startswith(mod):
                 remainder = onset[len(mod):]
@@ -132,10 +116,7 @@ class OnsetDecomposition:
 
     def decompose_all_lang_b(self) -> List[Dict]:
         """Decompose all Language B tokens."""
-        decompositions = []
-        for token in self.profiler.lang_b_tokens:
-            decompositions.append(self.decompose_word(token))
-        return decompositions
+        return [self.decompose_word(token) for token in self.profiler.lang_b_tokens]
 
     def build_onset_grid(self) -> Dict:
         """
@@ -156,7 +137,7 @@ class OnsetDecomposition:
             if key in grid and d['base'] in BASES:
                 grid[key]['words'].add(d['word'])
                 grid[key]['count'] += 1
-            elif d['onset']:  # Has onset but doesn't fit grid
+            elif d['onset']:
                 unparsed.append(d)
 
         filled = {k: {'words': sorted(v['words']), 'count': v['count']}
@@ -185,7 +166,6 @@ class OnsetDecomposition:
         lang_a_tokens = get_all_tokens(lang='A')
         lang_b_tokens = get_all_tokens(lang='B')
 
-        # Decompose all tokens
         full_grid = defaultdict(lambda: {'words': set(), 'count': 0, 'lang_a': 0, 'lang_b': 0})
 
         for tok in all_tokens:
@@ -195,7 +175,6 @@ class OnsetDecomposition:
                 full_grid[key]['words'].add(tok)
                 full_grid[key]['count'] += 1
 
-        # Tag Language A vs B contributions
         for tok in lang_a_tokens:
             d = self.decompose_word(tok)
             if d['base'] in BASES and d['fully_parsed']:
@@ -208,19 +187,15 @@ class OnsetDecomposition:
                 key = (d['modifier'], d['base'])
                 full_grid[key]['lang_b'] += 1
 
-        # Language B grid
         lang_b_grid = self.build_onset_grid()
 
-        # Count cells with at least one token
         full_filled = {k for k, v in full_grid.items() if v['count'] > 0}
         lang_b_only = {k for k, v in full_grid.items() if v['lang_b'] > 0 and v['lang_a'] == 0}
         lang_a_only = {k for k, v in full_grid.items() if v['lang_a'] > 0 and v['lang_b'] == 0}
         shared = {k for k, v in full_grid.items() if v['lang_a'] > 0 and v['lang_b'] > 0}
 
-        # New combinations found in Language A that aren't in Language B
         new_in_a = lang_a_only - {k for k, v in full_grid.items() if v['lang_b'] > 0}
 
-        # Parse success rate
         parseable = sum(1 for tok in all_tokens if self.decompose_word(tok)['fully_parsed'])
         parse_rate = parseable / len(all_tokens) if all_tokens else 0
 
@@ -278,14 +253,12 @@ class OnsetDecomposition:
         For zodiac pages with known signs, check if the dominant onset
         matches the ruling planet.
         """
-        # Get zodiac folio data
         zodiac_folios = [f for f in self.profiler.extract_folio_level_data()
                          if 'zodiac_sign' in f]
 
         if not zodiac_folios:
             return {'verdict': 'NO_ZODIAC_DATA', 'consistent': False}
 
-        # For each zodiac folio, compute onset distribution
         folio_onset_profiles = []
         for f in zodiac_folios:
             onset_counts = Counter()
@@ -306,13 +279,11 @@ class OnsetDecomposition:
                 'onset_distribution': dict(onset_counts),
             })
 
-        # Check if each planet maps to a consistent onset
         planet_to_onsets = defaultdict(list)
         for p in folio_onset_profiles:
             if p['planet']:
                 planet_to_onsets[p['planet']].append(p['dominant_onset'])
 
-        # Consistency: does each planet always have the same dominant onset?
         consistent_planets = 0
         planet_assignments = {}
         for planet, onsets in planet_to_onsets.items():
@@ -321,7 +292,6 @@ class OnsetDecomposition:
             if most_common[1] == len(onsets):
                 consistent_planets += 1
 
-        # Are the planet assignments unique? (each onset maps to one planet)
         onset_to_planet = defaultdict(set)
         for planet, onset in planet_assignments.items():
             onset_to_planet[onset].add(planet)
@@ -351,14 +321,12 @@ class OnsetDecomposition:
         Limited by available metadata — tests for systematic onset
         variation within the biological section.
         """
-        # Get biological section folios
         bio_folios = [f for f in self.profiler.extract_folio_level_data()
                       if f['section'] == 'biological']
 
         if len(bio_folios) < 2:
             return {'verdict': 'INSUFFICIENT_DATA', 'consistent': False}
 
-        # Check if onset distributions differ between biological folios
         folio_onsets = []
         for f in bio_folios:
             onset_counts = Counter()
@@ -372,7 +340,6 @@ class OnsetDecomposition:
                 'dominant': onset_counts.most_common(1)[0][0] if onset_counts else '',
             })
 
-        # Check diversity of dominant onsets across folios
         dominant_onsets = [f['dominant'] for f in folio_onsets if f['dominant']]
         n_distinct = len(set(dominant_onsets))
         max_possible = min(len(folio_onsets), 8)
@@ -398,7 +365,6 @@ class OnsetDecomposition:
 
         results = {}
 
-        # Word decompositions
         decompositions = self.decompose_all_lang_b()
         if verbose:
             print(f'\n  Decomposed {len(decompositions)} Language B tokens')
@@ -406,7 +372,6 @@ class OnsetDecomposition:
                 print(f'    {d["word"]:12s} = [{d["modifier"]}]+[{d["base"]}] + {d["body"]} '
                       f'({d["family"]})')
 
-        # Onset grid
         if verbose:
             print('\n  --- Onset Grid (Language B) ---')
         results['lang_b_grid'] = self.build_onset_grid()
@@ -417,7 +382,6 @@ class OnsetDecomposition:
                 print(f'    {cell:8s}: {info["count"]:3d} tokens, '
                       f'words: {", ".join(info["words"])}')
 
-        # Full corpus grid
         if verbose:
             print('\n  --- Full Corpus Onset Grid ---')
         results['full_corpus'] = self.run_on_full_corpus()
@@ -430,28 +394,24 @@ class OnsetDecomposition:
             print(f'  New combinations in A: {fc["new_combinations_in_a"]}')
             print(f'  Parse success rate: {fc["parse_success_rate"]:.1%}')
 
-        # Onset entropy
         if verbose:
             print('\n  --- Onset Entropy ---')
         results['onset_entropy'] = self.onset_entropy()
         if verbose:
             print(f'  {results["onset_entropy"]["interpretation"]}')
 
-        # Planet mapping
         if verbose:
             print('\n  --- Planet Mapping Test ---')
         results['planet_mapping'] = self.test_planet_mapping()
         if verbose:
             print(f'  {results["planet_mapping"]["interpretation"]}')
 
-        # Direction mapping
         if verbose:
             print('\n  --- Direction Mapping Test ---')
         results['direction_mapping'] = self.test_direction_mapping()
         if verbose:
             print(f'  {results["direction_mapping"]["interpretation"]}')
 
-        # Synthesis
         onset_ent = results['onset_entropy']
         results['synthesis'] = {
             'n_unique_onsets': onset_ent['n_unique_onsets'],

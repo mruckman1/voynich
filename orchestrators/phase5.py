@@ -43,11 +43,6 @@ from modules.phase5.constrained_saa import ConstrainedSAA
 from modules.phase5.cipher_tier_attack import CipherTierAttack
 from modules.phase5.cross_validator import CrossValidator
 
-
-# ============================================================================
-# PHASE 5 ORCHESTRATOR
-# ============================================================================
-
 def run_phase5_attack(
     phases: Optional[List[str]] = None,
     verbose: bool = True,
@@ -97,7 +92,6 @@ def run_phase5_attack(
         print(f'Latin corpus target: {latin_corpus_size:,} tokens')
         print()
 
-    # Shared instances
     extractor = None
     splitter = None
     latin_corpus = None
@@ -107,7 +101,6 @@ def run_phase5_attack(
     tier1_mapping = None
     tier2_mapping = None
 
-    # ---- Foundation: Language A Extraction (always needed) ----
     if verbose:
         print('\n' + '=' * 70)
         print('FOUNDATION: LANGUAGE A EXTRACTION')
@@ -115,7 +108,6 @@ def run_phase5_attack(
 
     extractor = LanguageAExtractor(verbose=verbose)
 
-    # ---- Sub-phase 1: Tier Split ----
     if 'tier_split' in phases or any(p in phases for p in
             ['rank_cribs', 'nmf_scaffold', 'attack_a', 'attack_b', 'cross_validate']):
         if verbose:
@@ -129,21 +121,18 @@ def run_phase5_attack(
 
         save_json(os.path.join(output_dir, 'tier_split.json'), tier_results)
 
-        # Build Tier 1 transition matrix
         if verbose:
             print('\n  --- Building Tier 1 Transition Matrix ---')
         matrix_builder = Tier1MatrixBuilder(splitter)
         matrix_results = matrix_builder.run(verbose=verbose)
         results['tier1_matrix'] = matrix_results
 
-    # Ensure shared instances
     if splitter is None:
         splitter = TierSplitter(extractor)
         splitter.split()
     if matrix_builder is None:
         matrix_builder = Tier1MatrixBuilder(splitter)
 
-    # ---- Sub-phase 2: Expanded Latin Corpus ----
     if 'latin_corpus' in phases or any(p in phases for p in
             ['rank_cribs', 'nmf_scaffold', 'attack_a']):
         if verbose:
@@ -165,7 +154,6 @@ def run_phase5_attack(
             target_tokens=latin_corpus_size, verbose=False
         )
 
-    # ---- Sub-phase 3: Rank-Paired Cribs ----
     if 'rank_cribs' in phases or 'attack_a' in phases:
         if verbose:
             print('\n' + '=' * 70)
@@ -182,7 +170,6 @@ def run_phase5_attack(
     if rank_cribs is None:
         rank_cribs = RankPairedCribs(splitter, latin_corpus)
 
-    # ---- Sub-phase 4: NMF Topic Scaffold ----
     if 'nmf_scaffold' in phases or 'attack_a' in phases:
         if verbose:
             print('\n' + '=' * 70)
@@ -195,23 +182,19 @@ def run_phase5_attack(
 
         save_json(os.path.join(output_dir, 'nmf_scaffold.json'), nmf_results)
 
-    # ---- Sub-phase 5: Attack A — Constrained SAA on Tier 1 ----
     if 'attack_a' in phases:
         if verbose:
             print('\n' + '=' * 70)
             print('SUB-PHASE 5: ATTACK A — CONSTRAINED SAA ON TIER 1 (HIGHEST)')
             print('=' * 70)
 
-        # Build matrices
         v_matrix, v_vocab = matrix_builder.build_voynich_matrix()
         l_matrix, l_vocab = latin_corpus.build_transition_matrix(
             top_n=len(v_vocab)
         )
 
-        # Get candidate matrix
         candidate_matrix = rank_cribs.get_candidate_matrix()
 
-        # Run constrained SAA
         saa = ConstrainedSAA(
             voynich_matrix=v_matrix,
             voynich_vocab=v_vocab,
@@ -234,17 +217,14 @@ def run_phase5_attack(
 
         saa_results = saa.run(n_iter=saa_iterations)
 
-        # Validate mapping
         tier1_mapping = saa_results['mapping']
         page_tokens = extractor.extract_lang_a_by_folio()
         validation = saa.validate_mapping(tier1_mapping, page_tokens)
         saa_results['validation'] = validation
 
-        # Evaluate crib satisfaction
         crib_eval = saa.evaluate_crib_satisfaction(tier1_mapping)
         saa_results['crib_evaluation'] = crib_eval
 
-        # Decode sample
         all_tokens = extractor.extract_lang_a_tokens()
         decoded_sample = saa.decode_text(tier1_mapping, all_tokens[:100])
         saa_results['decoded_sample'] = decoded_sample
@@ -271,16 +251,13 @@ def run_phase5_attack(
             for v, l in list(tier1_mapping.items())[:10]:
                 print(f'      {v} → {l}')
 
-    # ---- Sub-phase 6: Attack B — Cipher Tier Decryption ----
     if 'attack_b' in phases:
         if verbose:
             print('\n' + '=' * 70)
             print('SUB-PHASE 6: ATTACK B — CIPHER TIER DECRYPTION (HIGH)')
             print('=' * 70)
 
-        # Get Tier 1 mapping (from Attack A or empty)
         if tier1_mapping is None:
-            # Try loading from file
             mapping_path = os.path.join(output_dir, 'attack_a_mapping.json')
             if os.path.exists(mapping_path):
                 with open(mapping_path, 'r') as f:
@@ -295,7 +272,6 @@ def run_phase5_attack(
         cipher_results = cipher_attack.run(verbose=verbose)
         results['attack_b'] = cipher_results
 
-        # Extract tier2 mapping from pattern matches
         tier2_mapping = {}
         pattern_data = cipher_results.get('pattern_matching', {})
         for match in pattern_data.get('sample_matches', []):
@@ -307,14 +283,12 @@ def run_phase5_attack(
         save_json(os.path.join(output_dir, 'attack_b_mapping.json'),
                    tier2_mapping)
 
-    # ---- Sub-phase 7: Cross-Validation ----
     if 'cross_validate' in phases:
         if verbose:
             print('\n' + '=' * 70)
             print('SUB-PHASE 7: CROSS-VALIDATION (CRITICAL)')
             print('=' * 70)
 
-        # Load mappings if not available
         if tier1_mapping is None:
             mapping_path = os.path.join(output_dir, 'attack_a_mapping.json')
             if os.path.exists(mapping_path):
@@ -340,7 +314,6 @@ def run_phase5_attack(
         save_json(os.path.join(output_dir, 'cross_validation.json'),
                    cross_results)
 
-    # ---- Synthesis & Conclusion ----
     elapsed = time.time() - t0
     conclusion = _synthesize_phase5(results)
     results['conclusion'] = conclusion
@@ -359,11 +332,6 @@ def run_phase5_attack(
 
     return results
 
-
-# ============================================================================
-# SYNTHESIS
-# ============================================================================
-
 def _synthesize_phase5(results: Dict) -> Dict:
     """
     Synthesize Phase 5 findings into a conclusion using the decision tree.
@@ -380,19 +348,16 @@ def _synthesize_phase5(results: Dict) -> Dict:
     """
     conclusion = {}
 
-    # Tier split
     tier_split = results.get('tier_split', {})
     tier_synth = tier_split.get('synthesis', {})
     conclusion['tier_split'] = tier_synth.get('conclusion', 'not tested')
 
-    # Latin corpus
     latin = results.get('latin_corpus', {})
     conclusion['latin_corpus'] = (
         f'{latin.get("actual_tokens", "?")} tokens, '
         f'{latin.get("vocabulary_size", "?")} types'
     ) if latin else 'not built'
 
-    # Attack A
     attack_a = results.get('attack_a', {})
     a_cost = attack_a.get('normalized_cost', float('inf'))
     a_validation = attack_a.get('validation', {})
@@ -405,12 +370,10 @@ def _synthesize_phase5(results: Dict) -> Dict:
     conclusion['attack_a_phrases'] = f'{a_phrases} ({"PASS" if a_passes else "FAIL"})'
     conclusion['attack_a_crib_rate'] = f'{a_crib_rate:.1%}'
 
-    # Attack B
     attack_b = results.get('attack_b', {})
     b_synth = attack_b.get('synthesis', {})
     conclusion['attack_b'] = b_synth.get('conclusion', 'not tested')
 
-    # Cross-validation
     cross = results.get('cross_validation', {})
     cross_overall = cross.get('overall', {})
     cross_passes = cross_overall.get('overall_pass', False)
@@ -420,13 +383,11 @@ def _synthesize_phase5(results: Dict) -> Dict:
         f'{"OVERALL PASS" if cross_passes else "OVERALL FAIL"}'
     ) if cross_overall else 'not tested'
 
-    # Rank correlation
     rank = results.get('rank_cribs', {})
     rank_val = rank.get('validation', {})
     rank_corr = rank_val.get('rank_correlation', 0)
 
-    # Decision tree
-    cost_threshold = 0.1  # Normalized cost threshold
+    cost_threshold = 0.1
     cost_ok = a_cost < cost_threshold
 
     if cost_ok and cross_passes and a_passes:

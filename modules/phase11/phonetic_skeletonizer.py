@@ -30,14 +30,13 @@ class LatinPhoneticSkeletonizer:
         for char in word:
             if char in LATIN_CONSONANT_CLASSES:
                 mapped = LATIN_CONSONANT_CLASSES[char]
-                if mapped != last_char: # Remove duplicate adjacent consonants (e.g., 'cc' -> 'K')
+                if mapped != last_char:
                     skeleton.append(mapped)
                     last_char = mapped
         return '-'.join(skeleton)
 
     def _build_index(self):
         """Index all Latin words by their phonetic consonant skeleton."""
-        # Sort vocab by frequency so the most common word for a skeleton is checked first
         sorted_vocab = sorted(self.vocab, key=lambda w: (-self.unigram_counts[w], w))
         for word in sorted_vocab:
             skel = self.get_skeleton(word)
@@ -52,7 +51,6 @@ class VoynichPhoneticSkeletonizer:
         skeleton = []
         i = 0
         while i < len(v_stem):
-            # Try to grab digraphs first (ch, sh, ck, ct)
             if i < len(v_stem) - 1 and v_stem[i:i+2] in VOYNICH_CONSONANT_CLASSES:
                 skeleton.append(VOYNICH_CONSONANT_CLASSES[v_stem[i:i+2]])
                 i += 2
@@ -60,5 +58,5 @@ class VoynichPhoneticSkeletonizer:
                 skeleton.append(VOYNICH_CONSONANT_CLASSES[v_stem[i]])
                 i += 1
             else:
-                i += 1 # Skip vowels/spacers (o, a, y, e)
+                i += 1
         return '-'.join(skeleton)

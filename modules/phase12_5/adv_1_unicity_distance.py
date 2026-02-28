@@ -24,9 +24,7 @@ from modules.phase12.budgeted_csp import BudgetedCSPDecoder
 from modules.phase12.syntactic_scaffolder import SyntacticScaffolder
 from modules.phase12.ngram_mask_solver import NgramMaskSolver
 
-# EVA characters for random generation, ordered by approximate frequency
 EVA_CHARS = list('oainedylrsktchpfqmgx')
-
 
 def _resolution_rate(decoded_text: str) -> float:
     """Compute the fraction of words that are NOT bracketed."""
@@ -35,7 +33,6 @@ def _resolution_rate(decoded_text: str) -> float:
         return 0.0
     brackets = sum(1 for w in words if w.startswith('[') or w.startswith('<'))
     return 1.0 - (brackets / len(words))
-
 
 def _scramble_tokens(tokens: List[str], seed: int) -> List[str]:
     """Shuffle characters within each token, preserving word lengths."""
@@ -47,7 +44,6 @@ def _scramble_tokens(tokens: List[str], seed: int) -> List[str]:
         scrambled.append(''.join(chars))
     return scrambled
 
-
 def _build_eva_frequency_dist(tokens: List[str]) -> List[float]:
     """Build character frequency distribution from real Voynich tokens."""
     char_counts = Counter()
@@ -57,7 +53,6 @@ def _build_eva_frequency_dist(tokens: List[str]) -> List[float]:
                 char_counts[ch] += 1
     total = sum(char_counts.values()) or 1
     return [char_counts.get(ch, 0) / total for ch in EVA_CHARS]
-
 
 def _generate_random_tokens(tokens: List[str], char_weights: List[float],
                             seed: int) -> List[str]:
@@ -69,7 +64,6 @@ def _generate_random_tokens(tokens: List[str], char_weights: List[float],
         chars = rng.choices(EVA_CHARS, weights=char_weights, k=length)
         random_tokens.append(''.join(chars))
     return random_tokens
-
 
 class UnicityDistanceTest:
     """
@@ -89,7 +83,6 @@ class UnicityDistanceTest:
 
     def _decode_tokens(self, tokens: List[str], folio_id: str = None) -> str:
         """Run tokens through the full Phase 12 pipeline."""
-        # Reset decoder emission counts
         self.decoder.emission_counts = {}
         self.decoder._folio_token_count = len(tokens)
 
@@ -118,7 +111,6 @@ class UnicityDistanceTest:
             Results dict with real/scrambled/random rates and pass/fail
         """
         if folio_id not in by_folio:
-            # Fall back to first available folio
             folio_id = next(iter(by_folio))
             if verbose:
                 print(f'    (folio not found, falling back to {folio_id})')
@@ -128,13 +120,11 @@ class UnicityDistanceTest:
         if verbose:
             print(f'    Target folio: {folio_id} ({len(real_tokens)} tokens)')
 
-        # --- Real Voynich baseline ---
         real_decoded = self._decode_tokens(real_tokens, folio_id=folio_id)
         real_rate = _resolution_rate(real_decoded)
         if verbose:
             print(f'    Real resolution rate: {real_rate:.1%}')
 
-        # --- Control A: Intra-word scramble ---
         scrambled_rates = []
         for trial in range(n_trials):
             scrambled = _scramble_tokens(real_tokens, seed=42 + trial)
@@ -147,7 +137,6 @@ class UnicityDistanceTest:
             print(f'    Scrambled mean rate: {mean_scrambled:.1%} '
                   f'(range {min(scrambled_rates):.1%}–{max(scrambled_rates):.1%})')
 
-        # --- Control B: Frequency-matched random ---
         char_weights = _build_eva_frequency_dist(real_tokens)
         random_rates = []
         for trial in range(n_trials):
@@ -163,7 +152,6 @@ class UnicityDistanceTest:
             print(f'    Random mean rate: {mean_random:.1%} '
                   f'(range {min(random_rates):.1%}–{max(random_rates):.1%})')
 
-        # --- Verdict ---
         threshold = 0.15
         test_pass = mean_scrambled < threshold and mean_random < threshold
         if verbose:

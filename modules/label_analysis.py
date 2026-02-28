@@ -10,25 +10,17 @@ They're short (1-3 words), semantically constrained (plant names, body parts,
 humoral qualities), and their position next to illustrations provides context.
 """
 
-import sys
 import os
 import math
 import numpy as np
 from collections import Counter, defaultdict
 from typing import Dict, List, Tuple, Optional, Set
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 from data.voynich_corpus import get_all_tokens, SAMPLE_CORPUS, SECTIONS
 from data.botanical_identifications import (
     PLANT_IDS, PLANT_PART_TERMS, HUMORAL_QUALITIES, HUMORAL_LABEL_TERMS,
     get_plants_by_humoral, get_high_confidence_ids
 )
-
-
-# ============================================================================
-# LABEL ANALYZER
-# ============================================================================
 
 class LabelAnalyzer:
     """
@@ -54,7 +46,6 @@ class LabelAnalyzer:
             section = data.get('section', '')
             scribe = data.get('scribe', 0)
 
-            # Only look for labels in sections with illustrations
             if section not in ('herbal_a', 'herbal_b', 'pharmaceutical',
                                'astronomical', 'biological'):
                 continue
@@ -64,7 +55,6 @@ class LabelAnalyzer:
             for line_idx, line in enumerate(text_lines):
                 tokens = line.split()
 
-                # Heuristic 1: Very short lines (1-3 tokens) are likely labels
                 if 1 <= len(tokens) <= 3:
                     labels.append({
                         'folio': folio,
@@ -77,8 +67,6 @@ class LabelAnalyzer:
                         'source': 'short_line',
                     })
 
-                # Heuristic 2: First token of lines in herbal sections
-                # (often a plant label followed by description)
                 if section in ('herbal_a', 'herbal_b') and len(tokens) > 3:
                     labels.append({
                         'folio': folio,
@@ -119,10 +107,8 @@ class LabelAnalyzer:
         if not labels:
             return []
 
-        # Build unique label texts
         unique_labels = sorted(set(label['text'] for label in labels))
 
-        # Compute pairwise Jaccard similarity on character sets
         clusters = []
         assigned = set()
 
@@ -147,7 +133,6 @@ class LabelAnalyzer:
                         assigned.add(label_b)
 
             if len(cluster) > 1:
-                # Find which folios this cluster appears on
                 cluster_folios = set()
                 for label in labels:
                     if label['text'] in cluster:
@@ -161,7 +146,6 @@ class LabelAnalyzer:
                     'shared_chars': sorted(chars_a & set(''.join(cluster).replace(' ', ''))),
                 })
 
-        # Sort by cluster size
         clusters.sort(key=lambda c: -c['size'])
         return clusters
 
@@ -173,7 +157,6 @@ class LabelAnalyzer:
         matches = []
 
         for folio, plant_data in PLANT_IDS.items():
-            # Find labels on this folio
             folio_labels = [l for l in labels if l['folio'] == folio]
             if not folio_labels:
                 continue
@@ -201,7 +184,6 @@ class LabelAnalyzer:
         """
         pairs = []
 
-        # Strategy 1: Labels on folios with identified plants
         for match in botanical_matches:
             humoral = match.get('humoral', '')
             if humoral and humoral in HUMORAL_QUALITIES:
@@ -219,7 +201,6 @@ class LabelAnalyzer:
                         'confidence': match['confidence'],
                     })
 
-        # Strategy 2: Recurring labels across herbal pages → generic plant-part terms
         label_freq = Counter(l['text'] for l in labels
                             if l['section'] in ('herbal_a', 'herbal_b'))
         for label_text, count in label_freq.most_common(10):
@@ -233,7 +214,6 @@ class LabelAnalyzer:
                     'confidence': 'MODERATE' if count >= 5 else 'LOW',
                 })
 
-        # Strategy 3: Labels in pharmaceutical section → preparation terms
         pharm_labels = Counter(l['text'] for l in labels
                               if l['section'] == 'pharmaceutical')
         for label_text, count in pharm_labels.most_common(5):
@@ -251,11 +231,6 @@ class LabelAnalyzer:
 
         return pairs
 
-
-# ============================================================================
-# MODULE ENTRY POINT
-# ============================================================================
-
 def run(verbose: bool = True) -> Dict:
     """
     Run label extraction and clustering.
@@ -271,14 +246,12 @@ def run(verbose: bool = True) -> Dict:
         print("TRACK 8: LABEL EXTRACTION AND CLUSTERING")
         print("=" * 70)
 
-    # Extract labels
     if verbose:
         print("\n  Extracting labels from corpus...")
     labels = analyzer.extract_labels()
     if verbose:
         print(f"    Found {len(labels)} label candidates")
 
-    # Vocabulary
     vocab = analyzer.label_vocabulary(labels)
     if verbose:
         print(f"    Unique label tokens: {vocab['unique_tokens']}")
@@ -286,7 +259,6 @@ def run(verbose: bool = True) -> Dict:
         if vocab['top_tokens']:
             print(f"    Top tokens: {vocab['top_tokens'][:10]}")
 
-    # Clustering
     if verbose:
         print("\n  Clustering labels by character overlap...")
     clusters = analyzer.cluster_labels(labels)
@@ -296,7 +268,6 @@ def run(verbose: bool = True) -> Dict:
             print(f"      Cluster {i+1}: {c['labels'][:5]} "
                   f"({c['n_folios']} folios)")
 
-    # Botanical cross-reference
     if verbose:
         print("\n  Cross-referencing with botanical identifications...")
     botanical = analyzer.cross_reference_botanical(labels)
@@ -306,7 +277,6 @@ def run(verbose: bool = True) -> Dict:
             print(f"      {m['folio']}: {m['plant_candidates'][0]} → "
                   f"{m['labels_on_folio'][:3]}")
 
-    # Candidate pairs
     if verbose:
         print("\n  Generating candidate plaintext-ciphertext pairs...")
     pairs = analyzer.candidate_pairs(labels, botanical)
@@ -316,7 +286,6 @@ def run(verbose: bool = True) -> Dict:
             print(f"      '{p['ciphertext']}' → {p['plaintext_candidates'][:3]} "
                   f"[{p['confidence']}]")
 
-    # Count high-confidence pairs
     high_conf = [p for p in pairs if p['confidence'] in ('HIGH', 'MODERATE')]
 
     results = {

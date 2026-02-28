@@ -11,18 +11,13 @@ correspond to meaningful linguistic units.
 Phase 6  ·  Voynich Convergence Attack
 """
 
-import sys
-import os
 import math
 import numpy as np
 from collections import Counter, defaultdict
 from typing import Dict, List, Tuple
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-
 from modules.phase4.lang_a_extractor import LanguageAExtractor
 from modules.phase5.tier_splitter import TierSplitter
-
 
 class BoundaryAnalyzer:
     """
@@ -96,13 +91,10 @@ class BoundaryAnalyzer:
         if total == 0:
             return 0.0
 
-        # H(c1)
         h_c1 = -sum((c / total) * math.log2(c / total)
                      for c in c1_counts.values() if c > 0)
-        # H(c2)
         h_c2 = -sum((c / total) * math.log2(c / total)
                      for c in c2_counts.values() if c > 0)
-        # H(c1, c2)
         h_joint = -sum((c / total) * math.log2(c / total)
                        for c in joint.values() if c > 0)
 
@@ -191,7 +183,6 @@ class BoundaryAnalyzer:
         mi = self.compute_mutual_information()
         strong_bigrams = self.find_strong_boundary_bigrams()
 
-        # Interpretation
         boundary_h_lower = entropy['boundary_h'] < entropy['within_h']
         boundary_mi_high = mi['boundary_mi'] > mi['within_mi'] * 0.8
         n_strong = len(strong_bigrams)

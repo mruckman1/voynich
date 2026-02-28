@@ -8,22 +8,14 @@ This is the keystone integrator: every prior track narrows the hypothesis space,
 and this module enumerates what remains.
 """
 
-import sys
 import os
 import json
 import numpy as np
 from collections import defaultdict
 from typing import Dict, List, Tuple, Optional
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 from modules.statistical_analysis import compute_all_entropy, full_statistical_profile
 from data.voynich_corpus import get_all_tokens
-
-
-# ============================================================================
-# CONSTRAINT MODEL
-# ============================================================================
 
 class ConstraintModel:
     """
@@ -44,14 +36,12 @@ class ConstraintModel:
         """Add entropy constraints from Phase 1 null framework."""
         metrics = voynich_profile if voynich_profile else {}
 
-        # Extract p-values to determine which ranges are anomalous
         p_values = null_results.get('p_values', {})
         percentiles = null_results.get('percentile_ranks', {})
 
         for metric in ['H1', 'H2', 'H3']:
             value = metrics.get(metric, 0)
             if value > 0:
-                # Find the cipher families where this value is normal
                 normal_families = []
                 for cipher in p_values:
                     for lang in p_values.get(cipher, {}):
@@ -217,7 +207,6 @@ class ConstraintModel:
         """Add constraints from original strategies 1-5."""
         synthesis = convergence_results.get('synthesis', {})
 
-        # Parameter consensus
         consensus = synthesis.get('parameter_consensus', {})
         for param, data in consensus.items():
             if isinstance(data, dict) and 'median' in data:
@@ -227,14 +216,12 @@ class ConstraintModel:
                     'agreement': data.get('agreement', 'WEAK'),
                 }
 
-        # Language evidence
         lang_evidence = synthesis.get('source_language_evidence', {})
         for lang, evidence in lang_evidence.items():
             if isinstance(evidence, dict) and evidence.get('score', 0) > 0.5:
                 if lang not in self.candidate_languages:
                     self.candidate_languages.append(lang)
 
-        # Existing constraints
         for c in synthesis.get('constraints', []):
             self.constraints.append({**c, 'source': 'convergence_attack_v1'})
 
@@ -242,7 +229,6 @@ class ConstraintModel:
         """
         Compile all constraints into a formal specification.
         """
-        # Deduplicate
         unique_excluded = sorted(set(self.excluded_families))
         unique_languages = sorted(set(self.candidate_languages))
 
@@ -253,13 +239,12 @@ class ConstraintModel:
             'viable_cipher_families': self.viable_families,
             'candidate_languages': unique_languages,
             'parameter_bounds': self.parameter_bounds,
-            'anchor_pairs': self.anchor_pairs[:20],  # top 20
+            'anchor_pairs': self.anchor_pairs[:20],
             'n_anchor_pairs': len(self.anchor_pairs),
             'reliable_pages': self.reliable_pages,
             'n_reliable_pages': len(self.reliable_pages),
         }
 
-        # Constraint summary by type
         type_counts = defaultdict(int)
         for c in self.constraints:
             type_counts[c.get('type', 'unknown')] += 1
@@ -320,11 +305,9 @@ class ConstraintModel:
             elif ctype == 'length_ratio':
                 total_checks += 1
                 expected_ratio = constraint.get('mean_ratio', 1.0)
-                # Check if decryption length is plausible
                 if text:
                     dec_words = len(text.split())
-                    # Would need original cipher text length for comparison
-                    passed_checks += 1  # Can't check without original
+                    passed_checks += 1
 
         score = passed_checks / max(total_checks, 1)
 
@@ -345,13 +328,11 @@ class ConstraintModel:
         for params in parameter_grid:
             valid = True
 
-            # Check against parameter bounds
             for param_name, bounds in self.parameter_bounds.items():
                 if param_name in params:
                     value = params[param_name]
                     median = bounds.get('median', value)
                     range_val = bounds.get('range', float('inf'))
-                    # Allow 50% wider than observed range
                     if abs(value - median) > range_val * 1.5:
                         valid = False
                         break
@@ -360,11 +341,6 @@ class ConstraintModel:
                 surviving.append(params)
 
         return surviving
-
-
-# ============================================================================
-# MODULE ENTRY POINT
-# ============================================================================
 
 def run(verbose: bool = True, phase_results: Optional[Dict] = None) -> Dict:
     """
@@ -388,12 +364,10 @@ def run(verbose: bool = True, phase_results: Optional[Dict] = None) -> Dict:
     if phase_results is None:
         phase_results = {}
 
-    # Voynich baselines
     tokens = get_all_tokens()
     voynich_text = ' '.join(tokens)
     voynich_entropy = compute_all_entropy(voynich_text)
 
-    # Phase 1 constraints
     if 'null_framework' in phase_results:
         if verbose:
             print("\n  Adding Phase 1 constraints (null distributions)...")
@@ -407,7 +381,6 @@ def run(verbose: bool = True, phase_results: Optional[Dict] = None) -> Dict:
             print("  Adding Phase 1 constraints (word length)...")
         model.add_word_boundary_constraint(phase_results['word_length'])
 
-    # Phase 2 constraints
     if 'positional_shape' in phase_results:
         if verbose:
             print("  Adding Phase 2 constraints (positional shape)...")
@@ -428,7 +401,6 @@ def run(verbose: bool = True, phase_results: Optional[Dict] = None) -> Dict:
             print("  Adding Phase 2 constraints (error model)...")
         model.add_error_constraints(phase_results['error_model'])
 
-    # Phase 3 constraints
     if 'qo_analysis' in phase_results:
         if verbose:
             print("  Adding Phase 3 constraints (qo- analysis)...")
@@ -449,13 +421,11 @@ def run(verbose: bool = True, phase_results: Optional[Dict] = None) -> Dict:
             print("  Adding Phase 3 constraints (entropy gradient)...")
         model.add_gradient_constraints(phase_results['entropy_gradient'])
 
-    # Original convergence attack constraints
     if 'convergence_attack' in phase_results:
         if verbose:
             print("  Adding original strategy 1-5 constraints...")
         model.add_existing_constraints(phase_results['convergence_attack'])
 
-    # Compile
     if verbose:
         print("\n  Compiling constraint specification...")
     specification = model.compile()
@@ -470,12 +440,11 @@ def run(verbose: bool = True, phase_results: Optional[Dict] = None) -> Dict:
         print(f"  Anchor pairs: {specification['n_anchor_pairs']}")
         print(f"  Reliable pages: {specification['n_reliable_pages']}")
 
-    # Save
     try:
         os.makedirs('./output', exist_ok=True)
         save_data = {
             k: v for k, v in specification.items()
-            if k != 'anchor_pairs'  # These can be large
+            if k != 'anchor_pairs'
         }
         save_data['n_anchor_pairs'] = specification['n_anchor_pairs']
         with open('./output/constraint_model.json', 'w') as f:
@@ -489,7 +458,7 @@ def run(verbose: bool = True, phase_results: Optional[Dict] = None) -> Dict:
     results = {
         'track': 'constraint_model',
         'specification': specification,
-        'model': model,  # Keep reference for candidate_search
+        'model': model,
     }
 
     if verbose:

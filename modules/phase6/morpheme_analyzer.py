@@ -15,17 +15,12 @@ Analysis:
 Phase 6  ·  Voynich Convergence Attack
 """
 
-import sys
-import os
 import math
 import numpy as np
 from collections import Counter, defaultdict
 from typing import Dict, List, Tuple, Set
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-
 from modules.phase5.tier_splitter import TierSplitter
-
 
 class MorphemeAnalyzer:
     """
@@ -85,7 +80,6 @@ class MorphemeAnalyzer:
         self._ensure_words()
         n_words = len(self._words)
 
-        # Random baseline: P(prefix of length k) ≈ 1/alphabet_size^k
         all_chars = set(c for w in self._words for c in w)
         alpha_size = len(all_chars)
 
@@ -97,7 +91,6 @@ class MorphemeAnalyzer:
             count = len(words)
             if count < self.min_affix_words:
                 continue
-            # Expected count under random: n_words / alphabet^k
             k = len(prefix)
             expected = n_words / max(1, alpha_size ** k)
             ratio = count / max(expected, 0.01)
@@ -150,7 +143,6 @@ class MorphemeAnalyzer:
         """
         self._ensure_words()
 
-        # Group words by their first N characters for various N
         paradigms = []
         seen_groups: Set[str] = set()
 
@@ -166,18 +158,15 @@ class MorphemeAnalyzer:
                 if len(members) < 3:
                     continue
 
-                # Check this isn't a subset of an already-found paradigm
                 member_key = ','.join(sorted(w for w, _ in members))
                 if member_key in seen_groups:
                     continue
                 seen_groups.add(member_key)
 
-                # Check suffix diversity: at least 3 distinct suffixes
                 unique_suffixes = set(s for _, s in members)
                 if len(unique_suffixes) < 3:
                     continue
 
-                # Sort by frequency
                 members_sorted = sorted(
                     members,
                     key=lambda x: -self._word_freqs.get(x[0], 0)
@@ -207,7 +196,6 @@ class MorphemeAnalyzer:
         self._ensure_words()
         affixes = self.find_productive_affixes()
 
-        # Build sets of productive prefixes and suffixes
         prod_prefixes = {a['prefix'] for a in affixes['productive_prefixes']}
         prod_suffixes = {a['suffix'] for a in affixes['productive_suffixes']}
 
@@ -221,13 +209,11 @@ class MorphemeAnalyzer:
             best_prefix = ''
             best_suffix = ''
 
-            # Find longest productive prefix
             for plen in range(min(4, len(word)), 0, -1):
                 if word[:plen] in prod_prefixes:
                     best_prefix = word[:plen]
                     break
 
-            # Find longest productive suffix
             for slen in range(min(4, len(word)), 0, -1):
                 if word[-slen:] in prod_suffixes:
                     best_suffix = word[-slen:]
@@ -278,13 +264,11 @@ class MorphemeAnalyzer:
         decomp = self.decompose_words()
         affixes = self.find_productive_affixes()
 
-        # Paradigm coverage: how many words are in paradigms
         words_in_paradigms = set()
         for p in paradigms:
             for m in p['members']:
                 words_in_paradigms.add(m['word'])
 
-        # Suffix entropy: how varied are the suffixes in paradigms
         all_suffixes = []
         for p in paradigms:
             all_suffixes.extend(p['all_suffixes'])
@@ -317,7 +301,6 @@ class MorphemeAnalyzer:
         decomp = self.decompose_words()
         stats = self.compute_morpheme_statistics()
 
-        # Interpretation
         n_prod = affixes['n_productive_prefixes'] + affixes['n_productive_suffixes']
         paradigm_cov = stats['paradigm_coverage']
         decomp_rate = stats['decomposition_rate']

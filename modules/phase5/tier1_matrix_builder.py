@@ -15,17 +15,12 @@ entries (given H2 ≈ 2.17, expected perplexity ≈ 4.5 successors per word).
 Phase 5  ·  Voynich Convergence Attack
 """
 
-import sys
-import os
 import math
 import numpy as np
 from collections import Counter
 from typing import Dict, List, Tuple
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-
 from modules.phase5.tier_splitter import TierSplitter
-
 
 class Tier1MatrixBuilder:
     """
@@ -60,7 +55,6 @@ class Tier1MatrixBuilder:
 
         counts = np.zeros((n, n), dtype=float)
 
-        # Use bridged bigrams: singletons are transparent
         bridged = self.splitter.get_bridged_bigrams()
         for prev_word, next_word in bridged:
             if prev_word in self._word_to_idx and next_word in self._word_to_idx:
@@ -68,7 +62,6 @@ class Tier1MatrixBuilder:
                 j = self._word_to_idx[next_word]
                 counts[i][j] += 1
 
-        # Normalize rows to probabilities
         row_sums = counts.sum(axis=1, keepdims=True)
         row_sums[row_sums == 0] = 1
         self._matrix = counts / row_sums
@@ -102,12 +95,10 @@ class Tier1MatrixBuilder:
         matrix, vocab = self.build_voynich_matrix()
         n = len(vocab)
 
-        # Non-zero entries per row
         nonzero_per_row = np.array([(matrix[i] > 0).sum() for i in range(n)])
         mean_nonzero = float(np.mean(nonzero_per_row))
         median_nonzero = float(np.median(nonzero_per_row))
 
-        # Row entropy (perplexity = 2^H)
         row_entropies = []
         for i in range(n):
             row = matrix[i]
@@ -118,19 +109,15 @@ class Tier1MatrixBuilder:
         mean_entropy = float(np.mean(row_entropies))
         mean_perplexity = float(2 ** mean_entropy) if mean_entropy > 0 else 0
 
-        # Row sum check
         row_sums = matrix.sum(axis=1)
         rows_normalized = bool(np.allclose(row_sums[row_sums > 0], 1.0, atol=1e-6))
 
-        # Active rows (rows with at least one non-zero entry)
         active_rows = int((nonzero_per_row > 0).sum())
 
-        # Sparsity
         total_entries = n * n
         nonzero_total = int((matrix > 0).sum())
         sparsity = 1.0 - (nonzero_total / max(1, total_entries))
 
-        # Validation criteria
         sparsity_ok = 5 <= mean_nonzero <= 30
         perplexity_ok = 2.0 <= mean_perplexity <= 10.0
 
@@ -154,7 +141,6 @@ class Tier1MatrixBuilder:
         matrix, vocab = self.build_voynich_matrix()
         n = len(vocab)
 
-        # Top transitions (highest probability entries)
         top_transitions = []
         for i in range(n):
             for j in range(n):
@@ -166,12 +152,10 @@ class Tier1MatrixBuilder:
                     })
         top_transitions.sort(key=lambda x: -x['probability'])
 
-        # Most connected words (highest out-degree)
         out_degrees = [(vocab[i], int((matrix[i] > 0).sum()))
                        for i in range(n)]
         out_degrees.sort(key=lambda x: -x[1])
 
-        # Frobenius norm (useful for SAA cost computation)
         frobenius = float(np.linalg.norm(matrix, 'fro'))
 
         return {

@@ -6,8 +6,6 @@ Provides a uniform interface for the discrimination sweep and orchestrator,
 with shared scoring implementations that reuse Phase 1 statistical tools.
 """
 
-import sys
-import os
 import math
 import random
 import time
@@ -15,17 +13,10 @@ from abc import ABC, abstractmethod
 from collections import Counter
 from typing import Dict, List, Optional, Any
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-
 from modules.statistical_analysis import (
     full_statistical_profile, profile_distance, compute_all_entropy,
     zipf_analysis
 )
-
-
-# ============================================================================
-# VOYNICH TARGET CONSTANTS (from output/null_distributions.json)
-# ============================================================================
 
 VOYNICH_TARGETS = {
     'H1': 3.7065,
@@ -38,17 +29,11 @@ VOYNICH_TARGETS = {
     'nmf_effective_rank': 12,
 }
 
-# Quick discrimination thresholds (from research document)
 TRIPLE_THRESHOLDS = {
-    'H2': 0.1,          # |H2 - 1.4058| < 0.1
-    'TTR': 0.02,        # |TTR - 0.1643| < 0.02
-    'zipf_exponent': 0.15,  # |Zipf - 1.2437| < 0.15
+    'H2': 0.1,
+    'TTR': 0.02,
+    'zipf_exponent': 0.15,
 }
-
-
-# ============================================================================
-# ABSTRACT BASE CLASS
-# ============================================================================
 
 class Phase2GenerativeModel(ABC):
     """
@@ -142,11 +127,10 @@ class Phase2GenerativeModel(ABC):
             zipf_delta < TRIPLE_THRESHOLDS['zipf_exponent']
         )
 
-        # Composite distance (weighted)
         distance = math.sqrt(
-            9.0 * h2_delta ** 2 +      # H2 weighted heavily
-            4.0 * ttr_delta ** 2 +      # TTR weighted moderately
-            4.0 * zipf_delta ** 2       # Zipf weighted moderately
+            9.0 * h2_delta ** 2 +
+            4.0 * ttr_delta ** 2 +
+            4.0 * zipf_delta ** 2
         )
 
         return {
@@ -167,7 +151,6 @@ class Phase2GenerativeModel(ABC):
         Returns:
             {distance: float, entropy: {...}, zipf: {...}, quick: {...}}
         """
-        # Build a Voynich-like profile dict for comparison
         voynich_profile = {
             'entropy': {
                 'H1': VOYNICH_TARGETS['H1'],
@@ -221,7 +204,6 @@ class Phase2GenerativeModel(ABC):
 
         for i, params in enumerate(grid):
             try:
-                # Create fresh model instance with these params
                 model = self.__class__(**params)
                 text = model.generate(plaintext=plaintext)
 
@@ -252,7 +234,6 @@ class Phase2GenerativeModel(ABC):
                     print(f'  [{self.MODEL_NAME}] params {i+1} failed: {e}')
                 continue
 
-        # Sort by profile distance (lower = better)
         results.sort(key=lambda r: r['score']['profile_distance'])
         elapsed = time.time() - t0
 

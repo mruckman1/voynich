@@ -24,18 +24,15 @@ from modules.phase12.budgeted_csp import BudgetedCSPDecoder, HUMORAL_VOCAB
 from modules.phase12.syntactic_scaffolder import SyntacticScaffolder
 from modules.phase12.ngram_mask_solver import NgramMaskSolver
 
-# Data file paths
 _DICT_DIR = os.path.join(os.path.dirname(__file__), '..', '..', 'data', 'dictionaries')
 LATIN_DICT_PATH = os.path.join(_DICT_DIR, 'phase5_latin_dict.json')
 ITALIAN_DICT_PATH = os.path.join(_DICT_DIR, 'romance_italian_dict.json')
 OCCITAN_DICT_PATH = os.path.join(_DICT_DIR, 'romance_occitan_dict.json')
 
-
 def _load_dict(filepath: str) -> List[str]:
     """Load a dictionary JSON array file."""
     with open(filepath, 'r', encoding='utf-8') as f:
         words = json.load(f)
-    # Deduplicate while preserving order
     seen = set()
     unique = []
     for w in words:
@@ -44,7 +41,6 @@ def _load_dict(filepath: str) -> List[str]:
             unique.append(w)
     return unique
 
-
 def _resolution_rate(decoded_text: str) -> float:
     """Compute the fraction of words that are NOT bracketed."""
     words = decoded_text.split()
@@ -52,7 +48,6 @@ def _resolution_rate(decoded_text: str) -> float:
         return 0.0
     brackets = sum(1 for w in words if w.startswith('[') or w.startswith('<'))
     return 1.0 - (brackets / len(words))
-
 
 class PolyglotDictTest:
     """
@@ -84,9 +79,6 @@ class PolyglotDictTest:
         Creates a new LatinPhoneticSkeletonizer from the given word list,
         then wires it into a BudgetedCSPDecoder and NgramMaskSolver.
         """
-        # Build skeleton index from the alternative dictionary
-        # LatinPhoneticSkeletonizer expects a token list (for frequency counts)
-        # We give each word equal weight by repeating once
         skel = LatinPhoneticSkeletonizer(word_list)
 
         decoder = BudgetedCSPDecoder(
@@ -172,7 +164,6 @@ class PolyglotDictTest:
         Returns:
             Results dict with per-language rates and pass/fail
         """
-        # Load dictionaries
         latin_words = _load_dict(LATIN_DICT_PATH)
         italian_words = _load_dict(ITALIAN_DICT_PATH)
         occitan_words = _load_dict(OCCITAN_DICT_PATH)
@@ -182,7 +173,6 @@ class PolyglotDictTest:
             print(f'    Italian dict: {len(italian_words)} words')
             print(f'    Occitan dict: {len(occitan_words)} words')
 
-        # Run pipeline with each dictionary
         latin_results = self._decode_with_dict(
             by_folio, latin_words, folio_limit, 'Latin', verbose,
         )

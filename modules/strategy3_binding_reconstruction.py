@@ -31,18 +31,9 @@ from data.voynich_corpus import (
     get_section_text, tokenize
 )
 
-
-# ============================================================================
-# QUIRE ORDER MODELS
-# ============================================================================
-
-# Current binding order (as of Beinecke MS 408 today)
 CURRENT_QUIRE_ORDER = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13,
                        14, 15, 17, 19, 20, 21, 22, 23]
-# Note: Quires 16 and 18 are MISSING
 
-# Hypothetical original orders based on codicological evidence
-# (waterstain patterns, catchwords, thematic continuity)
 RECONSTRUCTED_ORDERS = {
     'hypothesis_A': {
         'description': 'Herbal-first, astronomical-middle, recipe-last (standard)',
@@ -70,11 +61,10 @@ RECONSTRUCTED_ORDERS = {
     },
 }
 
-# Quire-to-folio mapping (simplified)
 QUIRE_FOLIOS = {
     1: ['f1r', 'f2r', 'f3r'],
     2: ['f4r', 'f5r'],
-    3: [],  # not in sample
+    3: [],
     17: ['f87r', 'f88r'],
     8: ['f67r1'],
     9: ['f70v2'],
@@ -83,11 +73,6 @@ QUIRE_FOLIOS = {
     20: ['f103r'],
     21: ['f108r'],
 }
-
-
-# ============================================================================
-# SEQUENTIAL CONSISTENCY METRIC
-# ============================================================================
 
 def compute_sequential_consistency(folio_order: List[str]) -> Dict:
     """
@@ -119,7 +104,6 @@ def compute_sequential_consistency(folio_order: List[str]) -> Dict:
             'valid_folios': 0,
         }
 
-    # Compute entropy deltas between adjacent folios
     deltas_h1 = []
     deltas_h2 = []
     for i in range(len(entropies) - 1):
@@ -128,11 +112,9 @@ def compute_sequential_consistency(folio_order: List[str]) -> Dict:
         deltas_h1.append(d1)
         deltas_h2.append(d2)
 
-    # Consistency = average entropy delta (lower = smoother)
     avg_delta_h1 = sum(deltas_h1) / len(deltas_h1) if deltas_h1 else 0
     avg_delta_h2 = sum(deltas_h2) / len(deltas_h2) if deltas_h2 else 0
 
-    # Weighted composite
     consistency = 0.4 * avg_delta_h1 + 0.6 * avg_delta_h2
 
     return {
@@ -148,18 +130,12 @@ def compute_sequential_consistency(folio_order: List[str]) -> Dict:
         'valid_folios': len(valid_folios),
     }
 
-
 def quire_order_to_folio_order(quire_order: List[int]) -> List[str]:
     """Convert a quire ordering to a folio ordering."""
     folios = []
     for q in quire_order:
         folios.extend(QUIRE_FOLIOS.get(q, []))
     return folios
-
-
-# ============================================================================
-# BINDING ORDER COMPARISON
-# ============================================================================
 
 def compare_binding_orders(verbose: bool = True) -> Dict:
     """
@@ -171,14 +147,12 @@ def compare_binding_orders(verbose: bool = True) -> Dict:
 
     results = {}
 
-    # Current order
     current_folios = quire_order_to_folio_order(CURRENT_QUIRE_ORDER)
     results['current'] = {
         'description': 'Current Beinecke binding',
         'metrics': compute_sequential_consistency(current_folios),
     }
 
-    # Reconstructed orders
     for name, hyp in RECONSTRUCTED_ORDERS.items():
         folios = quire_order_to_folio_order(hyp['order'])
         results[name] = {
@@ -187,7 +161,6 @@ def compare_binding_orders(verbose: bool = True) -> Dict:
             'metrics': compute_sequential_consistency(folios),
         }
 
-    # Rank by consistency
     ranked = sorted(results.items(),
                     key=lambda x: x[1]['metrics']['consistency_score'])
 
@@ -203,11 +176,6 @@ def compare_binding_orders(verbose: bool = True) -> Dict:
     results['ranking'] = [name for name, _ in ranked]
     return results
 
-
-# ============================================================================
-# MISSING QUIRE BOUNDARY ANALYSIS
-# ============================================================================
-
 def missing_quire_analysis(verbose: bool = True) -> Dict:
     """
     Analyze the statistical boundaries where Quires 16 and 18 are missing.
@@ -218,14 +186,12 @@ def missing_quire_analysis(verbose: bool = True) -> Dict:
     if verbose:
         print("\n  Analyzing missing quire boundaries...")
 
-    # Find folios adjacent to missing quire positions
-    # Q16 sits between Q15 and Q17, Q18 between Q17 and Q19
     boundaries = {
         'Q15_Q16_gap': {
             'before_quire': 15,
             'missing_quire': 16,
             'after_quire': 17,
-            'before_folios': [],  # Q15 not in our sample
+            'before_folios': [],
             'after_folios': QUIRE_FOLIOS.get(17, []),
         },
         'Q17_Q18_gap': {
@@ -252,12 +218,10 @@ def missing_quire_analysis(verbose: bool = True) -> Dict:
         before_entropy = compute_all_entropy(before_text) if len(before_text.strip()) > 20 else {}
         after_entropy = compute_all_entropy(after_text) if len(after_text.strip()) > 20 else {}
 
-        # Compute entropy jump across the gap
         h2_jump = 0
         if before_entropy and after_entropy:
             h2_jump = abs(after_entropy.get('H2', 0) - before_entropy.get('H2', 0))
 
-        # Word frequency discontinuity
         before_tokens = before_text.split() if before_text.strip() else []
         after_tokens = after_text.split() if after_text.strip() else []
         before_vocab = set(before_tokens)
@@ -280,11 +244,6 @@ def missing_quire_analysis(verbose: bool = True) -> Dict:
 
     return results
 
-
-# ============================================================================
-# CROSS-FOLIO STATE PROGRESSION TEST
-# ============================================================================
-
 def state_progression_test(verbose: bool = True) -> Dict:
     """
     Test whether there's a detectable progressive state in the cipher.
@@ -297,7 +256,6 @@ def state_progression_test(verbose: bool = True) -> Dict:
     if verbose:
         print("\n  Testing for sequential state progression...")
 
-    # Compute bigram matrix for each folio
     folio_matrices = {}
     sorted_folios = sorted(
         [f for f in SAMPLE_CORPUS.keys()],
@@ -313,7 +271,6 @@ def state_progression_test(verbose: bool = True) -> Dict:
     if len(folio_matrices) < 3:
         return {'error': 'Insufficient folios for state progression test'}
 
-    # Compute pairwise bigram distances
     folios = list(folio_matrices.keys())
     distances = []
     for i in range(len(folios)):
@@ -322,7 +279,7 @@ def state_progression_test(verbose: bool = True) -> Dict:
             m1, a1 = folio_matrices[f1]
             m2, a2 = folio_matrices[f2]
             dist = compare_bigram_matrices(m1, m2, a1, a2)
-            seq_dist = abs(j - i)  # positional distance in current order
+            seq_dist = abs(j - i)
             distances.append({
                 'folio_1': f1,
                 'folio_2': f2,
@@ -330,7 +287,6 @@ def state_progression_test(verbose: bool = True) -> Dict:
                 'sequential_distance': seq_dist,
             })
 
-    # Compute correlation between sequential distance and bigram distance
     valid = [(d['sequential_distance'], d['bigram_distance'])
              for d in distances if d['bigram_distance'] is not None]
 
@@ -355,14 +311,9 @@ def state_progression_test(verbose: bool = True) -> Dict:
     return {
         'correlation': round(correlation, 4),
         'state_detected': state_detected,
-        'pairwise_distances': distances[:20],  # top 20 pairs
+        'pairwise_distances': distances[:20],
         'n_pairs': len(valid),
     }
-
-
-# ============================================================================
-# ENTRY POINT
-# ============================================================================
 
 def run(verbose: bool = True) -> Dict:
     """Run all binding reconstruction analyses."""
@@ -373,23 +324,19 @@ def run(verbose: bool = True) -> Dict:
 
     results = {}
 
-    # 1. Compare binding orders
     if verbose:
         print("\n[1/3] Comparing binding order hypotheses...")
     results['binding_comparison'] = compare_binding_orders(verbose)
 
-    # 2. Missing quire boundary analysis
     if verbose:
         print("\n[2/3] Missing quire boundary analysis...")
     results['missing_quires'] = missing_quire_analysis(verbose)
 
-    # 3. State progression test
     if verbose:
         print("\n[3/3] Sequential state progression test...")
     results['state_progression'] = state_progression_test(verbose)
 
     return results
-
 
 if __name__ == '__main__':
     run()

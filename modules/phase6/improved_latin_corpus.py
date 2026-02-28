@@ -16,15 +16,13 @@ Strategy:
 Phase 6  ·  Voynich Convergence Attack
 """
 
-import sys
 import os
+import json
 import math
 import random
 import numpy as np
 from collections import Counter
 from typing import Dict, List, Tuple, Optional
-
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from modules.statistical_analysis import (
     word_conditional_entropy, zipf_analysis, conditional_entropy,
@@ -43,111 +41,26 @@ from data.expanded_medical_vocabulary import (
     ALL_MEDICAL_CATEGORIES, CATEGORY_WEIGHTS,
 )
 
+_DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'data', 'json')
+with open(os.path.join(_DATA_DIR, 'phase6_vocabulary.json')) as _f:
+    _p6_data = json.load(_f)
 
-# ============================================================================
-# ADDITIONAL VOCABULARY (not in Phase 5)
-# ============================================================================
+GALENIC_TERMS = _p6_data['GALENIC_TERMS']
+ASTROLOGICAL_TERMS = _p6_data['ASTROLOGICAL_TERMS']
+ANIMAL_INGREDIENTS = _p6_data['ANIMAL_INGREDIENTS']
+MINERAL_INGREDIENTS = _p6_data['MINERAL_INGREDIENTS']
+DIAGNOSTIC_TERMS = _p6_data['DIAGNOSTIC_TERMS']
+EXTRA_VERBS = _p6_data['EXTRA_VERBS']
+EXTRA_NOUNS = _p6_data['EXTRA_NOUNS']
+EXTRA_ADJECTIVES = _p6_data['EXTRA_ADJECTIVES']
 
-# Galenic theory terms
-GALENIC_TERMS = [
-    'complexio', 'temperamentum', 'humidum', 'calidum', 'innatum',
-    'spiritus', 'vitalis', 'naturalis', 'animalis', 'virtus',
-    'attractiva', 'retentiva', 'digestiva', 'expulsiva', 'generativa',
-    'materia', 'forma', 'elementum', 'qualitas', 'substantia',
-    'membrum', 'principale', 'nutritivum', 'spermaticum', 'sanguineum',
-    'phlegma', 'cholera', 'melancholia', 'sanguis', 'humor',
-    'temperatus', 'intemperatus', 'aequalis', 'inaequalis',
-    'compositus', 'simplex', 'primus', 'secundus', 'tertius', 'quartus',
-]
+del _p6_data, _f
 
-# Astrological and timing terms
-ASTROLOGICAL_TERMS = [
-    'arietis', 'tauri', 'geminorum', 'cancri', 'leonis', 'virginis',
-    'librae', 'scorpionis', 'sagittarii', 'capricorni', 'aquarii', 'piscium',
-    'luna', 'crescente', 'decrescente', 'plenilunio', 'novilunio',
-    'hora', 'matutina', 'vespertina', 'meridiana', 'nocturna',
-    'vere', 'aestate', 'autumno', 'hieme',
-    'ortu', 'occasu', 'solis', 'stellarum',
-    'die', 'dominico', 'veneris', 'martis', 'mercurii',
-]
-
-# Animal-derived ingredients
-ANIMAL_INGREDIENTS = [
-    'castoreum', 'ambra', 'cornu', 'cervi', 'fel', 'bovis',
-    'adeps', 'porcinus', 'sperma', 'ceti', 'ossa', 'sepia',
-    'corallium', 'margarita', 'muscus', 'civetum', 'sanguis',
-    'draconis', 'hirundinis', 'lacertae', 'testudo', 'cantharides',
-    'lumbricus', 'formica', 'scorpionis', 'vipera', 'bufo',
-    'ovum', 'album', 'vitellum', 'lac', 'asininum', 'caprinum',
-]
-
-# Mineral ingredients
-MINERAL_INGREDIENTS = [
-    'sulphur', 'alumen', 'sal', 'ammoniacum', 'vitriolum',
-    'antimonium', 'argentum', 'vivum', 'plumbum', 'cuprum',
-    'ferrum', 'aurum', 'stannum', 'nitrum', 'borax',
-    'calx', 'viva', 'magnesia', 'talcum', 'bitumen',
-    'petroleum', 'naphtha', 'succinum', 'gagates', 'haematites',
-    'lapis', 'lazuli', 'armenium', 'tutia', 'cerusa',
-]
-
-# Diagnostic terms
-DIAGNOSTIC_TERMS = [
-    'urina', 'pallida', 'rubea', 'nigra', 'spissa', 'tenuis',
-    'pulsus', 'debilis', 'fortis', 'velox', 'tardus', 'magnus',
-    'facies', 'pallor', 'rubor', 'tumor', 'calor', 'dolor',
-    'rigor', 'tremor', 'sudor', 'sitis', 'anorexia', 'nausea',
-    'vertigo', 'syncope', 'convulsio', 'delirium', 'coma',
-    'febris', 'continua', 'intermittens', 'quotidiana', 'tertiana',
-    'quartana', 'acuta', 'chronica', 'pestilentialis',
-]
-
-# More verb forms
-EXTRA_VERBS = [
-    'curat', 'sanat', 'purgat', 'provocat', 'mundificat',
-    'confortat', 'roborat', 'nutrit', 'dissolvit', 'aperit',
-    'constringit', 'lenificat', 'maturat', 'mitigat', 'sedat',
-    'calefacit', 'refrigerat', 'humectat', 'desiccat', 'subtiliat',
-    'penetrat', 'abstergit', 'consolidat', 'incarnat', 'cicatrizat',
-    'expellit', 'extrahit', 'generat', 'corrumpit', 'putrefacit',
-    'digerit', 'resolvit', 'repercutit', 'attrahat', 'retineat',
-]
-
-# Additional nouns (body parts, anatomical terms, containers)
-EXTRA_NOUNS = [
-    'cerebrum', 'cerebellum', 'medulla', 'diaphragma', 'peritoneum',
-    'mesenterium', 'omentum', 'pancreas', 'thymus', 'glandula',
-    'cartilago', 'ligamentum', 'tendon', 'musculus', 'arteria',
-    'vena', 'nervus', 'cutis', 'epidermis', 'dermis',
-    'folliculus', 'papilla', 'alveolus', 'bronchus', 'larynx',
-    'pharynx', 'oesophagus', 'pylorus', 'duodenum', 'colon',
-    'rectum', 'anus', 'vesica', 'ureter', 'urethra',
-    'uterus', 'ovarium', 'testis', 'prostata', 'penis',
-    'vas', 'ampulla', 'phiala', 'mortarium', 'pistillum',
-    'alembicus', 'cucurbita', 'retorta', 'fornax', 'balneum',
-]
-
-# Additional adjectives
-EXTRA_ADJECTIVES = [
-    'subtilis', 'grossus', 'acutus', 'obtusus', 'levis', 'gravis',
-    'mollis', 'durus', 'lentus', 'velox', 'antiquus', 'recens',
-    'maturus', 'immaturus', 'viridis', 'siccatus', 'pulverizatus',
-    'tritus', 'colatus', 'destillatus', 'fermentatus', 'decoctus',
-    'infusus', 'maceratus', 'combustus', 'calcinatus', 'sublimatus',
-    'praecipitatus', 'solutus', 'coagulatus', 'fixus', 'volatilis',
-]
-
-# Combine all new vocabulary for diversity injection
 ALL_NEW_VOCAB = (
     GALENIC_TERMS + ASTROLOGICAL_TERMS + ANIMAL_INGREDIENTS +
     MINERAL_INGREDIENTS + DIAGNOSTIC_TERMS + EXTRA_VERBS +
     EXTRA_NOUNS + EXTRA_ADJECTIVES
 )
-
-
-# ============================================================================
-# NEW TEMPLATE GENERATORS (7 new structures)
-# ============================================================================
 
 def _template_symptom_first(rng, plant, quality, moisture, degree):
     """Start with symptom, then recommend plant."""
@@ -163,7 +76,6 @@ def _template_symptom_first(rng, plant, quality, moisture, degree):
         f'{rng.choice(EXPANDED_CLOSING_PHRASES)}'
     )
 
-
 def _template_recipe_first(rng, plant, quality, moisture, degree):
     """Start with recipe instruction."""
     plant2 = rng.choice(EXPANDED_PLANT_NAMES)
@@ -178,7 +90,6 @@ def _template_recipe_first(rng, plant, quality, moisture, degree):
         f'{rng.choice(EXPANDED_CLOSING_PHRASES)}'
     )
 
-
 def _template_property_first(rng, plant, quality, moisture, degree):
     """Start with property description."""
     prop1 = rng.choice(EXPANDED_PROPERTY_WORDS)
@@ -192,7 +103,6 @@ def _template_property_first(rng, plant, quality, moisture, degree):
         f'et {rng.choice(PREPARATION_WORDS)} '
         f'{rng.choice(DELIVERY_WORDS)} {rng.choice(TIME_WORDS)}'
     )
-
 
 def _template_cross_reference(rng, plant, quality, moisture, degree):
     """Cross-reference between plants."""
@@ -212,7 +122,6 @@ def _template_cross_reference(rng, plant, quality, moisture, degree):
         f'{rng.choice(EXPANDED_CLOSING_PHRASES)}'
     )
 
-
 def _template_short_note(rng, plant, quality, moisture, degree):
     """Brief nota-format entry."""
     return (
@@ -221,7 +130,6 @@ def _template_short_note(rng, plant, quality, moisture, degree):
         f'{rng.choice(EXPANDED_BODY_WORDS)} '
         f'et est {rng.choice(["verum", "probatum", "certum", "expertum"])}'
     )
-
 
 def _template_diagnostic(rng, plant, quality, moisture, degree):
     """Diagnostic-oriented entry with symptoms."""
@@ -236,7 +144,6 @@ def _template_diagnostic(rng, plant, quality, moisture, degree):
         f'{rng.choice(TIME_WORDS)} '
         f'et {rng.choice(EXTRA_VERBS)} {rng.choice(CONDITION_WORDS)}'
     )
-
 
 def _template_astrological(rng, plant, quality, moisture, degree):
     """Entry with astrological timing."""
@@ -255,7 +162,6 @@ def _template_astrological(rng, plant, quality, moisture, degree):
         f'{rng.choice(DELIVERY_WORDS)}'
     )
 
-
 def _template_compound_galenic(rng, plant, quality, moisture, degree):
     """Entry using Galenic theory vocabulary."""
     galenic = rng.sample(GALENIC_TERMS, k=min(3, len(GALENIC_TERMS)))
@@ -270,7 +176,6 @@ def _template_compound_galenic(rng, plant, quality, moisture, degree):
         f'{rng.choice(EXPANDED_CLOSING_PHRASES)}'
     )
 
-
 def _template_mineral_animal(rng, plant, quality, moisture, degree):
     """Entry combining plant with mineral or animal ingredient."""
     ingredient = rng.choice(ANIMAL_INGREDIENTS + MINERAL_INGREDIENTS)
@@ -283,7 +188,6 @@ def _template_mineral_animal(rng, plant, quality, moisture, degree):
         f'{rng.choice(DELIVERY_WORDS)} {rng.choice(DOSAGE_WORDS)} '
         f'{rng.choice(EXPANDED_CLOSING_PHRASES)}'
     )
-
 
 def _template_vocabulary_rich(rng, plant, quality, moisture, degree):
     """Deliberately vocabulary-rich entry to push up type count."""
@@ -303,8 +207,6 @@ def _template_vocabulary_rich(rng, plant, quality, moisture, degree):
         f'{rng.choice(EXPANDED_CLOSING_PHRASES)}'
     )
 
-
-# All new templates
 NEW_TEMPLATES = [
     _template_symptom_first,
     _template_recipe_first,
@@ -317,15 +219,6 @@ NEW_TEMPLATES = [
     _template_mineral_animal,
     _template_vocabulary_rich,
 ]
-
-
-# ============================================================================
-# GAP-FILLING TEMPLATES (18 structures for bigram diversity)
-# ============================================================================
-# These templates produce word orderings NOT covered by existing templates,
-# filling zero-probability cells in the transition matrix.
-
-# --- Category A: Verb-First / Imperative Templates ---
 
 def _template_imperative_sequence(rng, plant, quality, moisture, degree):
     """Verb-first: coque plant in substance, cola, da dosage."""
@@ -341,7 +234,6 @@ def _template_imperative_sequence(rng, plant, quality, moisture, degree):
         f'{rng.choice(EXPANDED_CLOSING_PHRASES)}'
     )
 
-
 def _template_preparation_chain(rng, plant, quality, moisture, degree):
     """Multi-verb chain: accipe, tere, misce, fac."""
     substance = rng.choice(EXPANDED_SUBSTANCE_WORDS)
@@ -354,7 +246,6 @@ def _template_preparation_chain(rng, plant, quality, moisture, degree):
         f'et {rng.choice(EXTRA_VERBS)} {noun} '
         f'{rng.choice(EXPANDED_CLOSING_PHRASES)}'
     )
-
 
 def _template_multi_step(rng, plant, quality, moisture, degree):
     """Sequential: primo... deinde... tandem..."""
@@ -369,7 +260,6 @@ def _template_multi_step(rng, plant, quality, moisture, degree):
         f'contra {rng.choice(CONDITION_WORDS)} {rng.choice(EXPANDED_BODY_WORDS)} '
         f'{rng.choice(EXPANDED_CLOSING_PHRASES)}'
     )
-
 
 def _template_compound_recipe_gap(rng, plant, quality, moisture, degree):
     """Compound recipe with multiple plants and additive."""
@@ -386,7 +276,6 @@ def _template_compound_recipe_gap(rng, plant, quality, moisture, degree):
         f'{rng.choice(EXPANDED_CLOSING_PHRASES)}'
     )
 
-
 def _template_instruction_dense(rng, plant, quality, moisture, degree):
     """Dense instruction sequence with many verb→noun bigrams."""
     substance = rng.choice(EXPANDED_SUBSTANCE_WORDS)
@@ -400,9 +289,6 @@ def _template_instruction_dense(rng, plant, quality, moisture, degree):
         f'{rng.choice(EXPANDED_BODY_WORDS)} '
         f'{rng.choice(EXPANDED_CLOSING_PHRASES)}'
     )
-
-
-# --- Category B: Body-Part / Application Templates ---
 
 def _template_body_target(rng, plant, quality, moisture, degree):
     """Body-part targeted: ad dolorem {body} recipe plant."""
@@ -418,7 +304,6 @@ def _template_body_target(rng, plant, quality, moisture, degree):
         f'{rng.choice(EXPANDED_CLOSING_PHRASES)}'
     )
 
-
 def _template_lavation(rng, plant, quality, moisture, degree):
     """Washing/lavation: lava body cum decocto plant."""
     body = rng.choice(EXPANDED_BODY_WORDS)
@@ -432,7 +317,6 @@ def _template_lavation(rng, plant, quality, moisture, degree):
         f'{rng.choice(EXPANDED_CLOSING_PHRASES)}'
     )
 
-
 def _template_unction(rng, plant, quality, moisture, degree):
     """Unction: unge body cum oleo plant."""
     body = rng.choice(EXPANDED_BODY_WORDS)
@@ -444,7 +328,6 @@ def _template_unction(rng, plant, quality, moisture, degree):
         f'et {rng.choice(EXTRA_VERBS)} dolorem '
         f'{rng.choice(EXPANDED_CLOSING_PHRASES)}'
     )
-
 
 def _template_fomentation(rng, plant, quality, moisture, degree):
     """Fomentation: fac fomentum de plant super body."""
@@ -461,9 +344,6 @@ def _template_fomentation(rng, plant, quality, moisture, degree):
         f'{rng.choice(EXPANDED_CLOSING_PHRASES)}'
     )
 
-
-# --- Category C: Disease/Indication-Leading Templates ---
-
 def _template_disease_first(rng, plant, quality, moisture, degree):
     """Disease-leading: contra condition body recipe plant."""
     body = rng.choice(EXPANDED_BODY_WORDS)
@@ -478,7 +358,6 @@ def _template_disease_first(rng, plant, quality, moisture, degree):
         f'{rng.choice(EXPANDED_CLOSING_PHRASES)}'
     )
 
-
 def _template_conditional_disease(rng, plant, quality, moisture, degree):
     """Conditional: si diagnostic adest recipe plant cum substance."""
     diag = rng.choice(DIAGNOSTIC_TERMS)
@@ -492,7 +371,6 @@ def _template_conditional_disease(rng, plant, quality, moisture, degree):
         f'{rng.choice(EXPANDED_CLOSING_PHRASES)}'
     )
 
-
 def _template_proven_remedy(rng, plant, quality, moisture, degree):
     """Proven remedy: ad condition curandum probatum est plant."""
     condition = rng.choice(CONDITION_WORDS)
@@ -504,9 +382,6 @@ def _template_proven_remedy(rng, plant, quality, moisture, degree):
         f'quia est {quality} et {moisture} in {degree} gradu '
         f'{rng.choice(EXPANDED_CLOSING_PHRASES)}'
     )
-
-
-# --- Category D: Dosage/Timing-Centered Templates ---
 
 def _template_dosage_precise(rng, plant, quality, moisture, degree):
     """Precise dosage: da dosage plant cum dosage substance."""
@@ -520,7 +395,6 @@ def _template_dosage_precise(rng, plant, quality, moisture, degree):
         f'et {rng.choice(EXTRA_VERBS)} dolorem '
         f'{rng.choice(EXPANDED_CLOSING_PHRASES)}'
     )
-
 
 def _template_regimen(rng, plant, quality, moisture, degree):
     """Regimen: bibat dosage plant mane et sero."""
@@ -536,7 +410,6 @@ def _template_regimen(rng, plant, quality, moisture, degree):
         f'{rng.choice(EXPANDED_CLOSING_PHRASES)}'
     )
 
-
 def _template_graduated_dose(rng, plant, quality, moisture, degree):
     """Graduated dosing: in primo die da dosage, in secundo die..."""
     dosage1 = rng.choice(DOSAGE_WORDS)
@@ -549,9 +422,6 @@ def _template_graduated_dose(rng, plant, quality, moisture, degree):
         f'{rng.choice(EXPANDED_BODY_WORDS)} '
         f'{rng.choice(EXPANDED_CLOSING_PHRASES)}'
     )
-
-
-# --- Category E: Compound/Connecting Templates ---
 
 def _template_dual_plant(rng, plant, quality, moisture, degree):
     """Dual plant comparison: plant et plant2 simul valent."""
@@ -567,7 +437,6 @@ def _template_dual_plant(rng, plant, quality, moisture, degree):
         f'{rng.choice(EXPANDED_CLOSING_PHRASES)}'
     )
 
-
 def _template_alternative(rng, plant, quality, moisture, degree):
     """Alternative: plant valet vel plant2 si non habetur."""
     plant2 = rng.choice(EXPANDED_PLANT_NAMES)
@@ -581,7 +450,6 @@ def _template_alternative(rng, plant, quality, moisture, degree):
         f'quia utraque est {quality} et {moisture} '
         f'{rng.choice(EXPANDED_CLOSING_PHRASES)}'
     )
-
 
 def _template_compound_sentence(rng, plant, quality, moisture, degree):
     """Compound: plant verb condition item plant prep cum substance."""
@@ -599,42 +467,28 @@ def _template_compound_sentence(rng, plant, quality, moisture, degree):
         f'{rng.choice(EXPANDED_CLOSING_PHRASES)}'
     )
 
-
-# Gap-filling template list
 GAP_FILLING_TEMPLATES = [
-    # Category A: Verb-First / Imperative
     _template_imperative_sequence,
     _template_preparation_chain,
     _template_multi_step,
     _template_compound_recipe_gap,
     _template_instruction_dense,
-    # Category B: Body-Part / Application
     _template_body_target,
     _template_lavation,
     _template_unction,
     _template_fomentation,
-    # Category C: Disease/Indication-Leading
     _template_disease_first,
     _template_conditional_disease,
     _template_proven_remedy,
-    # Category D: Dosage/Timing-Centered
     _template_dosage_precise,
     _template_regimen,
     _template_graduated_dose,
-    # Category E: Compound/Connecting
     _template_dual_plant,
     _template_alternative,
     _template_compound_sentence,
 ]
 
-
-# Combined: Phase 5 templates + new templates
 ALL_TEMPLATES = list(PHASE5_TEMPLATES) + NEW_TEMPLATES
-
-
-# ============================================================================
-# MAIN CLASS
-# ============================================================================
 
 class ImprovedLatinCorpus:
     """
@@ -663,14 +517,10 @@ class ImprovedLatinCorpus:
 
         parts = []
 
-        # Source 1: Circa Instans (from Phase 4) — high-quality hardcoded
         parts.extend(CIRCA_INSTANS_ENTRIES)
 
-        # Source 2: Macer Floridus-style (from Phase 5) — high-quality hardcoded
         parts.extend(MACER_FLORIDUS_ENTRIES)
 
-        # Source 3: Vocabulary injection sentences — push type count up
-        # Short sentences using new vocabulary that won't appear in templates
         rng = random.Random(self.seed)
         for word in ALL_NEW_VOCAB:
             context = rng.choice([
@@ -680,11 +530,6 @@ class ImprovedLatinCorpus:
             ])
             parts.append(context)
 
-        # Source 3b: Expanded medieval medical vocabulary injection
-        # Each surface form is injected `weight` times in contextual sentences
-        # to shape the transition matrix appropriately by category.
-        # Filter: skip forms whose Latin consonant skeleton has ≤2 segments
-        # to prevent spurious matches on random text (unicity protection).
         from modules.phase11.phonetic_skeletonizer import LATIN_CONSONANT_CLASSES as _LCC
         def _skeleton_segments(word):
             skel, last = [], ''
@@ -709,21 +554,18 @@ class ImprovedLatinCorpus:
             for lemma, forms in category.items():
                 for form in forms:
                     if _skeleton_segments(form) < 3:
-                        continue  # Skip short-skeleton forms (unicity protection)
+                        continue
                     for _ in range(weight):
                         tpl = rng.choice(_medical_templates)
                         parts.append(tpl(rng, form))
 
-        # Source 4: Gap-filling bigram diversity sentences
-        # Added as a separate fixed-count source to avoid perturbing the
-        # main generation loop's seed progression (ablation test sensitive).
         qualities = ['calida', 'frigida', 'calidus', 'frigidus',
                      'calidum', 'frigidum']
         moistures = ['sicca', 'humida', 'siccus', 'humidus',
                      'siccum', 'humidum']
         degrees = ['primo', 'secundo', 'tertio', 'quarto']
 
-        gap_rng = random.Random(self.seed + 7919)  # Separate RNG
+        gap_rng = random.Random(self.seed + 7919)
         for _ in range(100):
             plant = gap_rng.choice(EXPANDED_PLANT_NAMES)
             quality = gap_rng.choice(qualities)
@@ -732,7 +574,6 @@ class ImprovedLatinCorpus:
             template = gap_rng.choice(GAP_FILLING_TEMPLATES)
             parts.append(template(gap_rng, plant, quality, moisture, degree))
 
-        # Source 5: Synthetic generation with ALL templates (Phase 5 + new)
         current_text = ' '.join(parts)
         current_count = len(current_text.split())
         remaining = self.target_tokens - current_count
@@ -743,7 +584,6 @@ class ImprovedLatinCorpus:
             moisture = rng.choice(moistures)
             degree = rng.choice(degrees)
 
-            # Weight new templates more heavily to increase diversity
             if rng.random() < 0.6:
                 template = rng.choice(NEW_TEMPLATES)
             else:
@@ -754,9 +594,8 @@ class ImprovedLatinCorpus:
             remaining -= len(entry.split())
 
         self._corpus_text = ' '.join(parts)
-        self._tokens = None  # Reset cached tokens
+        self._tokens = None
 
-        # Validation: check TTR
         tokens = self.get_tokens()
         n_types = len(set(tokens))
         ttr = n_types / max(1, len(tokens))

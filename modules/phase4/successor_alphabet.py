@@ -10,25 +10,18 @@ Uses Hungarian algorithm and simulated annealing on a REDUCED vocabulary
 3000+ word types; we restrict to the top ~100 for matrix matching.
 """
 
-import sys
-import os
 import math
 import random
 import numpy as np
 from collections import Counter
 from typing import Dict, List, Tuple, Optional
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-
 from scipy.optimize import linear_sum_assignment
 
 from modules.phase4.lang_a_extractor import LanguageAExtractor
 from modules.phase4.latin_herbal_corpus import LatinHerbalCorpus
 
-
-# Maximum vocabulary size for matrix matching (keeps runtime tractable)
 MAX_VOCAB_SIZE = 80
-
 
 def _build_reduced_transition_matrix(
     tokens: List[str], top_n: int = MAX_VOCAB_SIZE
@@ -54,7 +47,6 @@ def _build_reduced_transition_matrix(
     matrix = counts / row_sums
 
     return matrix, vocab
-
 
 class SuccessorAlphabetAttack:
     """
@@ -102,12 +94,9 @@ class SuccessorAlphabetAttack:
         n_l = len(latin_vocab)
         n = min(n_v, n_l)
 
-        # Truncate to common size
         v_mat = voynich_mat[:n, :n]
         l_mat = latin_mat[:n, :n]
 
-        # Build cost matrix: cost[i][j] = squared difference of
-        # row i of Voynich vs row j of Latin (row-wise Frobenius)
         cost = np.zeros((n, n), dtype=float)
         for i in range(n):
             for j in range(n):
@@ -145,10 +134,8 @@ class SuccessorAlphabetAttack:
         n_v = len(voynich_vocab)
         n_l = len(latin_vocab)
 
-        # Initialize: random assignment of each Voynich word to a Latin word
         current = [rng.randint(0, n_l - 1) for _ in range(n_v)]
 
-        # Apply crib constraints
         voynich_to_idx = {w: i for i, w in enumerate(voynich_vocab)}
         latin_to_idx = {w: i for i, w in enumerate(latin_vocab)}
         fixed_indices = set()
@@ -165,31 +152,25 @@ class SuccessorAlphabetAttack:
                             fixed_indices.add(v_idx)
                         break
 
-        # Vectorized cost function
         def cost_vec(perm):
             perm_arr = np.array(perm)
-            # Build permuted Latin matrix from current assignment
-            l_rows = latin_mat[perm_arr][:, perm_arr]  # n_v x n_v
+            l_rows = latin_mat[perm_arr][:, perm_arr]
             v_sub = voynich_mat[:n_v, :n_v]
             return float(np.sum((v_sub - l_rows) ** 2))
 
-        # Incremental cost: only recompute rows/columns involving changed index
         def delta_cost(perm, idx, old_val, new_val):
             """Compute cost change from switching perm[idx] old_val -> new_val."""
             delta = 0.0
             perm_new = list(perm)
             perm_new[idx] = new_val
-            # Affected: row idx and column idx in the difference matrix
             for j in range(n_v):
                 lj = perm[j]
-                # Row idx: voynich_mat[idx, j] vs latin_mat[new_val, lj]
                 v_val = voynich_mat[idx, j]
                 old_l = latin_mat[old_val, lj] if old_val < n_l and lj < n_l else 0
                 new_l = latin_mat[new_val, lj] if new_val < n_l and lj < n_l else 0
                 delta += (v_val - new_l) ** 2 - (v_val - old_l) ** 2
 
                 if j != idx:
-                    # Column idx: voynich_mat[j, idx] vs latin_mat[lj, new_val]
                     v_val2 = voynich_mat[j, idx]
                     old_l2 = latin_mat[lj, old_val] if lj < n_l and old_val < n_l else 0
                     new_l2 = latin_mat[lj, new_val] if lj < n_l and new_val < n_l else 0
@@ -246,7 +227,6 @@ class SuccessorAlphabetAttack:
         """Score a candidate permutation."""
         voynich_freqs = self.extractor.compute_word_frequencies()
 
-        # Crib satisfaction
         crib_satisfied = 0
         crib_total = len(self.botanical_cribs)
         for crib in self.botanical_cribs:
@@ -254,7 +234,6 @@ class SuccessorAlphabetAttack:
             if v_word in mapping and mapping[v_word] in crib['candidates']:
                 crib_satisfied += 1
 
-        # Function word plausibility
         latin_function = {'et', 'in', 'est', 'ad', 'cum', 'de', 'contra',
                          'habet', 'per', 'pro', 'fac', 'da', 'super'}
         top_5 = [w for w, _ in voynich_freqs.most_common(5)]

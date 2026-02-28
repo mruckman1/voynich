@@ -17,7 +17,7 @@ import time
 from datetime import datetime
 from typing import Dict
 
-from orchestrators._utils import ensure_output_dir
+from orchestrators._utils import vprint, ensure_output_dir
 from orchestrators._config import LATIN_CORPUS_TOKENS_DEFAULT, BEAM_WIDTH_DEFAULT
 
 from modules.phase4.lang_a_extractor import LanguageAExtractor
@@ -27,7 +27,6 @@ from modules.phase6.improved_latin_corpus import ImprovedLatinCorpus
 from modules.phase9.latin_syllabifier import LatinSyllabifier
 from modules.phase9.sigla_mapper import SiglaMapper
 from modules.phase9.beam_search_decoder import SyllabicBeamSearch
-
 
 def run_phase9_attack(verbose: bool = True, output_dir: str = './output/phase9') -> Dict:
     ensure_output_dir(output_dir)
@@ -39,8 +38,7 @@ def run_phase9_attack(verbose: bool = True, output_dir: str = './output/phase9')
         print('Syllabic & Sigla Translation Engine')
         print('=' * 70)
 
-    # 1. Phonotactic Parsing
-    if verbose: print('\n[1/4] Establishing Baseline Corpora...')
+    vprint(verbose, '\n[1/4] Establishing Baseline Corpora...')
     extractor = LanguageAExtractor(verbose=False)
     splitter = TierSplitter(extractor)
     splitter.split()
@@ -50,24 +48,21 @@ def run_phase9_attack(verbose: bool = True, output_dir: str = './output/phase9')
     l_corpus = ImprovedLatinCorpus(target_tokens=LATIN_CORPUS_TOKENS_DEFAULT, verbose=False)
     l_tokens = l_corpus.get_tokens()
 
-    # 2. Latin Syllabification
-    if verbose: print('\n[2/4] Breaking Latin Corpus into Syllables...')
+    vprint(verbose, '\n[2/4] Breaking Latin Corpus into Syllables...')
     syllabifier = LatinSyllabifier()
     l_syllables, syllable_transitions = syllabifier.process_corpus(l_tokens)
 
     if verbose:
         print(f"  → Extracted {len(l_syllables)} unique Latin syllables.")
 
-    # 3. Sigla (Abbreviation) Mapping
-    if verbose: print('\n[3/4] Mapping Voynich Affixes to Medieval Sigla...')
+    vprint(verbose, '\n[3/4] Mapping Voynich Affixes to Medieval Sigla...')
     sigla_mapper = SiglaMapper(v_tokens, l_syllables)
     sigla_constraints = sigla_mapper.generate_mappings()
 
     if verbose:
         print(f"  → Mapped {len(sigla_constraints)} rigid scribal abbreviations.")
 
-    # 4. Syllabic Beam Search Decoding
-    if verbose: print('\n[4/4] Running Beam Search Decoding (Anti-Mode-Collapse)...')
+    vprint(verbose, '\n[4/4] Running Beam Search Decoding (Anti-Mode-Collapse)...')
     decoder = SyllabicBeamSearch(
         voynich_tokens=v_tokens,
         syllable_transitions=syllable_transitions,

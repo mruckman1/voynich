@@ -27,31 +27,25 @@ from modules.phase12.syntactic_scaffolder import SyntacticScaffolder
 from modules.phase12.ngram_mask_solver import NgramMaskSolver
 from modules.phase7.voynich_morphemer import VoynichMorphemer
 
-
-# Ligature collapse mapping: multi-char EVA → single ASCII
-# Ordered longest-first for greedy matching
 COLLAPSE_MAP = {
-    'cth': 'X',   # bench-gallows → T class
-    'ckh': 'Y',   # bench-gallows → K class
-    'cph': 'Z',   # bench-gallows → P class
-    'cfh': 'W',   # bench-gallows → P class
-    'sh':  'S',   # bench-gallows → S class
-    'ch':  'C',   # bench-gallows → K class
+    'cth': 'X',
+    'ckh': 'Y',
+    'cph': 'Z',
+    'cfh': 'W',
+    'sh':  'S',
+    'ch':  'C',
 }
 
-# Consonant classes for collapsed characters
 COLLAPSED_CONSONANT_CLASSES = {
-    'X': 'T',   # cth → T
-    'Y': 'K',   # ckh → K
-    'Z': 'P',   # cph → P
-    'W': 'P',   # cfh → P
-    'S': 'S',   # sh  → S
-    'C': 'K',   # ch  → K
+    'X': 'T',
+    'Y': 'K',
+    'Z': 'P',
+    'W': 'P',
+    'S': 'S',
+    'C': 'K',
 }
 
-# Sort collapse entries by length descending for greedy match
 _COLLAPSE_ORDER = sorted(COLLAPSE_MAP.items(), key=lambda x: -len(x[0]))
-
 
 def _collapse_token(token: str) -> str:
     """Apply ligature collapse to a single token (longest-match-first)."""
@@ -60,11 +54,9 @@ def _collapse_token(token: str) -> str:
         result = result.replace(old, new)
     return result
 
-
 def _collapse_tokens(tokens: List[str]) -> List[str]:
     """Apply ligature collapse to all tokens."""
     return [_collapse_token(t) for t in tokens]
-
 
 def _resolution_rate(decoded_text: str) -> float:
     """Compute the fraction of words that are NOT bracketed."""
@@ -73,7 +65,6 @@ def _resolution_rate(decoded_text: str) -> float:
         return 0.0
     brackets = sum(1 for w in words if w.startswith('[') or w.startswith('<'))
     return 1.0 - (brackets / len(words))
-
 
 class CollapsedFuzzySkeletonizer(FuzzySkeletonizer):
     """
@@ -88,7 +79,6 @@ class CollapsedFuzzySkeletonizer(FuzzySkeletonizer):
         Generate skeleton candidates, treating collapsed characters
         as their consonant-class equivalents.
         """
-        # Temporarily expand consonant classes for collapsed chars
         from modules.phase12.fuzzy_skeletonizer import (
             SEMI_CONSONANT_MAP, _is_vowel_position,
         )
@@ -97,14 +87,12 @@ class CollapsedFuzzySkeletonizer(FuzzySkeletonizer):
         if not v_stem:
             return []
 
-        # Build extended consonant map
         extended_classes = dict(VOYNICH_CONSONANT_CLASSES)
         extended_classes.update(COLLAPSED_CONSONANT_CLASSES)
 
         segments = []
         i = 0
         while i < len(v_stem):
-            # Try digraph first (some original digraphs may remain)
             if i < len(v_stem) - 1:
                 digraph = v_stem[i:i + 2]
                 if digraph in extended_classes:
@@ -119,19 +107,16 @@ class CollapsedFuzzySkeletonizer(FuzzySkeletonizer):
                 i += 1
                 continue
 
-            # Semi-consonant branching
             if char in SEMI_CONSONANT_MAP and _is_vowel_position(v_stem, i):
                 segments.append((None, SEMI_CONSONANT_MAP[char]))
                 i += 1
                 continue
 
-            # Regular vowel — skip
             i += 1
 
         if not segments:
             return []
 
-        # Expand branch points (same logic as parent)
         branch_points = []
         for seg in segments:
             if isinstance(seg, tuple):
@@ -168,7 +153,6 @@ class CollapsedFuzzySkeletonizer(FuzzySkeletonizer):
 
         return sorted(candidates.items(), key=lambda x: -x[1])
 
-
 class CollapsedMorphemer:
     """
     Wrapper around VoynichMorphemer that updates prefix/suffix sets
@@ -178,11 +162,9 @@ class CollapsedMorphemer:
     def __init__(self, v_morphemer: VoynichMorphemer):
         self._inner = v_morphemer
 
-        # Build collapsed prefix and suffix sets
         self.valid_prefixes = set(v_morphemer.valid_prefixes)
         self.valid_suffixes = set(v_morphemer.valid_suffixes)
 
-        # Add collapsed versions of existing affixes
         for pref in list(self.valid_prefixes):
             collapsed = _collapse_token(pref)
             if collapsed != pref:
@@ -211,7 +193,6 @@ class CollapsedMorphemer:
 
         stem = remainder[:-len(best_suff)] if best_suff else remainder
         return best_pref, stem, best_suff
-
 
 class EvaCollapseTest:
     """
@@ -257,14 +238,11 @@ class EvaCollapseTest:
         self, tokens: List[str], folio_id: str,
     ) -> str:
         """Run collapsed-ligature Phase 12 pipeline."""
-        # Collapse tokens
         collapsed_tokens = _collapse_tokens(tokens)
 
-        # Build collapsed morphemer and skeletonizer
         collapsed_morph = CollapsedMorphemer(self.v_morphemer)
         collapsed_fuzzy = CollapsedFuzzySkeletonizer(collapsed_morph)
 
-        # Build collapsed decoder
         collapsed_decoder = BudgetedCSPDecoder(
             self.l_skel, collapsed_fuzzy,
             self.corpus_tokens, self.folio_metadata,
@@ -314,7 +292,6 @@ class EvaCollapseTest:
             std_words = standard.split()
             col_words = collapsed.split()
 
-            # Compare word-by-word (align by position)
             n_compare = min(len(std_words), len(col_words))
             n_match = sum(
                 1 for s, c in zip(std_words[:n_compare], col_words[:n_compare])

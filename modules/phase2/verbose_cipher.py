@@ -16,24 +16,14 @@ Critical test: H2 within 0.1 of 1.41 AND TTR within 0.02 of 0.164
 AND Zipf within 0.15 of 1.24, all simultaneously.
 """
 
-import sys
-import os
 import random
 import math
 from collections import Counter
 from typing import Dict, List, Tuple, Optional
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-
 from modules.phase2.base_model import Phase2GenerativeModel, VOYNICH_TARGETS, TRIPLE_THRESHOLDS
 from modules.naibbe_cipher import PREFIX_GLYPHS, MEDIAL_GLYPHS, SUFFIX_GLYPHS, ANY_GLYPHS
 
-
-# ============================================================================
-# LATIN LETTER FREQUENCIES (medieval medical Latin)
-# ============================================================================
-
-# Approximate letter frequencies for medieval Latin medical text
 LATIN_LETTER_FREQ = {
     'a': 0.085, 'b': 0.015, 'c': 0.035, 'd': 0.030,
     'e': 0.120, 'f': 0.008, 'g': 0.012, 'h': 0.010,
@@ -43,10 +33,8 @@ LATIN_LETTER_FREQ = {
     'x': 0.003,
 }
 
-# Sort letters by frequency for homophone allocation
 _LETTERS_BY_FREQ = sorted(LATIN_LETTER_FREQ.items(), key=lambda x: -x[1])
 LATIN_ALPHABET = [l for l, _ in _LETTERS_BY_FREQ]
-
 
 class VerboseCipher(Phase2GenerativeModel):
     """
@@ -80,7 +68,7 @@ class VerboseCipher(Phase2GenerativeModel):
         self.word_length_max = word_length_max
         self.positional_bias = positional_bias
 
-        self.mapping_table = {}  # letter -> [word1, word2, ...]
+        self.mapping_table = {}
         self._build_mapping_table()
 
     def _build_mapping_table(self):
@@ -90,28 +78,22 @@ class VerboseCipher(Phase2GenerativeModel):
         Higher-frequency letters get more homophones. Each word is assembled
         from EVA glyphs respecting positional constraints.
         """
-        # Calculate homophone allocation based on letter frequency
         total_freq = sum(LATIN_LETTER_FREQ.values())
         words_used = 0
         remaining_vocab = self.vocab_size
 
         for letter, freq in _LETTERS_BY_FREQ:
             if remaining_vocab <= 0:
-                # Assign at least 1 word to remaining letters
                 self.mapping_table[letter] = [self._generate_word()]
                 continue
 
-            # Allocate homophones proportional to frequency
             relative_freq = freq / total_freq
             n_homophones = max(1, round(
                 relative_freq * self.vocab_size * self.homophones_per_letter / len(LATIN_ALPHABET)
             ))
             n_homophones = min(n_homophones, self.homophones_per_letter, remaining_vocab)
 
-            words = []
-            for _ in range(n_homophones):
-                words.append(self._generate_word())
-            self.mapping_table[letter] = words
+            self.mapping_table[letter] = [self._generate_word() for _ in range(n_homophones)]
             remaining_vocab -= n_homophones
 
     def _generate_word(self) -> str:
@@ -123,20 +105,17 @@ class VerboseCipher(Phase2GenerativeModel):
         length = self.rng.randint(self.word_length_min, self.word_length_max)
         chars = []
 
-        # Optional prefix (gallows/initial glyph)
         if self.rng.random() < self.positional_bias and length >= 3:
             chars.append(self.rng.choice(PREFIX_GLYPHS))
             length -= 1
 
-        # Body (medial glyphs)
-        body_length = max(1, length - 1)  # Reserve 1 for suffix
+        body_length = max(1, length - 1)
         for _ in range(body_length):
             if self.rng.random() < 0.7:
                 chars.append(self.rng.choice(MEDIAL_GLYPHS))
             else:
                 chars.append(self.rng.choice(ANY_GLYPHS))
 
-        # Optional suffix
         if self.rng.random() < self.positional_bias:
             chars.append(self.rng.choice(SUFFIX_GLYPHS))
         elif len(chars) < self.word_length_min:
@@ -154,12 +133,10 @@ class VerboseCipher(Phase2GenerativeModel):
         if plaintext:
             letters = [c.lower() for c in plaintext if c.isalpha()]
         else:
-            # Generate random letters with Latin frequency distribution
             letters_list = list(LATIN_LETTER_FREQ.keys())
             weights = list(LATIN_LETTER_FREQ.values())
             letters = self.rng.choices(letters_list, weights=weights, k=n_words)
 
-        # Limit to n_words
         letters = letters[:n_words]
 
         output_words = []
@@ -167,7 +144,6 @@ class VerboseCipher(Phase2GenerativeModel):
             if letter in self.mapping_table:
                 word = self.rng.choice(self.mapping_table[letter])
             else:
-                # Unknown letter — use a random mapping
                 word = self.rng.choice(self.mapping_table.get('e', ['chedy']))
             output_words.append(word)
 
@@ -185,7 +161,7 @@ class VerboseCipher(Phase2GenerativeModel):
             homophones = [1, 2, 3, 4, 5]
             wl_ranges = [(2, 5), (3, 6), (3, 7), (3, 8), (4, 8)]
             biases = [0.2, 0.4, 0.6, 0.8]
-        else:  # fine
+        else:
             vocab_sizes = list(range(16, 46, 2))
             homophones = [1, 2, 3, 4, 5, 6]
             wl_ranges = [(2, 5), (3, 5), (3, 6), (3, 7), (3, 8), (4, 7), (4, 8), (4, 9)]

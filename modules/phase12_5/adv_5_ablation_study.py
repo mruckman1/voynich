@@ -28,9 +28,7 @@ from modules.phase12.ngram_mask_solver import NgramMaskSolver
 
 from data.botanical_identifications import PLANT_IDS
 
-# The 10 function words to ablate
 ABLATION_SET = {'et', 'in', 'est', 'cum', 'ad', 'per', 'sed', 'quae', 'non', 'da'}
-
 
 def _resolution_rate(decoded_text: str) -> float:
     """Compute the fraction of words that are NOT bracketed."""
@@ -40,18 +38,15 @@ def _resolution_rate(decoded_text: str) -> float:
     brackets = sum(1 for w in words if w.startswith('[') or w.startswith('<'))
     return 1.0 - (brackets / len(words))
 
-
 def _is_bracket(word: str) -> bool:
     """Check if a word is bracketed (unresolved)."""
     return word.startswith('[') or word.startswith('<')
-
 
 def _is_content_word(word: str) -> bool:
     """Check if a word is a resolved content word (not bracket, not function)."""
     if _is_bracket(word):
         return False
     return word not in ABLATION_SET
-
 
 def _compute_grammar_trace(decoded_text: str) -> Dict:
     """
@@ -77,7 +72,6 @@ def _compute_grammar_trace(decoded_text: str) -> Dict:
     invalid = 0
 
     for i in et_positions:
-        # Check word before and after
         has_prev_content = (i > 0 and _is_content_word(words[i - 1]))
         has_next_content = (i < len(words) - 1 and _is_content_word(words[i + 1]))
 
@@ -94,7 +88,6 @@ def _compute_grammar_trace(decoded_text: str) -> Dict:
         'validity_pct': round(valid / max(1, total), 4),
     }
 
-
 class AblatedCSPDecoder(BudgetedCSPDecoder):
     """
     BudgetedCSPDecoder variant with function words removed from the
@@ -108,17 +101,12 @@ class AblatedCSPDecoder(BudgetedCSPDecoder):
 
     def find_best_match(self, v_token: str, folio_id: str = None) -> str:
         """Override: skip function word bypass for ablated words."""
-        # Check if this token would normally map to an ablated function word
         if v_token in FUNCTION_WORDS:
             target_word = FUNCTION_WORDS[v_token]
             if target_word in self._ablation_set:
-                # Don't use function word bypass — force skeleton matching
-                # which will likely fail and bracket the token
                 return f"[{v_token}]"
 
-        # For non-ablated tokens, use normal pipeline
         return super().find_best_match(v_token, folio_id=folio_id)
-
 
 class AblationStudyTest:
     """
@@ -164,31 +152,24 @@ class AblationStudyTest:
         self, tokens: List[str], folio_id: str,
     ) -> str:
         """Run Phase 12 pipeline with function words ablated."""
-        # Build ablated corpus tokens (remove ablated words)
         ablated_tokens = [t for t in self.corpus_tokens
                           if t not in ABLATION_SET]
 
-        # Build ablated skeleton index
         ablated_skel = LatinPhoneticSkeletonizer(ablated_tokens)
 
-        # Build ablated decoder
         ablated_decoder = AblatedCSPDecoder(
             ablated_skel, self.f_skel,
             ablated_tokens, self.folio_metadata,
             ablation_set=ABLATION_SET,
         )
 
-        ablated_scaffolder = self.scaffolder  # Reuse (POS tagging is unchanged)
+        ablated_scaffolder = self.scaffolder
 
-        # Build ablated n-gram solver (transition matrix from ablated corpus)
-        # We still use the herbal matrix but the solver's skeleton index
-        # no longer contains the ablated words
         ablated_solver = NgramMaskSolver(
             self.herbal_matrix, self.herbal_vocab,
             ablated_skel, self.f_skel,
             humoral_vocab=HUMORAL_VOCAB,
             min_confidence_ratio=3.0,
-            # Disable all improvements for clean ablation comparison
             enable_length_scaled_ratio=False,
             enable_bidirectional=False,
             enable_function_word_recovery=False,
@@ -232,20 +213,16 @@ class AblationStudyTest:
             if len(tokens) < 5:
                 continue
 
-            # Baseline (full pipeline)
             baseline = self._decode_baseline(tokens, folio)
             baseline_words = baseline.split()
             n_baseline = len(baseline_words)
             n_baseline_brackets = sum(1 for w in baseline_words if _is_bracket(w))
 
-            # Ablated (no function words)
             ablated = self._decode_ablated(tokens, folio)
             ablated_words = ablated.split()
             n_ablated = len(ablated_words)
             n_ablated_brackets = sum(1 for w in ablated_words if _is_bracket(w))
 
-            # Cascade collapse: content words that resolved in baseline
-            # but became brackets in ablated
             n_compare = min(n_baseline, n_ablated)
             cascade_count = 0
             content_count = 0
@@ -256,7 +233,6 @@ class AblationStudyTest:
                     if _is_bracket(a_word):
                         cascade_count += 1
 
-            # Grammar trace for baseline
             grammar = _compute_grammar_trace(baseline)
             all_grammar_traces.append(grammar)
 
@@ -283,12 +259,10 @@ class AblationStudyTest:
                       f'ablated {ablated_rate:.1%}, '
                       f'cascade {cascade_rate:.1%}')
 
-        # Aggregate
         overall_baseline = 1.0 - (baseline_brackets_total / max(1, baseline_words_total))
         overall_ablated = 1.0 - (ablated_brackets_total / max(1, ablated_words_total))
         overall_cascade = cascade_collapse_total / max(1, cascade_content_total)
 
-        # Aggregate grammar trace
         total_et = sum(g['et_count'] for g in all_grammar_traces)
         total_valid = sum(g['valid_bridges'] for g in all_grammar_traces)
         overall_et_validity = total_valid / max(1, total_et)

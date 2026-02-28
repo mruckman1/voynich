@@ -13,14 +13,10 @@ Critical test: NMF effective rank ~12 decomposes into onset × nucleus × coda
 classes, indicating the encoding reflects syllable structure.
 """
 
-import sys
-import os
 import random
 import math
 from collections import Counter
 from typing import Dict, List, Tuple, Optional
-
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from modules.phase2.base_model import Phase2GenerativeModel, VOYNICH_TARGETS, TRIPLE_THRESHOLDS
 from modules.naibbe_cipher import PREFIX_GLYPHS, MEDIAL_GLYPHS, SUFFIX_GLYPHS, ANY_GLYPHS
@@ -28,7 +24,6 @@ from data.latin_syllables import (
     LATIN_SYLLABLES, syllabify, get_syllable_structure,
     get_top_syllables, ONSETS, NUCLEI, CODAS
 )
-
 
 class SyllabaryCode(Phase2GenerativeModel):
     """
@@ -66,7 +61,7 @@ class SyllabaryCode(Phase2GenerativeModel):
         self.onset_coding = onset_coding
         self.positional_bias = positional_bias
 
-        self.syllable_table = {}  # syllable -> [word1, word2, ...]
+        self.syllable_table = {}
         self._build_syllable_table()
 
     def _build_syllable_table(self):
@@ -77,7 +72,6 @@ class SyllabaryCode(Phase2GenerativeModel):
         words with the same nucleus share a medial pattern, etc.
         This structural encoding is the key prediction of Model 2.
         """
-        # Get the top N syllables by frequency
         top_syllables = get_top_syllables(self.n_syllable_types)
 
         if self.onset_coding:
@@ -93,7 +87,6 @@ class SyllabaryCode(Phase2GenerativeModel):
         - nucleus -> word medial
         - coda -> word suffix
         """
-        # Build sub-inventories for onset/nucleus/coda encoding
         onset_map = self._build_component_map(ONSETS[:15], PREFIX_GLYPHS + [''])
         nucleus_map = self._build_component_map(NUCLEI[:8], MEDIAL_GLYPHS)
         coda_map = self._build_component_map(CODAS[:12], SUFFIX_GLYPHS + ANY_GLYPHS[:3] + [''])
@@ -106,12 +99,10 @@ class SyllabaryCode(Phase2GenerativeModel):
 
             words = []
             for _ in range(self.homophones_per_syllable):
-                # Build word from structural components
                 prefix = onset_map.get(onset, self.rng.choice(PREFIX_GLYPHS + ['']))
                 middle = nucleus_map.get(nucleus, self.rng.choice(MEDIAL_GLYPHS))
                 suffix = coda_map.get(coda, self.rng.choice(SUFFIX_GLYPHS + ['']))
 
-                # Add some medial filler for word length
                 filler_len = self.rng.randint(0, 2)
                 filler = ''.join(self.rng.choice(MEDIAL_GLYPHS) for _ in range(filler_len))
 
@@ -145,7 +136,6 @@ class SyllabaryCode(Phase2GenerativeModel):
             if i < len(available):
                 mapping[comp] = available[i]
             else:
-                # Generate compound glyph
                 mapping[comp] = self.rng.choice(glyph_pool) + self.rng.choice(MEDIAL_GLYPHS)
         return mapping
 
@@ -174,7 +164,6 @@ class SyllabaryCode(Phase2GenerativeModel):
         Each plaintext syllable produces one ciphertext word.
         """
         if plaintext:
-            # Syllabify the plaintext
             words = plaintext.lower().split()
             all_syllables = []
             for word in words:
@@ -183,12 +172,10 @@ class SyllabaryCode(Phase2GenerativeModel):
                     syls = syllabify(word_clean)
                     all_syllables.extend(syls)
         else:
-            # Generate random syllables with Latin frequency distribution
             syllables = list(LATIN_SYLLABLES.keys())
             weights = list(LATIN_SYLLABLES.values())
             all_syllables = self.rng.choices(syllables, weights=weights, k=n_words)
 
-        # Limit output
         all_syllables = all_syllables[:n_words]
 
         output_words = []
@@ -196,7 +183,6 @@ class SyllabaryCode(Phase2GenerativeModel):
             if syl in self.syllable_table:
                 word = self.rng.choice(self.syllable_table[syl])
             else:
-                # Unknown syllable: try closest match or generate random
                 word = self._fallback_encode(syl)
             output_words.append(word)
 
@@ -204,7 +190,6 @@ class SyllabaryCode(Phase2GenerativeModel):
 
     def _fallback_encode(self, syllable: str) -> str:
         """Encode an unknown syllable using component matching."""
-        # Try to find a syllable with the same onset
         structure = get_syllable_structure(syllable)
         onset = structure['onset']
 
@@ -213,7 +198,6 @@ class SyllabaryCode(Phase2GenerativeModel):
             if known_struct['onset'] == onset:
                 return self.rng.choice(words)
 
-        # Fallback: random word
         return self._generate_random_word()
 
     def parameter_grid(self, resolution: str = 'medium') -> List[Dict]:
@@ -228,7 +212,7 @@ class SyllabaryCode(Phase2GenerativeModel):
             homophones = [1, 2, 3]
             onset_codings = [True, False]
             biases = [0.2, 0.4, 0.6]
-        else:  # fine
+        else:
             n_types = [100, 150, 200, 250, 300, 350, 400, 500, 600]
             homophones = [1, 2, 3, 4]
             onset_codings = [True, False]
@@ -300,7 +284,6 @@ class SyllabaryCode(Phase2GenerativeModel):
         W, H, error = nmf.factorize(rank=rank)
         components = nmf.interpret_components(W, H)
 
-        # Check if rank is near target (12)
         rank_match = abs(rank - VOYNICH_TARGETS['nmf_effective_rank']) <= 2
 
         return {

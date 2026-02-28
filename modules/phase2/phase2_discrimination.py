@@ -14,13 +14,9 @@ Decision gate: Drop any model that cannot get within 50% of the gap.
 Proceed with top 2-3 models for deep implementation.
 """
 
-import sys
-import os
 import time
 import json
 from typing import Dict, List, Optional
-
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from modules.phase2.base_model import Phase2GenerativeModel, VOYNICH_TARGETS, TRIPLE_THRESHOLDS
 from modules.phase2.verbose_cipher import VerboseCipher
@@ -32,11 +28,6 @@ from modules.phase2.glyph_decomposition import GlyphDecomposition
 from modules.strategy1_parameter_search import generate_medical_plaintext
 from data.medieval_text_templates import generate_italian_text, generate_german_text
 
-
-# ============================================================================
-# MODEL REGISTRY
-# ============================================================================
-
 MODEL_REGISTRY = {
     'verbose_cipher': VerboseCipher,
     'syllabary_code': SyllabaryCode,
@@ -45,11 +36,6 @@ MODEL_REGISTRY = {
     'grammar_induction': GrammarInduction,
     'glyph_decomposition': GlyphDecomposition,
 }
-
-
-# ============================================================================
-# PLAINTEXT GENERATORS
-# ============================================================================
 
 def _get_plaintext(language: str, n_words: int = 600) -> str:
     """Generate plaintext in the specified language."""
@@ -61,11 +47,6 @@ def _get_plaintext(language: str, n_words: int = 600) -> str:
         return generate_german_text(n_words)
     else:
         return generate_medical_plaintext(n_words)
-
-
-# ============================================================================
-# DISCRIMINATION SWEEP
-# ============================================================================
 
 def run_quick_discrimination(
     models: Optional[List[str]] = None,
@@ -122,7 +103,6 @@ def run_quick_discrimination(
         best_distance = float('inf')
         all_results = []
 
-        # Special handling for models that don't use plaintext
         if model_name == 'glyph_decomposition':
             result = _test_glyph_decomposition(model_class, verbose)
             per_model[model_name] = result
@@ -138,14 +118,12 @@ def run_quick_discrimination(
             per_model[model_name] = result
             continue
 
-        # Standard models: sweep parameters × languages
         for language in languages:
             plaintext = _get_plaintext(language)
 
             if verbose:
                 print(f'  Language: {language}')
 
-            # Create default model and run sweep
             default_model = model_class(seed=42)
             sweep = default_model.run_sweep(
                 plaintext=plaintext,
@@ -178,7 +156,6 @@ def run_quick_discrimination(
             model_name, all_results, best_result, best_distance
         )
 
-    # Classify models
     triple_matches = []
     partial_matches = []
     eliminated = []
@@ -191,7 +168,6 @@ def run_quick_discrimination(
         else:
             eliminated.append(name)
 
-    # Rank by best distance
     ranked = sorted(per_model.items(), key=lambda x: x[1].get('best_distance', float('inf')))
     rankings = [{'model': name, 'distance': result.get('best_distance', float('inf')),
                  'category': 'triple' if name in triple_matches
@@ -221,17 +197,11 @@ def run_quick_discrimination(
         'elapsed_seconds': elapsed,
     }
 
-
-# ============================================================================
-# SPECIAL-CASE MODEL TESTERS
-# ============================================================================
-
 def _test_glyph_decomposition(model_class, verbose: bool) -> Dict:
     """Test Model 6 (glyph decomposition) — no parameter sweep needed."""
     model = model_class()
     results = model.run_all_alphabets(verbose=verbose)
 
-    # Compute distance for the best alphabet
     best_alpha = results.get('best_alphabet', '')
     best_h2 = results.get('best_H2', 0)
 
@@ -249,7 +219,6 @@ def _test_glyph_decomposition(model_class, verbose: bool) -> Dict:
         'all_alphabets': results.get('alphabets', []),
     }
 
-
 def _test_steganographic(model_class, verbose: bool) -> Dict:
     """Test Model 4 (steganographic carrier) — tests against actual Voynich."""
     if verbose:
@@ -260,7 +229,6 @@ def _test_steganographic(model_class, verbose: bool) -> Dict:
 
     for order in [1, 2, 3]:
         model = model_class(carrier_order=order, choices_per_position=3, seed=42)
-        # Generate carrier text for profile comparison
         text = model.generate(n_words=500)
         if not text:
             continue
@@ -268,7 +236,6 @@ def _test_steganographic(model_class, verbose: bool) -> Dict:
         profile = model.get_profile(text)
         score = model.quick_score(profile)
 
-        # Also run the critical test (deviation analysis)
         crit = model.critical_test(profile)
 
         dist = score.get('distance', float('inf'))
@@ -308,7 +275,6 @@ def _test_steganographic(model_class, verbose: bool) -> Dict:
         'deviation_test': best_result.get('deviation_test', {}) if best_result else {},
         'n_tested': 3,
     }
-
 
 def _test_grammar_induction(model_class, verbose: bool) -> Dict:
     """Test Model 5 (grammar induction) — runs evolutionary search."""
@@ -357,11 +323,6 @@ def _test_grammar_induction(model_class, verbose: bool) -> Dict:
         'n_tested': 1,
     }
 
-
-# ============================================================================
-# HELPERS
-# ============================================================================
-
 def _summarize_model_results(model_name: str, all_results: List[Dict],
                              best_result: Optional[Dict],
                              best_distance: float) -> Dict:
@@ -369,7 +330,6 @@ def _summarize_model_results(model_name: str, all_results: List[Dict],
     has_triple = any(r.get('triple_match', False) for r in all_results)
     n_triple = sum(1 for r in all_results if r.get('triple_match', False))
 
-    # Count partial matches (2 of 3 metrics match)
     partial_count = 0
     if best_result:
         for metric, target, threshold in [
@@ -394,7 +354,6 @@ def _summarize_model_results(model_name: str, all_results: List[Dict],
         'n_tested': len(all_results),
         'results_by_language': _group_by_language(all_results),
     }
-
 
 def _group_by_language(results: List[Dict]) -> Dict:
     """Group results by language and find best per language."""

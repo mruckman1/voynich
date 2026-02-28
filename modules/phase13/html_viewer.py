@@ -22,14 +22,10 @@ import os
 from html import escape
 from typing import Dict, List, Optional
 
-
-# Known function words from Phase 11 CSP decoder
 STRUCTURAL_LATIN = {'et', 'in', 'ad', 'sed', 'est', 'vel', 'per'}
 
-# Regex for unresolved tokens
 UNRESOLVED_RE = re.compile(r'\[([^\]]+?)_(UNRESOLVED|VERB_3P|NOUN_\w+|ADJ|UNK)\]')
 BRACKET_RE = re.compile(r'[\[<]([^\]>]+)[\]>]')
-
 
 class InterlinearToken:
     """Represents a single token across all four display tiers."""
@@ -40,9 +36,8 @@ class InterlinearToken:
         self.morphology = morphology
         self.latin = latin
         self.english = english
-        self.confidence = confidence       # 'structural' | 'probabilistic' | 'unresolved'
-        self.derivation = derivation       # tooltip text
-
+        self.confidence = confidence
+        self.derivation = derivation
 
 def _classify_confidence(latin_word: str) -> str:
     """Determine confidence level for a decoded token."""
@@ -51,7 +46,6 @@ def _classify_confidence(latin_word: str) -> str:
     if latin_word.lower() in STRUCTURAL_LATIN:
         return 'structural'
     return 'probabilistic'
-
 
 def _build_morphology_str(eva_token: str, parsed_samples: List[Dict]) -> str:
     """Build a morphological decomposition string for an EVA token."""
@@ -62,9 +56,7 @@ def _build_morphology_str(eva_token: str, parsed_samples: List[Dict]) -> str:
             suffix = sample.get('suffix', '')
             parts = [p for p in [prefix, stem, suffix] if p]
             return '-'.join(parts)
-    # Fallback: just return the token itself
     return eva_token
-
 
 class InterlinearBuilder:
     """Constructs interlinear token sequences from phase outputs."""
@@ -103,8 +95,6 @@ class InterlinearBuilder:
             ))
         return tokens
 
-
-# ── CSS Template ─────────────────────────────────────────────────────
 CSS = """
 :root {
   --structural: #2ecc71;
@@ -204,7 +194,6 @@ h1 { font-size: 24px; margin-bottom: 8px; }
 .interlinear-row:hover .tooltip-text { display: block; }
 """
 
-
 def _render_token_html(token: InterlinearToken) -> str:
     """Render a single interlinear token as HTML."""
     conf_class = f'conf-{token.confidence}'
@@ -218,7 +207,6 @@ def _render_token_html(token: InterlinearToken) -> str:
         f'<span class="tier tier-english">{escape(token.english)}</span>'
         f'</div>'
     )
-
 
 def _render_folio_html(folio_id: str, tokens: List[InterlinearToken]) -> str:
     """Render a full folio section."""
@@ -235,16 +223,13 @@ def _render_folio_html(folio_id: str, tokens: List[InterlinearToken]) -> str:
         f'</section>'
     )
 
-
 def _render_full_html(folio_data: Dict[str, List[InterlinearToken]]) -> str:
     """Render the complete HTML document."""
-    # Nav sidebar
     nav_links = '\n'.join(
         f'<a href="#{escape(fid)}">{escape(fid)}</a>'
         for fid in folio_data
     )
 
-    # Folio sections
     folio_sections = '\n'.join(
         _render_folio_html(fid, tokens)
         for fid, tokens in folio_data.items()
@@ -277,7 +262,6 @@ def _render_full_html(folio_data: Dict[str, List[InterlinearToken]]) -> str:
 </main>
 </body>
 </html>"""
-
 
 def generate_interlinear_html(
     phase7_data: Dict,

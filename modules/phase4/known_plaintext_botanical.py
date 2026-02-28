@@ -9,14 +9,11 @@ Key insight: If a word appears only on cold/wet plant pages but not
 on hot/dry pages, it probably encodes a cold/wet quality term.
 """
 
-import sys
 import os
 import math
 import numpy as np
 from collections import Counter, defaultdict
 from typing import Dict, List, Set, Tuple
-
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from modules.phase4.lang_a_extractor import LanguageAExtractor
 from data.botanical_identifications import (
@@ -25,8 +22,6 @@ from data.botanical_identifications import (
 )
 from data.voynich_corpus import HARTLIEB_MEDICAL_VOCAB
 
-
-# Expected Latin vocabulary for each humoral quality
 HUMORAL_EXPECTED_VOCAB = {
     'hot_dry': [
         'calidus', 'siccus', 'ignis', 'cholera', 'calida', 'sicca',
@@ -48,7 +43,6 @@ HUMORAL_EXPECTED_VOCAB = {
     ],
 }
 
-
 class BotanicalKnownPlaintext:
     """
     Known-plaintext attack using botanical identifications.
@@ -68,10 +62,8 @@ class BotanicalKnownPlaintext:
         if self._herbal_a_plants is not None:
             return self._herbal_a_plants
 
-        # Filter PLANT_IDS to herbal_a folios only
         self._herbal_a_plants = {}
         for folio, data in PLANT_IDS.items():
-            # herbal_a folios are roughly f1-f56
             folio_num = int(''.join(c for c in folio[1:] if c.isdigit()) or '0')
             if folio_num < 57 and not folio.startswith(('f87', 'f88', 'f89', 'f9')):
                 self._herbal_a_plants[folio] = data
@@ -128,14 +120,12 @@ class BotanicalKnownPlaintext:
                 'n_folios_with_data': 0,
             }
 
-        # Compute per-word statistics across humoral groups
         all_words = set()
         for fw in folio_words.values():
             all_words.update(fw.keys())
 
         word_stats = {}
         for word in sorted(all_words):
-            # Which humoral groups contain this word?
             present_in = {}
             for quality, folios in humoral_groups.items():
                 count = 0
@@ -147,7 +137,6 @@ class BotanicalKnownPlaintext:
                 if count > 0:
                     present_in[quality] = {'count': count, 'pages': pages}
 
-            # Total appearances
             total_count = sum(d['count'] for d in present_in.values())
             total_pages = sum(d['pages'] for d in present_in.values())
             n_qualities = len(present_in)
@@ -160,10 +149,9 @@ class BotanicalKnownPlaintext:
                 'specificity': 1.0 / max(n_qualities, 1),
             }
 
-        # Classify words
-        universal_words = []  # Appear across 3+ humoral groups
-        specific_words = []   # Appear in only 1 humoral group
-        moderate_words = []   # Appear in 2 groups
+        universal_words = []
+        specific_words = []
+        moderate_words = []
 
         for word, stats in word_stats.items():
             if stats['n_humoral_groups'] >= 3:
@@ -213,14 +201,12 @@ class BotanicalKnownPlaintext:
 
         specificity_scores = {}
         for word in sorted(all_words):
-            # P(word appears on folio f)
             word_total = sum(
                 folio_words[f].get(word, 0) for f in folio_words
             )
             if word_total == 0:
                 continue
 
-            # Compute entropy of the word's distribution across folios
             dist = []
             for f in folio_words:
                 count = folio_words[f].get(word, 0)
@@ -229,7 +215,6 @@ class BotanicalKnownPlaintext:
             dist = np.array(dist, dtype=float)
             dist_norm = dist / max(dist.sum(), 1)
 
-            # Entropy: lower = more specific to certain pages
             entropy = -sum(p * math.log2(p) for p in dist_norm if p > 0)
             max_entropy = math.log2(n_folios) if n_folios > 1 else 1
 
@@ -242,7 +227,6 @@ class BotanicalKnownPlaintext:
                 'specificity': specificity,
             }
 
-        # Rank by specificity (most specific first)
         ranked = sorted(specificity_scores.items(),
                         key=lambda x: -x[1]['specificity'])
 
@@ -268,7 +252,6 @@ class BotanicalKnownPlaintext:
 
         cribs = []
 
-        # Universal words → likely function words
         for word in cross_ref.get('universal_words', []):
             freq = voynich_freqs.get(word, 0)
             cribs.append({
@@ -279,7 +262,6 @@ class BotanicalKnownPlaintext:
                 'rationale': f'Appears across 3+ humoral groups (freq={freq})',
             })
 
-        # Specific words → humoral quality terms
         for entry in cross_ref.get('specific_words', []):
             word = entry['word']
             quality = entry['quality']
@@ -296,11 +278,9 @@ class BotanicalKnownPlaintext:
                 ),
             })
 
-        # Most frequent word → most frequent Latin word
         top_voynich = voynich_freqs.most_common(3)
         common_latin = ['et', 'in', 'est', 'ad', 'cum', 'contra', 'habet']
         for i, (word, count) in enumerate(top_voynich):
-            # Check if already in cribs
             if not any(c['voynich_word'] == word for c in cribs):
                 cribs.append({
                     'voynich_word': word,
@@ -310,7 +290,6 @@ class BotanicalKnownPlaintext:
                     'rationale': f'Top-{i+1} most frequent word (count={count})',
                 })
 
-        # Sort by confidence
         conf_order = {'MODERATE': 0, 'LOW': 1}
         cribs.sort(key=lambda x: conf_order.get(x['confidence'], 2))
 

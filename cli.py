@@ -40,7 +40,6 @@ import os
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-
 def _parse_subphase_flags(phase_key, remaining_args):
     """Parse sub-phase flags from remaining CLI args for a given phase.
 
@@ -70,7 +69,6 @@ def _parse_subphase_flags(phase_key, remaining_args):
             phases.append('dictionary_diagnostic')
         if phases:
             kwargs['phases'] = phases
-        # --folios N flag
         if '--folios' in remaining_args:
             idx = remaining_args.index('--folios')
             if idx + 1 < len(remaining_args):
@@ -80,7 +78,6 @@ def _parse_subphase_flags(phase_key, remaining_args):
                     pass
         return kwargs
 
-    # Convert to int for standard phase comparisons
     phase_num = int(phase_key) if isinstance(phase_key, str) else phase_key
 
     if phase_num == 2:
@@ -188,7 +185,6 @@ def _parse_subphase_flags(phase_key, remaining_args):
             phases.append('correlation')
         if phases:
             kwargs['phases'] = phases
-        # --folios N flag
         if '--folios' in remaining_args:
             idx = remaining_args.index('--folios')
             if idx + 1 < len(remaining_args):
@@ -199,9 +195,7 @@ def _parse_subphase_flags(phase_key, remaining_args):
 
     return kwargs
 
-
 def main():
-    # Ensure deterministic hash ordering for reproducibility
     if os.environ.get('PYTHONHASHSEED') != '0':
         os.environ['PYTHONHASHSEED'] = '0'
         os.execv(sys.executable, [sys.executable] + sys.argv)
@@ -223,7 +217,6 @@ def main():
     parser.add_argument('--quiet', '-q', action='store_true',
                         help='Suppress verbose output')
 
-    # Parse known args; pass remainder to phase orchestrators
     args, remaining = parser.parse_known_args()
 
     if args.list:
@@ -235,7 +228,7 @@ def main():
         return
 
     verbose = not args.quiet
-    output_root = args.output_dir  # None means use each phase's default
+    output_root = args.output_dir
     report_dir = output_root or './output'
 
     def _phase_dir(phase_key):
@@ -244,7 +237,6 @@ def main():
             return {}
         if phase_key == 1:
             return {'output_dir': output_root}
-        # Handle fractional phases like '12.5' -> 'phase12_5'
         dir_suffix = str(phase_key).replace('.', '_')
         return {'output_dir': os.path.join(output_root, f'phase{dir_suffix}')}
 
@@ -264,20 +256,17 @@ def main():
     elif args.phase:
         from orchestrators import get_phase_runner
 
-        # Normalize phase key: try int first, keep string for fractional
         phase_key = args.phase
         try:
             phase_key_parsed = int(phase_key)
             phase_key = phase_key_parsed
         except ValueError:
-            pass  # Keep as string (e.g. '12.5')
+            pass
 
         runner = get_phase_runner(phase_key)
 
-        # Build kwargs from sub-phase flags
         kwargs = {'verbose': verbose}
         kwargs.update(_phase_dir(phase_key))
-        # Pass original string for '12.5', int for standard phases
         sub_key = args.phase if isinstance(phase_key, str) else phase_key
         kwargs.update(_parse_subphase_flags(sub_key, remaining))
 
@@ -291,13 +280,11 @@ def main():
         from convergence_attack import run_convergence_attack
         phase_results[1] = run_convergence_attack(verbose=verbose, **_phase_dir(1))
 
-    # Write combined report if any phases produced results
     if phase_results:
         from orchestrators._utils import build_combined_report
         path = build_combined_report(phase_results, report_dir)
         if verbose:
             print(f'\nCombined report saved to {path}')
-
 
 if __name__ == '__main__':
     main()

@@ -17,18 +17,13 @@ Priority: MEDIUM
 Critical test: Deviation stream entropy significantly lower than random bits.
 """
 
-import sys
-import os
 import random
 import math
 from collections import Counter, defaultdict
 from typing import Dict, List, Tuple, Optional
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-
 from modules.phase2.base_model import Phase2GenerativeModel, VOYNICH_TARGETS
 from data.voynich_corpus import get_all_tokens
-
 
 class SteganographicCarrier(Phase2GenerativeModel):
     """
@@ -58,7 +53,7 @@ class SteganographicCarrier(Phase2GenerativeModel):
         self.choices_per_position = choices_per_position
         self.message_entropy = message_entropy
 
-        self.transition_model = {}  # context -> {word: count}
+        self.transition_model = {}
         self.vocabulary = []
         self._build_carrier_model()
 
@@ -70,7 +65,6 @@ class SteganographicCarrier(Phase2GenerativeModel):
 
         self.vocabulary = sorted(set(tokens))
 
-        # Build n-gram transition counts
         order = self.carrier_order
         for i in range(len(tokens) - order):
             context = tuple(tokens[i:i + order])
@@ -90,12 +84,10 @@ class SteganographicCarrier(Phase2GenerativeModel):
         if not self.transition_model:
             return ''
 
-        # Start with a random context from the model
         contexts = list(self.transition_model.keys())
         context = list(self.rng.choice(contexts))
         output = list(context)
 
-        # Hidden message bits (if any)
         message_bits = []
         if plaintext:
             for c in plaintext:
@@ -109,15 +101,12 @@ class SteganographicCarrier(Phase2GenerativeModel):
             candidates = self.transition_model.get(ctx, {})
 
             if not candidates:
-                # No transition — fall back to unigram
                 word = self.rng.choice(self.vocabulary) if self.vocabulary else 'chedy'
             else:
-                # Get top-N candidates by frequency
                 sorted_cands = sorted(candidates.items(), key=lambda x: -x[1])
                 top_n = sorted_cands[:self.choices_per_position]
 
                 if message_bits and bit_idx < len(message_bits):
-                    # Encode message bit in choice
                     n_choices = len(top_n)
                     if n_choices > 1:
                         choice_idx = message_bits[bit_idx] % n_choices
@@ -126,7 +115,6 @@ class SteganographicCarrier(Phase2GenerativeModel):
                         choice_idx = 0
                     word = top_n[choice_idx][0]
                 else:
-                    # Pure carrier: choose most likely
                     word = top_n[0][0]
 
             output.append(word)
@@ -156,7 +144,7 @@ class SteganographicCarrier(Phase2GenerativeModel):
             candidates = self.transition_model.get(ctx, {})
 
             if not candidates:
-                deviations.append(0.0)  # No model prediction = no deviation
+                deviations.append(0.0)
                 continue
 
             total = sum(candidates.values())
@@ -166,7 +154,6 @@ class SteganographicCarrier(Phase2GenerativeModel):
                 p = word_count / total
                 surprisal = -math.log2(p)
             else:
-                # Word not predicted by model at all — maximum surprise
                 surprisal = -math.log2(1.0 / max(len(self.vocabulary), 1))
 
             deviations.append(surprisal)
@@ -178,7 +165,6 @@ class SteganographicCarrier(Phase2GenerativeModel):
         if not deviations:
             return 0.0
 
-        # Quantize deviations into bins for entropy calculation
         n_bins = 10
         if max(deviations) == min(deviations):
             return 0.0
@@ -234,7 +220,6 @@ class SteganographicCarrier(Phase2GenerativeModel):
         If the deviation entropy is significantly lower than expected
         for random bits, there may be a hidden channel.
         """
-        # Get actual Voynich text
         tokens = get_all_tokens()
         voynich_text = ' '.join(tokens) if tokens else ''
 
@@ -245,7 +230,6 @@ class SteganographicCarrier(Phase2GenerativeModel):
                 'details': {},
             }
 
-        # Extract deviations from actual Voynich text
         deviations = self._extract_deviations(voynich_text)
         if not deviations:
             return {
@@ -256,12 +240,10 @@ class SteganographicCarrier(Phase2GenerativeModel):
 
         dev_entropy = self._deviation_entropy(deviations)
 
-        # Compare against uniform random baseline
-        # Maximum entropy for n_bins = log2(n_bins)
-        max_entropy = math.log2(10)  # 10 bins
+        max_entropy = math.log2(10)
         ratio = dev_entropy / max_entropy if max_entropy > 0 else 1.0
 
-        passes = ratio < 0.7  # Deviation entropy is less than 70% of maximum
+        passes = ratio < 0.7
 
         mean_dev = sum(deviations) / len(deviations) if deviations else 0
         std_dev = (sum((d - mean_dev)**2 for d in deviations) / len(deviations))**0.5 if deviations else 0

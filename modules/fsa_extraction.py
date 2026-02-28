@@ -10,21 +10,12 @@ flatten it. The Voynich FSA tells us whether we're looking at a
 structure-preserving or structure-destroying cipher.
 """
 
-import sys
-import os
 import math
 import numpy as np
 from collections import defaultdict, Counter
 from typing import Dict, List, Tuple, Optional, Set
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 from data.voynich_corpus import get_all_tokens, get_section_text, SAMPLE_CORPUS
-
-
-# ============================================================================
-# PREFIX TREE AUTOMATON
-# ============================================================================
 
 class PrefixTreeAutomaton:
     """Builds a prefix tree (trie) from a set of words."""
@@ -32,7 +23,7 @@ class PrefixTreeAutomaton:
     def __init__(self):
         self.transitions: Dict[int, Dict[str, int]] = defaultdict(dict)
         self.accept_states: Set[int] = set()
-        self.next_state = 1  # state 0 is start
+        self.next_state = 1
         self.state_freq: Dict[int, int] = defaultdict(int)
 
     def add_word(self, word: str):
@@ -54,11 +45,6 @@ class PrefixTreeAutomaton:
     def n_transitions(self):
         return sum(len(t) for t in self.transitions.values())
 
-
-# ============================================================================
-# FSA EXTRACTION VIA STATE MERGING (ALERGIA-INSPIRED)
-# ============================================================================
-
 class VoynichFSA:
     """
     Extracts a minimum-state FSA from Voynichese using a state-merging
@@ -77,25 +63,20 @@ class VoynichFSA:
         2. Merge compatible states using frequency-based compatibility test
         3. Return minimized FSA
         """
-        # Step 1: Build PTA
         pta = PrefixTreeAutomaton()
         for token in tokens:
             if token:
                 pta.add_word(token)
 
-        # Step 2: Convert to mergeable representation
         transitions = dict(pta.transitions)
         accept_states = set(pta.accept_states)
         state_freq = dict(pta.state_freq)
         n_states = pta.n_states
 
-        # Collect alphabet
         alphabet = set()
         for trans in transitions.values():
             alphabet.update(trans.keys())
 
-        # Step 3: State merging — merge states with similar transition profiles
-        # Group states by depth (distance from root)
         state_depth = {}
         queue = [(0, 0)]
         visited = {0}
@@ -107,16 +88,14 @@ class VoynichFSA:
                     visited.add(next_state)
                     queue.append((next_state, depth + 1))
 
-        # Merge states at the same depth with compatible transitions
-        merge_map = {}  # old_state -> canonical_state
+        merge_map = {}
         depth_groups = defaultdict(list)
         for state, depth in state_depth.items():
             depth_groups[depth].append(state)
 
         for depth, states in sorted(depth_groups.items()):
-            canonical = {}  # transition_signature -> canonical_state
+            canonical = {}
             for state in states:
-                # Compute transition signature
                 trans = transitions.get(state, {})
                 is_accept = state in accept_states
                 sig_parts = [f"{'A' if is_accept else 'N'}"]
@@ -130,7 +109,6 @@ class VoynichFSA:
                 else:
                     canonical[sig] = state
 
-        # Apply merges
         merged_transitions: Dict[int, Dict[str, int]] = defaultdict(dict)
         merged_accept = set()
 
@@ -150,7 +128,6 @@ class VoynichFSA:
             if state in accept_states:
                 merged_accept.add(rs)
 
-        # Reindex states to be contiguous
         state_list = sorted(active_states)
         reindex = {s: i for i, s in enumerate(state_list)}
 
@@ -184,7 +161,6 @@ class VoynichFSA:
         alphabet = fsa['alphabet']
         transitions = fsa['transitions']
 
-        # Initial partition: accept vs non-accept
         partitions = []
         if accept:
             partitions.append(frozenset(accept))
@@ -198,14 +174,12 @@ class VoynichFSA:
             iterations += 1
             new_partitions = []
             for partition in partitions:
-                # Try to split this partition
                 split = self._try_split(partition, partitions, transitions, alphabet)
                 if len(split) > 1:
                     changed = True
                 new_partitions.extend(split)
             partitions = new_partitions
 
-        # Build minimized FSA
         state_to_partition = {}
         for i, partition in enumerate(partitions):
             for state in partition:
@@ -264,14 +238,11 @@ class VoynichFSA:
 
         n_transitions = sum(len(t) for t in transitions.values())
 
-        # Branching factor
         branching_factors = [len(t) for t in transitions.values() if t]
         avg_branching = np.mean(branching_factors) if branching_factors else 0
 
-        # Depth (longest path from start)
         depth = self._compute_depth(transitions, n_states)
 
-        # Cycle detection
         has_cycles = self._detect_cycles(transitions, n_states)
 
         return {
@@ -345,11 +316,6 @@ class VoynichFSA:
             diffs.append(abs(va - vb) / max_val)
         return 1.0 - np.mean(diffs)
 
-
-# ============================================================================
-# MODULE ENTRY POINT
-# ============================================================================
-
 def run(verbose: bool = True) -> Dict:
     """
     Run FSA extraction and comparison.
@@ -365,7 +331,6 @@ def run(verbose: bool = True) -> Dict:
         print("TRACK 2: FINITE STATE AUTOMATON EXTRACTION")
         print("=" * 70)
 
-    # Extract tokens by language
     all_tokens = get_all_tokens()
 
     lang_a_tokens = []
@@ -379,7 +344,6 @@ def run(verbose: bool = True) -> Dict:
             elif lang == 'B':
                 lang_b_tokens.extend(tokens)
 
-    # Build FSAs
     if verbose:
         print(f"\n  Building FSA for overall corpus ({len(all_tokens)} tokens)...")
     fsa_overall = extractor.build_fsa(all_tokens)
@@ -410,10 +374,8 @@ def run(verbose: bool = True) -> Dict:
         if verbose:
             print(f"    Merged: {fsa_b['states']}  Minimized: {fsa_b_min['states']}")
 
-    # Topology signatures
     overall_sig = extractor.fsa_topology_signature(fsa_overall_min)
 
-    # Compare A vs B
     comparison = None
     if fsa_a_min and fsa_b_min:
         if verbose:
@@ -425,7 +387,6 @@ def run(verbose: bool = True) -> Dict:
             print(f"    Branching ratio (A/B): {comparison['branching_ratio']:.2f}")
             print(f"    Structural similarity: {comparison['structural_similarity']:.3f}")
 
-    # Classify cipher type
     cipher_type = 'unknown'
     if overall_sig['n_states'] < 15:
         cipher_type = 'structure_preserving'
@@ -442,7 +403,6 @@ def run(verbose: bool = True) -> Dict:
                           'Consistent with a cipher that has some structure-preserving '
                           'and some randomizing components (e.g., Naibbe-type).')
 
-    # Language A vs B interpretation
     lang_interpretation = None
     if comparison:
         sim = comparison['structural_similarity']

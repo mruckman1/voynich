@@ -34,11 +34,6 @@ from data.voynich_corpus import (
     get_section_text, tokenize
 )
 
-
-# ============================================================================
-# COMPREHENSIVE POSITIONAL CLASS EXTRACTION
-# ============================================================================
-
 def extract_glyph_classes(threshold: float = 0.65) -> Dict:
     """
     Extract positional classes for all glyphs in the corpus.
@@ -60,7 +55,6 @@ def extract_glyph_classes(threshold: float = 0.65) -> Dict:
 
         ratios = {k: v / total for k, v in counts.items()}
 
-        # Determine class
         max_pos = max(ratios, key=ratios.get)
         max_ratio = ratios[max_pos]
 
@@ -73,7 +67,6 @@ def extract_glyph_classes(threshold: float = 0.65) -> Dict:
         else:
             cls = 'ANY'
 
-        # Confidence: how dominant is the max position?
         second_max = sorted(ratios.values(), reverse=True)[1] if len(ratios) > 1 else 0
         confidence = max_ratio - second_max
 
@@ -89,11 +82,6 @@ def extract_glyph_classes(threshold: float = 0.65) -> Dict:
         }
 
     return glyph_report
-
-
-# ============================================================================
-# WORD DECOMPOSITION: PREFIX-ROOT-SUFFIX
-# ============================================================================
 
 def decompose_word(word: str, glyph_classes: Dict) -> Dict:
     """
@@ -112,7 +100,6 @@ def decompose_word(word: str, glyph_classes: Dict) -> Dict:
     prefix = []
     suffix = []
 
-    # Scan prefix from left
     for c in chars:
         cls = glyph_classes.get(c, {}).get('class', 'ANY')
         if cls == 'PREFIX':
@@ -120,7 +107,6 @@ def decompose_word(word: str, glyph_classes: Dict) -> Dict:
         else:
             break
 
-    # Scan suffix from right
     for c in reversed(chars):
         cls = glyph_classes.get(c, {}).get('class', 'ANY')
         if cls == 'SUFFIX':
@@ -128,7 +114,6 @@ def decompose_word(word: str, glyph_classes: Dict) -> Dict:
         else:
             break
 
-    # Root is what's left
     prefix_len = len(prefix)
     suffix_len = len(suffix)
     root_chars = chars[prefix_len:len(chars) - suffix_len if suffix_len > 0 else len(chars)]
@@ -140,7 +125,6 @@ def decompose_word(word: str, glyph_classes: Dict) -> Dict:
         'original': word,
     }
 
-
 def decompose_corpus(glyph_classes: Optional[Dict] = None) -> List[Dict]:
     """Decompose all tokens in the corpus into prefix-root-suffix."""
     if glyph_classes is None:
@@ -148,11 +132,6 @@ def decompose_corpus(glyph_classes: Optional[Dict] = None) -> List[Dict]:
 
     tokens = get_all_tokens()
     return [decompose_word(t, glyph_classes) for t in tokens]
-
-
-# ============================================================================
-# PREFIX DISTRIBUTION BY SECTION
-# ============================================================================
 
 def prefix_section_correlation(glyph_classes: Optional[Dict] = None) -> Dict:
     """
@@ -194,12 +173,10 @@ def prefix_section_correlation(glyph_classes: Optional[Dict] = None) -> Dict:
         section_suffixes[section] = Counter(suffixes)
         section_roots[section] = Counter(roots)
 
-    # Compare prefix distributions across sections
     all_prefixes = set()
     for counts in section_prefixes.values():
         all_prefixes.update(counts.keys())
 
-    # Build contingency-style table
     prefix_table = {}
     for section in section_prefixes:
         total = sum(section_prefixes[section].values())
@@ -211,8 +188,6 @@ def prefix_section_correlation(glyph_classes: Optional[Dict] = None) -> Dict:
                 'pct': round(count / total * 100, 1) if total > 0 else 0,
             }
 
-    # Entropy of prefix distribution per section
-    # (lower entropy = more formulaic/predictable prefix usage)
     prefix_entropy = {}
     for section, counts in section_prefixes.items():
         total = sum(counts.values())
@@ -221,7 +196,6 @@ def prefix_section_correlation(glyph_classes: Optional[Dict] = None) -> Dict:
             h = -sum(p * math.log2(p) for p in probs if p > 0)
             prefix_entropy[section] = round(h, 4)
 
-    # Same for suffixes
     suffix_entropy = {}
     for section, counts in section_suffixes.items():
         total = sum(counts.values())
@@ -230,7 +204,6 @@ def prefix_section_correlation(glyph_classes: Optional[Dict] = None) -> Dict:
             h = -sum(p * math.log2(p) for p in probs if p > 0)
             suffix_entropy[section] = round(h, 4)
 
-    # Root uniqueness per section (higher = more content-specific)
     root_uniqueness = {}
     for section, counts in section_roots.items():
         total = sum(counts.values())
@@ -249,7 +222,6 @@ def prefix_section_correlation(glyph_classes: Optional[Dict] = None) -> Dict:
         'all_prefixes': sorted(all_prefixes),
         'interpretation': _interpret_prefix_correlation(prefix_entropy),
     }
-
 
 def _interpret_prefix_correlation(prefix_entropy: Dict) -> str:
     """Generate human-readable interpretation of prefix-section correlation."""
@@ -273,11 +245,6 @@ def _interpret_prefix_correlation(prefix_entropy: Dict) -> str:
                 "across sections. Prefixes may be primarily cipher artifacts "
                 "rather than grammatical markers.")
 
-
-# ============================================================================
-# SEMANTIC CORE ISOLATION
-# ============================================================================
-
 def isolate_semantic_cores(glyph_classes: Optional[Dict] = None) -> Dict:
     """
     Strip prefixes and suffixes from all words to isolate the
@@ -291,18 +258,14 @@ def isolate_semantic_cores(glyph_classes: Optional[Dict] = None) -> Dict:
 
     decomposed = decompose_corpus(glyph_classes)
 
-    # Reconstruct text from cores only
     cores = [d['root'] for d in decomposed if d['root']]
     core_text = ' '.join(cores)
 
-    # Full text for comparison
     full_text = ' '.join(get_all_tokens())
 
-    # Statistical comparison
     core_stats = compute_all_entropy(core_text)
     full_stats = compute_all_entropy(full_text)
 
-    # Core vocabulary analysis
     core_freq = Counter(cores)
     full_freq = Counter(get_all_tokens())
 
@@ -326,7 +289,6 @@ def isolate_semantic_cores(glyph_classes: Optional[Dict] = None) -> Dict:
         'interpretation': _interpret_core_isolation(core_stats, full_stats),
     }
 
-
 def _interpret_core_isolation(core: Dict, full: Dict) -> str:
     """Interpret the effect of stripping affixes."""
     h2_diff = core['H2'] - full['H2']
@@ -345,11 +307,6 @@ def _interpret_core_isolation(core: Dict, full: Dict) -> str:
     else:
         return ("MINIMAL: Little entropy change from stripping affixes. "
                 "The positional classes may not form a separable grammatical layer.")
-
-
-# ============================================================================
-# FUNCTIONAL MORPHEME CANDIDATES
-# ============================================================================
 
 def identify_functional_morphemes(glyph_classes: Optional[Dict] = None) -> Dict:
     """
@@ -374,29 +331,23 @@ def identify_functional_morphemes(glyph_classes: Optional[Dict] = None) -> Dict:
     all_tokens = get_all_tokens()
     overall_freq = Counter(all_tokens)
 
-    # Section-specific frequencies
     section_freqs = {}
     for section in SECTIONS:
         tokens = get_all_tokens(section=section)
         if tokens:
             section_freqs[section] = Counter(tokens)
 
-    # Score each word on "functional" vs "content" characteristics
     scores = {}
     for word, count in overall_freq.items():
-        # Frequency score (higher freq = more likely functional)
         freq_score = math.log(count + 1)
 
-        # Length score (shorter = more likely functional)
         len_score = 1.0 / (len(word) + 1)
 
-        # Distribution uniformity (appears in many sections = functional)
         sections_present = sum(
             1 for sf in section_freqs.values() if word in sf
         )
         uniformity = sections_present / max(1, len(section_freqs))
 
-        # Section concentration (appears mostly in one section = content)
         max_section_pct = 0
         for sf in section_freqs.values():
             total = sum(sf.values())
@@ -404,11 +355,9 @@ def identify_functional_morphemes(glyph_classes: Optional[Dict] = None) -> Dict:
                 pct = sf.get(word, 0) / total
                 max_section_pct = max(max_section_pct, pct)
 
-        # Composite scores
         functional_score = freq_score * len_score * uniformity
         content_score = freq_score * (1 - uniformity) * max_section_pct * len(word)
 
-        # Decompose to check affix structure
         d = decompose_word(word, glyph_classes)
 
         scores[word] = {
@@ -425,7 +374,6 @@ def identify_functional_morphemes(glyph_classes: Optional[Dict] = None) -> Dict:
                              else 'CONTENT',
         }
 
-    # Sort and categorize
     functional = sorted(
         [(w, s) for w, s in scores.items() if s['classification'] == 'FUNCTIONAL'],
         key=lambda x: x[1]['functional_score'], reverse=True
@@ -443,11 +391,6 @@ def identify_functional_morphemes(glyph_classes: Optional[Dict] = None) -> Dict:
         'ratio': round(len(functional) / max(1, len(content)), 3),
     }
 
-
-# ============================================================================
-# ENTRY POINT
-# ============================================================================
-
 def run(verbose: bool = True) -> Dict:
     """Run all positional glyph grammar analyses."""
     if verbose:
@@ -457,7 +400,6 @@ def run(verbose: bool = True) -> Dict:
 
     results = {}
 
-    # 1. Extract glyph classes
     if verbose:
         print("\n[1/4] Extracting positional glyph classes...")
     glyph_classes = extract_glyph_classes()
@@ -470,7 +412,6 @@ def run(verbose: bool = True) -> Dict:
                   f"fin={g['final_pct']:5.1f}% conf={g['confidence']:.3f} "
                   f"n={g['total_occurrences']})")
 
-    # 2. Prefix-section correlation
     if verbose:
         print("\n[2/4] Testing prefix-section correlation...")
     prefix_corr = prefix_section_correlation(glyph_classes)
@@ -485,7 +426,6 @@ def run(verbose: bool = True) -> Dict:
                   f"({data['unique_roots']}/{data['total_roots']})")
         print(f"\n  Interpretation: {prefix_corr['interpretation']}")
 
-    # 3. Semantic core isolation
     if verbose:
         print("\n[3/4] Isolating semantic cores...")
     core_analysis = isolate_semantic_cores(glyph_classes)
@@ -501,7 +441,6 @@ def run(verbose: bool = True) -> Dict:
         print(f"  Words with suffix stripped: {core_analysis['suffix_removed_pct']}%")
         print(f"\n  Interpretation: {core_analysis['interpretation']}")
 
-    # 4. Functional morpheme identification
     if verbose:
         print("\n[4/4] Identifying functional vs content morphemes...")
     morphemes = identify_functional_morphemes(glyph_classes)
@@ -520,7 +459,6 @@ def run(verbose: bool = True) -> Dict:
                   f"sections={data['sections_present']})")
 
     return results
-
 
 if __name__ == '__main__':
     run()

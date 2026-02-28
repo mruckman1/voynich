@@ -18,7 +18,7 @@ import time
 from datetime import datetime
 from typing import Dict
 
-from orchestrators._utils import save_json, ensure_output_dir
+from orchestrators._utils import vprint, save_json, ensure_output_dir
 from orchestrators._config import LATIN_CORPUS_TOKENS_DEFAULT
 
 from modules.phase4.lang_a_extractor import LanguageAExtractor
@@ -29,7 +29,6 @@ from modules.phase7.voynich_morphemer import VoynichMorphemer
 from modules.phase7.latin_morphology import LatinMorphologyParser
 from modules.phase7.stem_saa import StemSAA
 from modules.phase7.affix_aligner import AffixAligner
-
 
 def run_phase7_attack(verbose: bool = True, output_dir: str = './output/phase7') -> Dict:
     ensure_output_dir(output_dir)
@@ -49,13 +48,11 @@ def run_phase7_attack(verbose: bool = True, output_dir: str = './output/phase7')
         print('The Morphological Sub-Word Attack')
         print('=' * 70)
 
-    # 1. Foundation
     extractor = LanguageAExtractor(verbose=False)
     splitter = TierSplitter(extractor)
     splitter.split()
 
-    if verbose: print('\n[1/4] Isolating Voynich Semantic Stems...')
-    # Re-run Phase 6 Morpheme Analyzer to get the affix rules
+    vprint(verbose, '\n[1/4] Isolating Voynich Semantic Stems...')
     m_analyzer = MorphemeAnalyzer(splitter)
     p6_morph_results = m_analyzer.run(verbose=False)
 
@@ -67,8 +64,7 @@ def run_phase7_attack(verbose: bool = True, output_dir: str = './output/phase7')
         print(f"  → Reduced {v_morph_stats['original_vocab_size']} word types to "
               f"{v_morph_stats['unique_stems']} pure semantic stems.")
 
-    # 2. Latin Morphology
-    if verbose: print('\n[2/4] Parsing Latin Herbal Morphology...')
+    vprint(verbose, '\n[2/4] Parsing Latin Herbal Morphology...')
     l_corpus = ImprovedLatinCorpus(target_tokens=LATIN_CORPUS_TOKENS_DEFAULT, verbose=False)
     l_parser = LatinMorphologyParser(l_corpus)
     l_morph_stats = l_parser.process_corpus()
@@ -78,14 +74,12 @@ def run_phase7_attack(verbose: bool = True, output_dir: str = './output/phase7')
         print(f"  → Reduced {l_morph_stats['original_vocab_size']} Latin word forms to "
               f"{l_morph_stats['unique_stems']} semantic stems.")
 
-    # 3. Stem SAA
-    if verbose: print('\n[3/4] Running SAA on Isolated Stems (Semantic Core)...')
+    vprint(verbose, '\n[3/4] Running SAA on Isolated Stems (Semantic Core)...')
     stem_saa = StemSAA(v_morphemer, l_parser)
     saa_results = stem_saa.run(n_iter=50000, verbose=verbose)
     results['stem_saa'] = saa_results
 
-    # 4. Affix Alignment
-    if verbose: print('\n[4/4] Aligning Grammatical Affixes...')
+    vprint(verbose, '\n[4/4] Aligning Grammatical Affixes...')
     aligner = AffixAligner(v_morphemer, l_parser, saa_results['best_mapping'])
     affix_results = aligner.run()
     results['affix_alignment'] = affix_results
@@ -96,7 +90,6 @@ def run_phase7_attack(verbose: bool = True, output_dir: str = './output/phase7')
 
     elapsed = time.time() - t0
 
-    # Save Output
     import os
     save_json(os.path.join(output_dir, 'phase7_report.json'), results)
 

@@ -35,9 +35,6 @@ import Levenshtein
 
 from data.botanical_identifications import PLANT_IDS
 
-
-# Latin inflection endings by POS category
-# Used to filter skeleton-matched candidates by grammatical constraint
 LATIN_POS_ENDINGS: Dict[str, List[str]] = {
     'VERB_3P': ['t', 'nt', 'it', 'at', 'et', 'ut', 'unt', 'ent', 'ant'],
     'NOUN_ACC': ['um', 'am', 'em', 'im', 'em'],
@@ -47,12 +44,10 @@ LATIN_POS_ENDINGS: Dict[str, List[str]] = {
     'NOUN': ['um', 'al', 'il', 'en', 'ur', 'us', 'er'],
     'NOUN_AGT': ['or', 'er', 'ar', 'rix'],
     'NOUN_PL': ['es', 'as', 'os', 'us', 'i', 'ae', 'ia', 'a'],
-    'UNK': [],  # No filtering for unknown POS
+    'UNK': [],
 }
 
-# Regex for POS-tagged brackets
 TAGGED_BRACKET_RE = re.compile(r'\[([^_\]]+)_([A-Z_]+)\]|<([^_>]+)_([A-Z_]+)>')
-
 
 class NgramMaskSolver:
     """
@@ -72,35 +67,27 @@ class NgramMaskSolver:
         pos_tagger: Optional[LatinPOSTagger] = None,
         pos_transition_matrix: Optional[np.ndarray] = None,
         pos_vocab: Optional[List[str]] = None,
-        # Improvement 3: Length-scaled confidence ratio
         min_confidence_ratio_long: float = 3.5,
         long_skeleton_segments: int = 6,
         enable_length_scaled_ratio: bool = True,
-        # Improvement 2: Bidirectional solving
         enable_bidirectional: bool = True,
         max_solving_passes: int = 4,
-        # Improvement 1: Contextual function word recovery
         enable_function_word_recovery: bool = True,
         function_word_trigram_threshold: float = 0.01,
-        # Improvement 4: Dual-context confidence reduction
         dual_context_ratio_factor: float = 0.6,
         dual_context_max_distance: int = 3,
-        # Improvement 5: Unigram frequency backoff
         enable_unigram_backoff: bool = True,
         unigram_backoff_ratio_factor: float = 1.5,
         unigram_backoff_min_segments: int = 3,
-        # Improvement 6: POS-level backoff scoring
         enable_pos_backoff: bool = False,
         pos_backoff_weight: float = 0.1,
         pos_backoff_min_confidence: float = 3.0,
-        # Improvement 7: Character-level n-gram fallback scoring
         enable_char_ngram_fallback: bool = False,
         char_ngram_model=None,
         char_ngram_min_score_gap: float = 0.5,
         char_ngram_min_segments: int = 3,
         char_ngram_max_context_distance: int = 4,
         char_ngram_require_context: bool = True,
-        # Improvement 8: Illustration-guided disambiguation
         enable_illustration_prior: bool = False,
         illustration_prior: Optional[Dict[str, Dict[str, float]]] = None,
         illustration_boosted_ratio_factor: float = 0.5,
@@ -165,7 +152,6 @@ class NgramMaskSolver:
         self.humoral_vocab = humoral_vocab or {}
         self.min_confidence_ratio = min_confidence_ratio
 
-        # Syntactic veto components (Academic Fortification)
         self.pos_tagger = pos_tagger
         self.pos_matrix = pos_transition_matrix
         self.pos_vocab = pos_vocab
@@ -176,38 +162,31 @@ class NgramMaskSolver:
             and pos_vocab is not None
         )
 
-        # Improvement 3: Length-scaled confidence ratio
         self.min_confidence_ratio_long = min_confidence_ratio_long
         self.long_skeleton_segments = long_skeleton_segments
         self.enable_length_scaled_ratio = enable_length_scaled_ratio
 
-        # Improvement 2: Bidirectional solving
         self.enable_bidirectional = enable_bidirectional
         self.max_solving_passes = max_solving_passes
 
-        # Improvement 1: Contextual function word recovery
         self.enable_function_word_recovery = enable_function_word_recovery
         self.function_word_trigram_threshold = function_word_trigram_threshold
         self.function_words = FUNCTION_WORDS
 
-        # Improvement 4: Dual-context confidence reduction
         self.dual_context_ratio_factor = dual_context_ratio_factor
         self.dual_context_max_distance = dual_context_max_distance
 
-        # Improvement 5: Unigram frequency backoff
         self.enable_unigram_backoff = enable_unigram_backoff
         self.unigram_backoff_ratio_factor = unigram_backoff_ratio_factor
         self.unigram_backoff_min_segments = unigram_backoff_min_segments
         self._unigram_freq: Dict[str, int] = {}
 
-        # Improvement 6: POS-level backoff scoring
         self.enable_pos_backoff = enable_pos_backoff
         self.pos_backoff_weight = pos_backoff_weight
         self.pos_backoff_min_confidence = pos_backoff_min_confidence
         self._word_level_resolutions = 0
         self._pos_backoff_resolutions = 0
 
-        # Improvement 7: Character-level n-gram fallback scoring
         self.enable_char_ngram_fallback = enable_char_ngram_fallback
         self.char_ngram_model = char_ngram_model
         self.char_ngram_min_score_gap = char_ngram_min_score_gap
@@ -216,7 +195,6 @@ class NgramMaskSolver:
         self.char_ngram_require_context = char_ngram_require_context
         self._char_ngram_resolutions = 0
 
-        # Improvement 8: Illustration-guided disambiguation
         self.enable_illustration_prior = enable_illustration_prior
         self.illustration_prior = illustration_prior or {}
         self.illustration_boosted_ratio_factor = illustration_boosted_ratio_factor
@@ -241,11 +219,11 @@ class NgramMaskSolver:
     def _candidate_matches_pos(self, word: str, pos_tag: str) -> bool:
         """Check if a Latin word's ending matches the required POS."""
         if pos_tag == 'UNK':
-            return True  # No POS constraint, allow all
+            return True
 
         endings = LATIN_POS_ENDINGS.get(pos_tag, [])
         if not endings:
-            return True  # Unknown POS tag, no filter
+            return True
 
         return any(word.endswith(ending) for ending in endings)
 
@@ -273,13 +251,12 @@ class NgramMaskSolver:
         for c in candidates:
             c_pos = self.pos_tagger.tag(c)
             if c_pos not in self.pos_to_idx:
-                surviving.append(c)  # Unknown POS — don't veto
+                surviving.append(c)
                 continue
             c_idx = self.pos_to_idx[c_pos]
             if self.pos_matrix[prev_idx][c_idx] >= min_pos_prob:
                 surviving.append(c)
 
-        # Graceful degradation: if all vetoed, fall back to unfiltered
         return surviving if surviving else candidates
 
     def _get_candidates_for_token(self, voynich_token: str) -> List[str]:
@@ -289,10 +266,8 @@ class NgramMaskSolver:
 
         Returns list of unique Latin words across all skeleton branches.
         """
-        # Strip any existing POS tag
         token = voynich_token.split('_')[0] if '_' in voynich_token else voynich_token
 
-        # Get skeleton candidates
         skeleton_candidates = self.f_skel.get_skeleton_candidates(token)
         if not skeleton_candidates:
             return []
@@ -300,13 +275,11 @@ class NgramMaskSolver:
         all_candidates: Set[str] = set()
 
         for target_skel, _ in skeleton_candidates:
-            # Exact match
             words = self.l_skel.skeleton_index.get(target_skel, [])
             if words:
                 all_candidates.update(words)
                 continue
 
-            # Fuzzy match with dynamic threshold
             max_dist = dynamic_levenshtein_threshold(target_skel)
             if max_dist > 0:
                 for l_skel in self.l_skel.skeleton_index.keys():
@@ -315,8 +288,6 @@ class NgramMaskSolver:
                         all_candidates.update(self.l_skel.skeleton_index[l_skel])
 
         return list(all_candidates)
-
-    # ── Improvement 3: Length-scaled confidence ratio ─────────────
 
     def _get_skeleton_segment_count(self, voynich_token: str) -> int:
         """
@@ -327,7 +298,6 @@ class NgramMaskSolver:
         skeleton_candidates = self.f_skel.get_skeleton_candidates(token)
         if not skeleton_candidates:
             return 0
-        # Use the primary (highest-weight) skeleton's segment count
         primary_skeleton = skeleton_candidates[0][0]
         return len(primary_skeleton.split('-'))
 
@@ -343,8 +313,6 @@ class NgramMaskSolver:
         if seg_count >= self.long_skeleton_segments:
             return self.min_confidence_ratio_long
         return self.min_confidence_ratio
-
-    # ── Improvement 1: Contextual function word recovery ─────────
 
     def _try_function_word_recovery(
         self,
@@ -367,19 +335,13 @@ class NgramMaskSolver:
         if not self.enable_function_word_recovery:
             return None
 
-        # Check if this token maps to a known function word
         raw_token = voynich_token.split('_')[0] if '_' in voynich_token else voynich_token
         if raw_token not in self.function_words:
             return None
 
-        # CONTEXT GATE: Both preceding and following resolved words must exist
         if w_prev is None or w_next is None:
             return None
 
-        # DENSITY GATE: At least 2 of 5 words in centered window must be
-        # non-bracketed. At ~12% random resolution, P(>=2 in 5) = 12.4%.
-        # At ~34% real resolution, P(>=2 in 5) = 54.6%.
-        # Combined with trigram gate, this prevents random noise recovery.
         window_start = max(0, position - 2)
         window_end = min(len(result), position + 3)
         window = result[window_start:window_end]
@@ -391,7 +353,6 @@ class NgramMaskSolver:
 
         candidate_fw = self.function_words[raw_token]
 
-        # TRIGRAM GATE: P(fw | w_prev) + P(w_next | fw) must exceed threshold
         p_forward = self._get_transition_prob(w_prev, candidate_fw)
         p_backward = self._get_transition_prob(candidate_fw, w_next)
         trigram_score = p_forward + p_backward
@@ -400,8 +361,6 @@ class NgramMaskSolver:
             return None
 
         return candidate_fw
-
-    # ── Core solving logic ───────────────────────────────────────
 
     def _solve_single_pass(
         self,
@@ -423,14 +382,12 @@ class NgramMaskSolver:
         Returns:
             (updated_words, resolution_log, new_resolutions_count)
         """
-        # Determine humoral boost set for this folio
         humoral_boost_words: Set[str] = set()
         if folio_id and folio_id in PLANT_IDS:
             humoral_cat = PLANT_IDS[folio_id].get('humoral', '')
             if humoral_cat in self.humoral_vocab:
                 humoral_boost_words = set(self.humoral_vocab[humoral_cat])
 
-        # Illustration prior boost table for this folio
         illust_boosts: Dict[str, float] = {}
         if self.enable_illustration_prior and folio_id and folio_id in self.illustration_prior:
             illust_boosts = self.illustration_prior[folio_id]
@@ -439,7 +396,6 @@ class NgramMaskSolver:
         log = []
         new_resolutions = 0
 
-        # Build iteration order
         indices = list(range(len(current_words)))
         if reverse:
             indices = indices[::-1]
@@ -447,12 +403,10 @@ class NgramMaskSolver:
         for i in indices:
             word = current_words[i]
 
-            # Check if this is a bracketed token
             match = TAGGED_BRACKET_RE.match(word)
             if not match:
                 continue
 
-            # Extract token and POS tag
             if match.group(1) is not None:
                 voynich_token = match.group(1)
                 pos_tag = match.group(2)
@@ -462,13 +416,9 @@ class NgramMaskSolver:
                 pos_tag = match.group(4)
                 bracket_type = 'angle'
 
-            # Skip tokens already marked UNRESOLVED (from previous passes)
             if pos_tag == 'UNRESOLVED':
                 continue
 
-            # 1. Find non-bracketed context words from the INPUT list
-            #    (resolutions propagate between passes, not within a pass,
-            #    to prevent cascade amplification on random text)
             w_prev = None
             w_prev_dist = 0
             for j in range(i - 1, -1, -1):
@@ -485,7 +435,6 @@ class NgramMaskSolver:
                     w_next_dist = j - i
                     break
 
-            # 2. Try function word recovery (Improvement 1)
             fw_result = self._try_function_word_recovery(
                 voynich_token, w_prev, w_next, result, i
             )
@@ -502,12 +451,8 @@ class NgramMaskSolver:
                 })
                 continue
 
-            # 3. Generate candidates from skeleton
             candidates = self._get_candidates_for_token(voynich_token)
 
-            # 3b. Merge medium-confidence CSP candidates if available
-            # These candidates already have partial morphological evidence
-            # (one sigla match) from the graduated CSP scoring
             if hasattr(self, '_medium_candidates') and self._medium_candidates and i in self._medium_candidates:
                 medium_words = [word for _, word in self._medium_candidates[i]]
                 candidates = list(set(medium_words + candidates))
@@ -516,22 +461,18 @@ class NgramMaskSolver:
                 if mark_unresolved:
                     tag = f"[{voynich_token}_UNRESOLVED]" if bracket_type == 'square' else f"<{voynich_token}_UNRESOLVED>"
                     result[i] = tag
-                # else: leave original tag intact for next pass
                 log.append({
                     'position': i, 'token': voynich_token, 'pos': pos_tag,
                     'status': 'no_candidates', 'resolved': None,
                 })
                 continue
 
-            # 4. POS filtering
             pos_filtered = [c for c in candidates if self._candidate_matches_pos(c, pos_tag)]
             if not pos_filtered:
-                pos_filtered = candidates  # Fall back to unfiltered if POS is too strict
+                pos_filtered = candidates
 
-            # 4b. Syntactic veto (Academic Fortification)
             pos_filtered = self._syntactic_veto(pos_filtered, w_prev)
 
-            # 5. Trigram probability scoring
             scored = []
             for candidate in pos_filtered:
                 score = 0.0
@@ -544,47 +485,32 @@ class NgramMaskSolver:
                     p_backward = self._get_transition_prob(candidate, w_next)
                     score += p_backward
 
-                # 6. Humoral multiplier
                 if candidate in humoral_boost_words:
                     score *= 3.0
 
-                # Improvement 8: Illustration prior multiplier
                 if candidate in illust_boosts:
                     score *= illust_boosts[candidate]
 
                 scored.append((score, candidate))
 
-            # Sort descending
             scored.sort(key=lambda x: (-x[0], x[1]))
 
-            # 7. Strict thresholding
             if not scored or scored[0][0] == 0.0:
-                # Improvement 5: Unigram frequency backoff
-                # When bigram gives zero signal, fall back to corpus frequency.
-                # Gates to prevent false positives on random/scrambled text:
-                #   1. Skeleton >= min_segments (longer = more discriminative)
-                #   2. Candidate corpus frequency >= 20 (filters noise)
-                #   3. Context gate: at least one resolved neighbor within 2
-                #      positions (real text has 3x higher P than random)
-                #   4. Sole-candidate or dominant frequency ratio (×1.5 stricter)
                 if (self.enable_unigram_backoff
                         and self._unigram_freq
                         and pos_filtered
                         and (w_prev is not None or w_next is not None)):
                     seg_count = self._get_skeleton_segment_count(voynich_token)
-                    # Context proximity gate: at least one neighbor within 2
                     has_close_context = (
                         (w_prev is not None and w_prev_dist <= 2)
                         or (w_next is not None and w_next_dist <= 2)
                     )
                     if (seg_count >= self.unigram_backoff_min_segments
                             and has_close_context):
-                        # Count candidates with sufficient corpus frequency
                         viable = []
                         for c in pos_filtered:
                             freq = self._unigram_freq.get(c, 0)
                             if freq >= 20:
-                                # Improvement 8: illustration boost on frequency
                                 if c in illust_boosts:
                                     freq *= illust_boosts[c]
                                 viable.append((freq, c))
@@ -594,7 +520,6 @@ class NgramMaskSolver:
                             best_freq, best_word = viable[0]
                             second_freq = viable[1][0] if len(viable) > 1 else 0
 
-                            # Stricter threshold for unigram-only
                             eff_ratio = self._effective_confidence_ratio(voynich_token)
                             uni_threshold = eff_ratio * self.unigram_backoff_ratio_factor
 
@@ -613,14 +538,6 @@ class NgramMaskSolver:
                                 })
                                 continue
 
-                # Improvement 8: Illustration prior fallback
-                # When bigram and unigram both give zero, check if any candidate
-                # matches a Tier 1 illustration prior. This creates signal from
-                # external (art-historical) evidence. Gates:
-                #   1. Folio must have an illustration prior
-                #   2. Only Tier 1 (exact plant names, boost >= 2.0)
-                #   3. Sole Tier-1 candidate OR clear boost gap
-                #   4. Skeleton >= 3 segments (short skeletons match too many)
                 if (illust_boosts and pos_filtered):
                     seg_count = self._get_skeleton_segment_count(voynich_token)
                     if seg_count >= self.unigram_backoff_min_segments:
@@ -661,32 +578,22 @@ class NgramMaskSolver:
             best_score, best_word = scored[0]
             second_score = scored[1][0] if len(scored) > 1 else 0.0
 
-            # Improvement 3: length-scaled confidence ratio
             effective_ratio = self._effective_confidence_ratio(voynich_token)
 
-            # Improvement 4: dual-context confidence reduction
-            # When BOTH w_prev and w_next are close resolved words, the trigram
-            # score uses two-sided evidence which is much more discriminative.
-            # Reduce the threshold to allow resolutions that would otherwise
-            # be borderline. In random text, dual close context is rare (~1.4%
-            # of tokens at 12% resolution), so this barely affects adversarial.
             if (self.dual_context_ratio_factor < 1.0
                     and w_prev is not None and w_next is not None
                     and w_prev_dist <= self.dual_context_max_distance
                     and w_next_dist <= self.dual_context_max_distance):
                 effective_ratio *= self.dual_context_ratio_factor
 
-            # Improvement 8: illustration prior confidence reduction
             if (self.enable_illustration_prior
                     and best_word in illust_boosts
                     and self.illustration_boosted_ratio_factor < 1.0):
                 effective_ratio *= self.illustration_boosted_ratio_factor
 
-            # Safety floor: never go below 1.5x regardless of stacked reductions
             effective_ratio = max(1.5, effective_ratio)
 
             if second_score > 0 and best_score / second_score < effective_ratio:
-                # Ambiguous — scores too close
                 if mark_unresolved:
                     tag = f"[{voynich_token}_UNRESOLVED]" if bracket_type == 'square' else f"<{voynich_token}_UNRESOLVED>"
                     result[i] = tag
@@ -700,7 +607,6 @@ class NgramMaskSolver:
                     'resolved': None,
                 })
             else:
-                # Confident resolution
                 result[i] = best_word
                 new_resolutions += 1
                 self._word_level_resolutions += 1
@@ -743,10 +649,8 @@ class NgramMaskSolver:
                 resolved_words: Updated word list with resolved or UNRESOLVED tags
                 resolution_log: List of dicts with resolution details
         """
-        # Store medium candidates for use in _solve_single_pass
         self._medium_candidates = medium_candidates
 
-        # Stage 1: Standard single-pass L->R resolution (skeleton + trigram)
         result, log, _ = self._solve_single_pass(
             decoded_words, folio_id=folio_id, reverse=False,
             mark_unresolved=not self.enable_bidirectional,
@@ -756,11 +660,6 @@ class NgramMaskSolver:
         if not self.enable_bidirectional:
             return result, all_logs
 
-        # Stage 2: Function-word-only recovery passes
-        # Uses Stage 1's resolved words as context anchors. Only attempts
-        # function word recovery (strict adjacency + trigram gate), not
-        # full skeleton-based resolution. This prevents the cascade
-        # amplification that inflates random noise resolution.
         current_words = result
         for pass_num in range(1, self.max_solving_passes):
             reverse = (pass_num % 2 == 1)
@@ -780,7 +679,6 @@ class NgramMaskSolver:
                 if not match:
                     continue
 
-                # Extract token
                 if match.group(1) is not None:
                     voynich_token = match.group(1)
                     pos_tag = match.group(2)
@@ -791,7 +689,6 @@ class NgramMaskSolver:
                 if pos_tag == 'UNRESOLVED':
                     continue
 
-                # Find context words from the current pass's result
                 fw_prev = None
                 for j in range(i - 1, -1, -1):
                     if not TAGGED_BRACKET_RE.match(fw_result[j]):
@@ -803,7 +700,6 @@ class NgramMaskSolver:
                         fw_next = fw_result[j]
                         break
 
-                # Only attempt function word recovery (no skeleton resolution)
                 fw = self._try_function_word_recovery(
                     voynich_token, fw_prev, fw_next, fw_result, i
                 )
@@ -825,7 +721,6 @@ class NgramMaskSolver:
             if new_resolutions == 0:
                 break
 
-        # Final cleanup: mark remaining brackets as UNRESOLVED
         final_result = list(current_words)
         for i, word in enumerate(final_result):
             match = TAGGED_BRACKET_RE.match(word)
@@ -861,7 +756,6 @@ class NgramMaskSolver:
         Returns:
             (resolved_text, stats_dict)
         """
-        # Reset per-folio counters
         self._word_level_resolutions = 0
         self._pos_backoff_resolutions = 0
         self._char_ngram_resolutions = 0
@@ -872,15 +766,12 @@ class NgramMaskSolver:
             words, folio_id=folio_id, medium_candidates=medium_candidates,
         )
 
-        # Deduplicate log entries by position (keep last status per position
-        # across multiple passes)
         final_status = {}
         for entry in log:
             final_status[entry['position']] = entry
 
         deduped_log = sorted(final_status.values(), key=lambda e: e['position'])
 
-        # Compute stats from deduplicated entries
         total_brackets = len(deduped_log)
         resolved_count = sum(1 for entry in deduped_log if entry['status'] == 'resolved')
         unresolved_count = total_brackets - resolved_count
@@ -934,7 +825,6 @@ class NgramMaskSolver:
         num_resolved = 0
 
         for i, word in enumerate(words):
-            # Only process UNRESOLVED brackets
             match = TAGGED_BRACKET_RE.match(word)
             if not match:
                 continue
@@ -949,7 +839,6 @@ class NgramMaskSolver:
             if pos_tag != 'UNRESOLVED':
                 continue
 
-            # Find nearest resolved neighbors
             w_prev, w_prev_dist = None, 999
             for j in range(i - 1, -1, -1):
                 if not TAGGED_BRACKET_RE.match(result[j]):
@@ -964,30 +853,25 @@ class NgramMaskSolver:
                     w_next_dist = j - i
                     break
 
-            # Gate: both neighbors resolved and close
             if (w_prev is None or w_next is None
                     or w_prev_dist > self.dual_context_max_distance
                     or w_next_dist > self.dual_context_max_distance):
                 continue
 
-            # Gate: skeleton segment minimum
             seg_count = self._get_skeleton_segment_count(voynich_token)
             if seg_count < self.unigram_backoff_min_segments:
                 continue
 
-            # Generate candidates
             candidates = self._get_candidates_for_token(voynich_token)
             if not candidates:
                 continue
 
-            # POS filtering + syntactic veto
             pos_filtered = [c for c in candidates
                             if self._candidate_matches_pos(c, pos_tag)]
             if not pos_filtered:
                 pos_filtered = candidates
             pos_filtered = self._syntactic_veto(pos_filtered, w_prev)
 
-            # POS transition scoring
             prev_pos = self.pos_tagger.tag(w_prev)
             next_pos = self.pos_tagger.tag(w_next)
             prev_pos_idx = self.pos_to_idx.get(prev_pos)
@@ -1009,7 +893,6 @@ class NgramMaskSolver:
                 pos_scored.append((ps, candidate))
             pos_scored.sort(key=lambda x: (-x[0], x[1]))
 
-            # Improvement 8: Illustration prior boost on POS-scored candidates
             illust_boosts = {}
             if self.enable_illustration_prior and folio_id and folio_id in self.illustration_prior:
                 illust_boosts = self.illustration_prior[folio_id]
@@ -1027,7 +910,6 @@ class NgramMaskSolver:
             best_ps, best_pw = pos_scored[0]
             second_ps = pos_scored[1][0] if len(pos_scored) > 1 else 0.0
 
-            # Illustration prior: reduce confidence ratio for boosted winners
             pos_min_conf = self.pos_backoff_min_confidence
             if (self.enable_illustration_prior
                     and best_pw in illust_boosts
@@ -1074,7 +956,6 @@ class NgramMaskSolver:
         num_resolved = 0
 
         for i, word in enumerate(words):
-            # Only process UNRESOLVED brackets
             match = TAGGED_BRACKET_RE.match(word)
             if not match:
                 continue
@@ -1087,12 +968,10 @@ class NgramMaskSolver:
             if pos_tag != 'UNRESOLVED':
                 continue
 
-            # Gate 1: Skeleton segment minimum
             seg_count = self._get_skeleton_segment_count(voynich_token)
             if seg_count < self.char_ngram_min_segments:
                 continue
 
-            # Gate 2: Context proximity (at least one resolved neighbor)
             if self.char_ngram_require_context:
                 has_context = False
                 for j in range(i - 1, max(-1, i - self.char_ngram_max_context_distance - 1), -1):
@@ -1107,12 +986,10 @@ class NgramMaskSolver:
                 if not has_context:
                     continue
 
-            # Generate candidates (re-generate, consistent with pos_backoff_pass)
             candidates = self._get_candidates_for_token(voynich_token)
             if not candidates:
                 continue
 
-            # Character n-gram scoring
             scored = self.char_ngram_model.score_candidates(candidates)
             if not scored:
                 continue
@@ -1120,15 +997,12 @@ class NgramMaskSolver:
             best_score, best_word = scored[0]
             second_score = scored[1][0] if len(scored) > 1 else -float('inf')
 
-            # Improvement 8: Illustration prior adjusts thresholds
             illust_boosts = {}
             if self.enable_illustration_prior and folio_id and folio_id in self.illustration_prior:
                 illust_boosts = self.illustration_prior[folio_id]
             is_boosted = best_word in illust_boosts
 
-            # Confidence: score gap threshold
             if len(scored) == 1:
-                # Single candidate — resolve if score is above empirical threshold
                 threshold = -10.0 if is_boosted else -8.0
                 if best_score > threshold:
                     result[i] = best_word

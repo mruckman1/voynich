@@ -11,20 +11,16 @@ the middle and end should be more variable (symptoms, preparations
 → higher H2).
 """
 
-import sys
 import os
 import math
 import numpy as np
 from collections import Counter, defaultdict
 from typing import Dict, List
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-
 from modules.statistical_analysis import (
     conditional_entropy, first_order_entropy, word_conditional_entropy,
 )
 from modules.phase4.lang_a_extractor import LanguageAExtractor
-
 
 class EntropyGradientAnalysis:
     """
@@ -53,7 +49,7 @@ class EntropyGradientAnalysis:
         for folio, tokens in by_folio.items():
             n = len(tokens)
             if n < 4:
-                continue  # Skip very short pages
+                continue
 
             q_size = max(1, n // 4)
 
@@ -85,7 +81,6 @@ class EntropyGradientAnalysis:
         q4_h2 = conditional_entropy(quartiles['q4_text'], order=1) if quartiles['q4_text'] else 0
         full_h2 = conditional_entropy(self.extractor.extract_lang_a_text(), order=1)
 
-        # Also compute H1
         q1_h1 = first_order_entropy(quartiles['q1_text']) if quartiles['q1_text'] else 0
         q4_h1 = first_order_entropy(quartiles['q4_text']) if quartiles['q4_text'] else 0
 
@@ -116,7 +111,6 @@ class EntropyGradientAnalysis:
         q1_freqs = Counter(quartiles['q1_tokens'])
         q4_freqs = Counter(quartiles['q4_tokens'])
 
-        # Find words that are enriched in Q1 vs Q4
         all_words = set(q1_freqs.keys()) | set(q4_freqs.keys())
 
         q1_total = max(1, sum(q1_freqs.values()))
@@ -135,7 +129,6 @@ class EntropyGradientAnalysis:
                 'q1_enrichment': ratio,
             }
 
-        # Sort: most Q1-enriched first
         q1_enriched = sorted(enrichment.items(),
                              key=lambda x: -x[1]['q1_enrichment'])
         q4_enriched = sorted(enrichment.items(),
@@ -161,11 +154,9 @@ class EntropyGradientAnalysis:
         """
         by_folio = self.extractor.extract_lang_a_by_folio()
 
-        # Observed gradient
         h2_data = self.compute_h2_by_quartile()
         observed_gradient = h2_data['gradient_h2']
 
-        # Bootstrap: shuffle tokens within each folio, recompute gradient
         rng = np.random.RandomState(42)
         n_bootstrap = 100
         null_gradients = []
@@ -173,11 +164,9 @@ class EntropyGradientAnalysis:
         all_tokens = self.extractor.extract_lang_a_tokens()
 
         for _ in range(n_bootstrap):
-            # Shuffle all tokens
             shuffled = list(all_tokens)
             rng.shuffle(shuffled)
 
-            # Split into quartiles as if they were page-sequential
             n = len(shuffled)
             q_size = n // 4
             q1_text = ' '.join(shuffled[:q_size])
@@ -192,7 +181,6 @@ class EntropyGradientAnalysis:
         null_mean = float(np.mean(null_gradients))
         null_std = float(np.std(null_gradients))
 
-        # P-value: fraction of null gradients more extreme than observed
         if observed_gradient > 0:
             p_value = float(np.mean(null_gradients >= observed_gradient))
         else:
@@ -231,7 +219,6 @@ class EntropyGradientAnalysis:
             last_words[tokens[-1]] += 1
             all_words.update(tokens)
 
-        # Words that appear as first word much more than expected
         n_folios = len(by_folio)
         total = sum(all_words.values())
 

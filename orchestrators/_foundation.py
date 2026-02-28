@@ -12,7 +12,6 @@ from modules.phase6.improved_latin_corpus import ImprovedLatinCorpus
 from modules.phase6.morpheme_analyzer import MorphemeAnalyzer
 from modules.phase7.voynich_morphemer import VoynichMorphemer
 
-
 class FoundationContext:
     """Container for the standard pipeline objects shared across phases 6-12.
 
@@ -41,7 +40,6 @@ class FoundationContext:
         self.latin_corpus = latin_corpus
         self.latin_tokens = latin_tokens
 
-
 def build_base_context(verbose: bool = False) -> FoundationContext:
     """Build the minimal context: extractor + splitter.
 
@@ -51,7 +49,6 @@ def build_base_context(verbose: bool = False) -> FoundationContext:
     splitter = TierSplitter(extractor)
     splitter.split()
     return FoundationContext(extractor=extractor, splitter=splitter)
-
 
 def build_morphological_context(
     verbose: bool = False,

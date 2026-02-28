@@ -14,20 +14,15 @@ is not itself in the matrix.
 Phase 5  ·  Voynich Convergence Attack
 """
 
-import sys
-import os
 import math
 import numpy as np
 from collections import Counter
 from typing import Dict, List, Tuple
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-
 from modules.statistical_analysis import (
     conditional_entropy, first_order_entropy, word_conditional_entropy,
 )
 from modules.phase4.lang_a_extractor import LanguageAExtractor
-
 
 class TierSplitter:
     """
@@ -150,7 +145,6 @@ class TierSplitter:
                 if last_tier1 is not None:
                     bigrams.append((last_tier1, token))
                 last_tier1 = token
-            # If token is Tier 2, last_tier1 stays unchanged (bridging)
 
         return bigrams
 
@@ -177,7 +171,6 @@ class TierSplitter:
         split_stats = self.split()
         bridged = self.get_bridged_bigrams()
 
-        # Count unique successors per Tier 1 word from bridged bigrams
         successor_counts = Counter()
         successor_sets = {}
         for prev, next_ in bridged:
@@ -189,7 +182,6 @@ class TierSplitter:
         mean_successors = np.mean(n_successors) if n_successors else 0
         median_successors = np.median(n_successors) if n_successors else 0
 
-        # Expected perplexity ~4.5 (H2 ≈ 2.17 → 2^2.17 ≈ 4.5)
         expected_perplexity = 4.5
 
         tier1_ok = 500 <= split_stats['tier1_types'] <= 1500
@@ -218,7 +210,6 @@ class TierSplitter:
         self._ensure_split()
         s = self._split
 
-        # Character-level H2 for each tier
         tier1_text = ' '.join(s['tier1_tokens'])
         tier2_text = ' '.join(s['tier2_tokens'])
         full_text = self.extractor.extract_lang_a_text()
@@ -230,22 +221,18 @@ class TierSplitter:
         h2_drop = full_h2 - tier1_h2
         h2_drop_significant = h2_drop > 0.15
 
-        # Character repertoire per tier
         tier1_chars = set(c for t in s['tier1_tokens'] for c in t)
         tier2_chars = set(c for t in s['tier2_tokens'] for c in t)
 
-        # Mean word length per tier
         tier1_lengths = [len(t) for t in s['tier1_tokens']]
         tier2_lengths = [len(t) for t in s['tier2_tokens']]
 
         tier1_mean_len = np.mean(tier1_lengths) if tier1_lengths else 0
         tier2_mean_len = np.mean(tier2_lengths) if tier2_lengths else 0
 
-        # Character H1 per tier
         tier1_h1 = first_order_entropy(tier1_text) if tier1_text else 0.0
         tier2_h1 = first_order_entropy(tier2_text) if tier2_text else 0.0
 
-        # Word-level H2 for Tier 1
         tier1_word_h2 = word_conditional_entropy(
             s['tier1_tokens'], order=1
         ) if len(s['tier1_tokens']) > 2 else 0.0

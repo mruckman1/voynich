@@ -10,15 +10,11 @@ Key methods: KS tests, word-boundary information content, cross-section
 comparison of length distributions.
 """
 
-import sys
-import os
 import math
 import numpy as np
 from collections import Counter
 from typing import Dict, List, Tuple, Optional
 from scipy import stats
-
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from modules.statistical_analysis import (
     compute_all_entropy, first_order_entropy, conditional_entropy,
@@ -31,11 +27,6 @@ from data.medieval_text_templates import (
     generate_italian_text, generate_german_text
 )
 from modules.strategy1_parameter_search import generate_medical_plaintext
-
-
-# ============================================================================
-# WORD LENGTH ANALYZER
-# ============================================================================
 
 class WordLengthAnalyzer:
     """Analyzes word-length distributions to validate word boundary semantics."""
@@ -54,7 +45,6 @@ class WordLengthAnalyzer:
             tokens = get_all_tokens()
 
         if language:
-            # Filter by language using corpus metadata
             lang_tokens = []
             for folio, data in SAMPLE_CORPUS.items():
                 if data.get('lang') == language:
@@ -101,19 +91,15 @@ class WordLengthAnalyzer:
         3. If H2_with_spaces << H2_without, boundaries add predictability → meaningful
         4. If H2_with_spaces ≈ H2_without, boundaries add little → possibly artificial
         """
-        # With word boundaries (spaces as characters)
         text_with_spaces = ' '.join(tokens)
         entropy_with = compute_all_entropy(text_with_spaces)
 
-        # Without word boundaries (pure character stream)
         text_without = ''.join(tokens)
         entropy_without = compute_all_entropy(text_without)
 
         delta_h2 = entropy_with['H2'] - entropy_without['H2']
         delta_h3 = entropy_with['H3'] - entropy_without['H3']
 
-        # A negative delta means spaces REDUCE entropy → boundaries are informative
-        # Threshold: if delta < -0.2, boundaries carry significant information
         boundary_informative = delta_h2 < -0.2
 
         return {
@@ -157,7 +143,6 @@ class WordLengthAnalyzer:
                 'compatible': ks_p > 0.05,
             }
 
-        # Rank by KS statistic (lower = more similar)
         ranked = sorted(results.items(), key=lambda x: x[1]['ks_statistic'])
         results['ranking'] = [lang for lang, _ in ranked]
         results['best_match'] = ranked[0][0] if ranked else None
@@ -176,7 +161,6 @@ class WordLengthAnalyzer:
             if len(lengths) > 10:
                 section_lengths[section] = lengths
 
-        # Pairwise KS tests
         pairwise = {}
         sections = list(section_lengths.keys())
         for i, s1 in enumerate(sections):
@@ -189,7 +173,6 @@ class WordLengthAnalyzer:
                     'significantly_different': ks_p < 0.05,
                 }
 
-        # Section statistics
         section_stats = {}
         for section, lengths in section_lengths.items():
             hist = Counter(lengths.tolist())
@@ -235,11 +218,6 @@ class WordLengthAnalyzer:
             'total_tokens': len(lengths),
         }
 
-
-# ============================================================================
-# MODULE ENTRY POINT
-# ============================================================================
-
 def run(verbose: bool = True) -> Dict:
     """
     Run the word-length distribution analysis.
@@ -255,7 +233,6 @@ def run(verbose: bool = True) -> Dict:
         print("TRACK 4: WORD-LENGTH DISTRIBUTION ANALYSIS")
         print("=" * 70)
 
-    # Test 1: Word boundary information content
     if verbose:
         print("\n  Test 1: Word boundary information content...")
     tokens = get_all_tokens()
@@ -267,7 +244,6 @@ def run(verbose: bool = True) -> Dict:
         print(f"    ΔH2 = {boundary_test['delta_H2']:.4f}")
         print(f"    → {boundary_test['interpretation']}")
 
-    # Test 2: Language comparison
     if verbose:
         print("\n  Test 2: Language comparison (KS tests)...")
     language_comparison = analyzer.compare_against_languages()
@@ -282,7 +258,6 @@ def run(verbose: bool = True) -> Dict:
                   f"{lang} μ={data.get('language_mean', 0):.2f})")
         print(f"    Best match: {language_comparison.get('best_match', '?')}")
 
-    # Test 3: Section comparison
     if verbose:
         print("\n  Test 3: Cross-section comparison...")
     section_comparison = analyzer.compare_sections()
@@ -293,7 +268,6 @@ def run(verbose: bool = True) -> Dict:
             print(f"    {section}: μ={stats_data['mean']:.2f}  "
                   f"σ={stats_data['std']:.2f}  n={stats_data['n_tokens']}")
 
-    # Test 4: Overall histogram
     histogram = analyzer.length_distribution_histogram()
 
     results = {

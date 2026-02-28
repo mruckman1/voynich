@@ -10,24 +10,15 @@ grammatical markers (articles, prepositions, demonstratives), their fixed
 positions and restricted collocations make them the most crackable units.
 """
 
-import sys
-import os
 import math
 import numpy as np
 from collections import Counter, defaultdict
 from typing import Dict, List, Tuple, Optional
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 from modules.statistical_analysis import (
     first_order_entropy, conditional_entropy, compute_all_entropy
 )
 from data.voynich_corpus import get_all_tokens, get_section_text, SAMPLE_CORPUS, SECTIONS
-
-
-# ============================================================================
-# QO ANALYZER
-# ============================================================================
 
 class QoAnalyzer:
     """Analyzes the distributional and functional properties of qo- words."""
@@ -135,8 +126,7 @@ class QoAnalyzer:
         Tests whether qo-words cluster at paragraph/sentence beginnings,
         which would suggest article/demonstrative function.
         """
-        # Analyze position within text blocks
-        positions = []  # relative position (0.0 = start, 1.0 = end)
+        positions = []
         first_word_qo = 0
         total_blocks = 0
 
@@ -158,7 +148,6 @@ class QoAnalyzer:
 
         pos_arr = np.array(positions)
 
-        # Position distribution
         quartile_counts = {
             'first_quarter': float(np.sum(pos_arr < 0.25) / len(pos_arr)),
             'second_quarter': float(np.sum((pos_arr >= 0.25) & (pos_arr < 0.5)) / len(pos_arr)),
@@ -193,7 +182,6 @@ class QoAnalyzer:
         qo_indices = [i for i, t in enumerate(all_tokens)
                       if t.startswith('qo') or t == 'q']
 
-        # Count collocates
         left_collocates = Counter()
         right_collocates = Counter()
 
@@ -204,7 +192,6 @@ class QoAnalyzer:
                 if idx + offset < total:
                     right_collocates[all_tokens[idx + offset]] += 1
 
-        # Compute PMI for top collocates
         qo_freq = len(qo_indices) / total
 
         def compute_pmi(collocate_counts, position):
@@ -242,7 +229,6 @@ class QoAnalyzer:
             'grammatical_particle': 0,
         }
 
-        # Evidence from position
         if positional.get('front_biased', False):
             scores['article_demonstrative'] += 2
             evidence.append('Front-biased position supports article/demonstrative role')
@@ -250,21 +236,17 @@ class QoAnalyzer:
             scores['article_demonstrative'] += 1
             evidence.append(f'Appears as first word {positional["first_word_rate"]:.0%} of the time')
 
-        # Evidence from collocations
         right_collocs = collocation.get('right_collocates', [])
         if right_collocs:
-            # If qo-words strongly precede specific word classes → preposition/article
             scores['article_demonstrative'] += 1
             scores['preposition'] += 1
             evidence.append(f'Strong right collocate: {right_collocs[0][0]}')
 
-        # Evidence from language asymmetry
         ratio = language.get('b_to_a_ratio', 1.0)
         if ratio > 3:
             scores['grammatical_particle'] += 1
             evidence.append(f'Language B/A ratio = {ratio:.1f}x (asymmetric)')
 
-        # Determine classification
         best = max(scores, key=scores.get)
         confidence = 'HIGH' if scores[best] >= 3 else 'MODERATE' if scores[best] >= 2 else 'LOW'
 
@@ -306,7 +288,6 @@ class QoAnalyzer:
         text_original = ' '.join(all_tokens)
         entropy_original = compute_all_entropy(text_original)
 
-        # Test substitutions
         candidates = {
             'latin_article': ['hoc', 'hic', 'ille', 'iste'],
             'latin_preposition': ['in', 'de', 'ad', 'cum', 'per'],
@@ -328,7 +309,6 @@ class QoAnalyzer:
             text_modified = ' '.join(modified_tokens)
             entropy_modified = compute_all_entropy(text_modified)
 
-            # How much does H2 change?
             delta_h2 = entropy_modified['H2'] - entropy_original['H2']
 
             results[category] = {
@@ -338,8 +318,6 @@ class QoAnalyzer:
                 'delta_H2': delta_h2,
             }
 
-        # Best substitution = one that produces most natural-like entropy
-        # Natural language H2 is typically 3.0-4.0 bits
         target_h2 = 3.5
         best = min(results.items(),
                    key=lambda x: abs(x[1]['H2_modified'] - target_h2))
@@ -348,11 +326,6 @@ class QoAnalyzer:
         results['best_delta_H2'] = best[1]['delta_H2']
 
         return results
-
-
-# ============================================================================
-# MODULE ENTRY POINT
-# ============================================================================
 
 def run(verbose: bool = True) -> Dict:
     """
@@ -372,7 +345,6 @@ def run(verbose: bool = True) -> Dict:
 
     tokens = get_all_tokens()
 
-    # Q positional stats
     if verbose:
         print("\n  Analyzing 'q' positional behavior...")
     q_stats = analyzer.q_positional_stats(tokens)
@@ -380,14 +352,12 @@ def run(verbose: bool = True) -> Dict:
         print(f"    q initial: {q_stats['initial_fraction']:.1%}")
         print(f"    q followed by 'o': {q_stats['q_followed_by_o']:.1%}")
 
-    # qo words
     qo_words = analyzer.extract_qo_words(tokens)
     qo_vocab = Counter(qo_words)
     if verbose:
         print(f"\n  qo-words: {len(qo_words)} tokens, {len(qo_vocab)} types")
         print(f"  Top qo-words: {qo_vocab.most_common(10)}")
 
-    # Section frequencies
     if verbose:
         print("\n  Section-level qo-word frequencies...")
     section_freq = analyzer.qo_frequency_by_section()
@@ -396,7 +366,6 @@ def run(verbose: bool = True) -> Dict:
             print(f"    {section}: {data['qo_proportion']:.1%} "
                   f"({data['qo_tokens']}/{data['total_tokens']})")
 
-    # Language frequencies
     if verbose:
         print("\n  Language A vs B qo-word frequencies...")
     language_freq = analyzer.qo_frequency_by_language()
@@ -408,7 +377,6 @@ def run(verbose: bool = True) -> Dict:
         if 'asymmetry' in language_freq:
             print(f"    {language_freq['asymmetry']}")
 
-    # Positional analysis
     if verbose:
         print("\n  Analyzing qo-word positions within text blocks...")
     positional = analyzer.qo_positional_analysis()
@@ -417,7 +385,6 @@ def run(verbose: bool = True) -> Dict:
         print(f"    First-word rate: {positional['first_word_rate']:.1%}")
         print(f"    Front-biased: {positional.get('front_biased', False)}")
 
-    # Collocation analysis
     if verbose:
         print("\n  Computing collocations (PMI)...")
     collocations = analyzer.collocation_analysis()
@@ -429,7 +396,6 @@ def run(verbose: bool = True) -> Dict:
             w, pmi, n = collocations['strongest_left']
             print(f"    Strongest left collocate: {w} (PMI={pmi:.2f}, n={n})")
 
-    # Functional classification
     if verbose:
         print("\n  Classifying functional role...")
     classification = analyzer.functional_classification(
@@ -440,7 +406,6 @@ def run(verbose: bool = True) -> Dict:
               f"[{classification['confidence']}]")
         print(f"    {classification['interpretation']}")
 
-    # Substitution test
     if verbose:
         print("\n  Running substitution test...")
     substitution = analyzer.substitution_test()

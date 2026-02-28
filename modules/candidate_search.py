@@ -9,16 +9,12 @@ Stretch goal: Naibbe parameter recovery using zodiac known-plaintext, label
 correspondences, and paragraph openings.
 """
 
-import sys
-import os
 import time
 import math
 import random
 import numpy as np
 from collections import Counter, defaultdict
 from typing import Dict, List, Tuple, Optional
-
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from modules.statistical_analysis import (
     compute_all_entropy, full_statistical_profile, profile_distance,
@@ -30,11 +26,6 @@ from data.voynich_corpus import get_all_tokens, get_section_text
 from data.medieval_text_templates import (
     generate_italian_text, generate_german_text
 )
-
-
-# ============================================================================
-# CANDIDATE SEARCH
-# ============================================================================
 
 class CandidateSearch:
     """
@@ -52,28 +43,24 @@ class CandidateSearch:
         Generate viable cipher×language×parameter combinations.
         Filters by constraint model if available.
         """
-        # Generate base parameter grid
         grid = generate_parameter_grid(resolution=resolution)
 
-        # Filter by constraint model
         if self.model:
             grid = self.model.narrow_parameter_space(grid)
 
-        # Determine viable families and languages
-        viable_families = ['naibbe']  # default
+        viable_families = ['naibbe']
         candidate_languages = ['latin', 'italian', 'german']
 
         if self.model:
             spec = self.model.compile() if hasattr(self.model, 'compile') else {}
             if spec.get('viable_cipher_families'):
                 viable_families = [f for f in spec['viable_cipher_families']
-                                  if f == 'naibbe']  # Only Naibbe is parameterized
+                                  if f == 'naibbe']
                 if not viable_families:
                     viable_families = ['naibbe']
             if spec.get('candidate_languages'):
                 candidate_languages = spec['candidate_languages']
 
-        # Build candidates
         candidates = []
         rng = random.Random(42)
 
@@ -85,7 +72,6 @@ class CandidateSearch:
                     'source_language': lang,
                 })
 
-        # Shuffle and limit
         rng.shuffle(candidates)
         return candidates[:n]
 
@@ -103,13 +89,11 @@ class CandidateSearch:
         params = candidate['params']
         lang = candidate['source_language']
 
-        # Create cipher
         cipher = NaibbeCipher(**{k: v for k, v in params.items()
                                 if k in ('n_tables', 'bigram_probability',
                                          'prefix_probability', 'suffix_probability',
                                          'seed')})
 
-        # Generate plaintext in candidate language
         if lang == 'latin':
             plaintext = generate_medical_plaintext(n_words=500)
         elif lang == 'italian':
@@ -119,14 +103,12 @@ class CandidateSearch:
         else:
             plaintext = generate_medical_plaintext(n_words=500)
 
-        # Encrypt
         ciphertext = cipher.encrypt(plaintext)
         cipher_tokens = ciphertext.split()
 
         if len(cipher_tokens) < 20:
             return {'score': 0.0, 'valid': False, 'reason': 'Too few tokens'}
 
-        # Compare against Voynich target
         voynich_tokens = get_all_tokens()
         voynich_text = ' '.join(voynich_tokens)
 
@@ -135,18 +117,15 @@ class CandidateSearch:
 
         distance = profile_distance(cipher_profile, voynich_profile)
 
-        # Anchor pair testing (if available)
         anchor_score = 0.0
         anchor_tests = 0
         if anchor_pairs:
             for pair in anchor_pairs[:10]:
                 anchor_tests += 1
-                # Encrypt each plaintext candidate and compare
                 for pt_candidate in pair.get('plaintext_candidates', [])[:3]:
                     pt_encrypted = cipher.encrypt(pt_candidate)
                     ct_target = pair.get('ciphertext', '')
 
-                    # Character overlap score
                     if pt_encrypted and ct_target:
                         enc_chars = set(pt_encrypted.replace(' ', ''))
                         tgt_chars = set(ct_target.replace(' ', ''))
@@ -154,7 +133,6 @@ class CandidateSearch:
                             overlap = len(enc_chars & tgt_chars) / len(enc_chars | tgt_chars)
                             anchor_score = max(anchor_score, overlap)
 
-        # Constraint model check
         constraint_check = {'score': 0.5}
         if self.model:
             constraint_check = self.model.check_candidate({
@@ -163,8 +141,7 @@ class CandidateSearch:
                 'cipher_family': 'naibbe',
             })
 
-        # Composite score
-        profile_score = max(0, 1.0 - distance / 5.0)  # Normalize distance
+        profile_score = max(0, 1.0 - distance / 5.0)
         constraint_score = constraint_check.get('score', 0.5)
         anchor_norm = anchor_score if anchor_tests > 0 else 0.5
 
@@ -198,13 +175,10 @@ class CandidateSearch:
         entropy = compute_all_entropy(text)
         zipf = zipf_analysis(tokens)
 
-        # Natural language characteristics
-        # H1 typically 3.5-4.5, H2 typically 2.5-4.0
         h1_natural = 3.5 <= entropy['H1'] <= 4.5
         h2_natural = 2.5 <= entropy['H2'] <= 4.0
         zipf_natural = 0.8 <= abs(zipf['zipf_exponent']) <= 1.5
 
-        # Type-token ratio
         ttr = zipf['type_token_ratio']
         ttr_natural = 0.3 <= ttr <= 0.8
 
@@ -234,7 +208,6 @@ class CandidateSearch:
         Tests a focused grid around the best-known parameter region
         and scores against all available anchors.
         """
-        # Focused parameter grid around known best-fit region
         focused_params = []
         for n_tables in [2, 3, 4, 5]:
             for bigram_p in [0.10, 0.15, 0.20, 0.25, 0.30]:
@@ -249,12 +222,11 @@ class CandidateSearch:
                                 'seed': seed,
                             })
 
-        # Test each against anchors
         voynich_text = ' '.join(get_all_tokens())
         voynich_profile = full_statistical_profile(voynich_text, 'voynich')
 
         results = []
-        for params in focused_params[:200]:  # Limit for performance
+        for params in focused_params[:200]:
             cipher = NaibbeCipher(**params)
             plaintext = generate_medical_plaintext(n_words=500)
             ciphertext = cipher.encrypt(plaintext)
@@ -270,7 +242,6 @@ class CandidateSearch:
                 'profile_distance': distance,
             })
 
-        # Sort by distance
         results.sort(key=lambda x: x['profile_distance'])
 
         return {
@@ -294,7 +265,7 @@ class CandidateSearch:
         convergence = {}
         for param, values in param_values.items():
             arr = np.array(values)
-            cv = np.std(arr) / max(np.mean(arr), 0.001)  # coefficient of variation
+            cv = np.std(arr) / max(np.mean(arr), 0.001)
             convergence[param] = {
                 'mean': float(np.mean(arr)),
                 'std': float(np.std(arr)),
@@ -315,11 +286,6 @@ class CandidateSearch:
         valid = [r for r in results if r.get('valid', False)]
         valid.sort(key=lambda x: -x.get('score', 0))
         return valid
-
-
-# ============================================================================
-# MODULE ENTRY POINT
-# ============================================================================
 
 def run(
     verbose: bool = True,
@@ -346,7 +312,6 @@ def run(
         print("PHASE 4: DECRYPTION CANDIDATE SEARCH")
         print("=" * 70)
 
-    # Generate candidates
     if verbose:
         print(f"\n  Generating {n_candidates} candidates...")
     candidates = searcher.generate_candidates(n=n_candidates)
@@ -354,7 +319,6 @@ def run(
         print(f"    Generated {len(candidates)} candidates "
               f"({len(set(c['source_language'] for c in candidates))} languages)")
 
-    # Test candidates
     if verbose:
         print("\n  Testing candidates...")
     results = []
@@ -369,7 +333,6 @@ def run(
             print(f"    Tested {i+1}/{len(candidates)}  "
                   f"({elapsed:.1f}s, best={max(r['score'] for r in results):.4f})")
 
-    # Rank
     ranked = searcher.rank_candidates(results)
 
     if verbose:
@@ -382,7 +345,6 @@ def run(
                       f"dist={r['profile_distance']:.4f}  "
                       f"H2={r['cipher_entropy']['H2']:.4f}")
 
-    # Parameter recovery (stretch goal)
     if verbose:
         print("\n  Attempting Naibbe parameter recovery...")
     recovery = searcher.naibbe_parameter_recovery(anchor_pairs or [])

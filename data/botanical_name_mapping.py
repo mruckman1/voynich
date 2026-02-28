@@ -16,9 +16,7 @@ from typing import Dict, List, Set
 
 _CSV_PATH = os.path.join(os.path.dirname(__file__), 'Voynich_Botanicals.csv')
 
-# Minimum stem length to avoid false positives in a small vocabulary
 MIN_STEM_LENGTH = 4
-
 
 def load_botanical_csv(csv_path: str = _CSV_PATH) -> Dict[str, List[str]]:
     """Load Voynich_Botanicals.csv → {scientific_name: [medieval_latin_name, ...]}.
@@ -34,18 +32,15 @@ def load_botanical_csv(csv_path: str = _CSV_PATH) -> Dict[str, List[str]]:
             if not raw_names:
                 mapping[sci_name] = []
                 continue
-            # Parse comma-separated names, strip whitespace and annotations
             names = []
             for name in raw_names.split(','):
                 name = name.strip().lower()
-                # Remove parenthetical annotations like "(sometimes confused)"
                 if '(' in name:
                     name = name[:name.index('(')].strip()
                 if name:
                     names.append(name)
             mapping[sci_name] = names
     return mapping
-
 
 def build_folio_name_map() -> Dict[str, Dict]:
     """Build folio-indexed lookup: folio_id → botanical name data.
@@ -94,9 +89,7 @@ def build_folio_name_map() -> Dict[str, Dict]:
                     any_mapped = True
                 else:
                     entry['new_world'] = True
-            # Species not in CSV at all — treat as unmapped
 
-        # Deduplicate and classify names
         seen: Set[str] = set()
         for name in all_names:
             name_lower = name.lower().strip()
@@ -109,14 +102,12 @@ def build_folio_name_map() -> Dict[str, Dict]:
                 entry['multi_word_names'].append(name_lower)
             else:
                 entry['single_word_names'].append(name_lower)
-                # Generate stems by truncating 1-3 chars
                 _add_stems(entry['stems'], name_lower)
 
         entry['testable'] = any_mapped and len(entry['latin_names']) > 0
         result[folio] = entry
 
     return result
-
 
 def _add_stems(stems_dict: Dict[str, str], name: str) -> None:
     """Add truncated stems for a single-word name.

@@ -22,17 +22,12 @@ from modules.phase11.phonetic_skeletonizer import (
     LATIN_CONSONANT_CLASSES,
 )
 
-# Vowel set for position analysis
 VOYNICH_VOWELS = {'a', 'e', 'o', 'y'}
 
-# Semi-consonant mappings (new for Phase 12)
-# y → Latin i/j (semivowel, palatal approximant)
-# o → Latin u/v (semivowel, labial approximant)
 SEMI_CONSONANT_MAP = {
-    'y': 'J',   # i/j class — not in Phase 11's consonant classes
-    'o': 'P',   # u/v maps to labial class (same as v/f/p/b)
+    'y': 'J',
+    'o': 'P',
 }
-
 
 def dynamic_levenshtein_threshold(skeleton: str) -> int:
     """
@@ -53,22 +48,19 @@ def dynamic_levenshtein_threshold(skeleton: str) -> int:
         return 0
     n_segments = len(skeleton.split('-'))
     if n_segments <= 4:
-        return 0  # Strict bijection — eliminates false positives for short skeletons
+        return 0
     else:
-        return 1  # Minor flex for scribal abbreviation (e.g., suspension marks)
-
+        return 1
 
 def _is_vowel_position(stem: str, idx: int) -> bool:
     """Check if the character at idx is surrounded by vowels or at stem-start."""
     if idx == 0:
-        return True  # Stem-initial is always a branching position
+        return True
 
-    # Check if intervocalic: vowel before AND vowel after
     prev_is_vowel = (idx > 0 and stem[idx - 1] in VOYNICH_VOWELS)
     next_is_vowel = (idx < len(stem) - 1 and stem[idx + 1] in VOYNICH_VOWELS)
 
     return prev_is_vowel and next_is_vowel
-
 
 class FuzzySkeletonizer:
     """
@@ -102,15 +94,9 @@ class FuzzySkeletonizer:
         if not v_stem:
             return []
 
-        # Parse the stem into a sequence of (consonant_class_or_branch, position)
-        # Each position is either:
-        #   - A definite consonant class (from VOYNICH_CONSONANT_CLASSES)
-        #   - A branch point (y or o in branching position)
-        #   - A skip (regular vowel)
-        segments = []  # List of: str (fixed class) | tuple (skip_option, cons_option)
+        segments = []
         i = 0
         while i < len(v_stem):
-            # Try digraph first
             if i < len(v_stem) - 1:
                 digraph = v_stem[i:i + 2]
                 if digraph in VOYNICH_CONSONANT_CLASSES:
@@ -120,41 +106,32 @@ class FuzzySkeletonizer:
 
             char = v_stem[i]
 
-            # Check if this is a definite consonant
             if char in VOYNICH_CONSONANT_CLASSES:
                 segments.append(VOYNICH_CONSONANT_CLASSES[char])
                 i += 1
                 continue
 
-            # Check if this is a semi-consonant branch point
             if char in SEMI_CONSONANT_MAP and _is_vowel_position(v_stem, i):
-                # This is a branch: (None=skip, consonant_class)
                 segments.append((None, SEMI_CONSONANT_MAP[char]))
                 i += 1
                 continue
 
-            # Regular vowel/spacer — skip
             i += 1
 
         if not segments:
             return []
 
-        # Expand all branch points into concrete skeleton candidates
-        # Each branch point doubles the number of candidates
         branch_points = []
         for seg in segments:
             if isinstance(seg, tuple):
-                branch_points.append(seg)  # (None, 'J') or (None, 'P')
+                branch_points.append(seg)
             else:
-                branch_points.append((seg,))  # Single option, no branching
+                branch_points.append((seg,))
 
-        # Generate all combinations
-        candidates = {}  # skeleton_str -> cumulative_weight
+        candidates = {}
         for combo in product(*branch_points):
-            # Filter out None (vowel-skip branches) and build skeleton
             consonants = [c for c in combo if c is not None]
 
-            # Remove adjacent duplicates (same as Phase 11)
             deduped = []
             for c in consonants:
                 if not deduped or c != deduped[-1]:
@@ -165,27 +142,23 @@ class FuzzySkeletonizer:
 
             skeleton = '-'.join(deduped)
 
-            # Compute weight: 0.7 for each vowel-skip choice, 0.3 for each
-            # consonant choice at branch points
             weight = 1.0
             branch_idx = 0
             for seg in segments:
                 if isinstance(seg, tuple):
                     chosen = combo[branch_idx]
                     if chosen is None:
-                        weight *= 0.7  # Vowel interpretation (more likely)
+                        weight *= 0.7
                     else:
-                        weight *= 0.3  # Consonant interpretation
+                        weight *= 0.3
                     branch_idx += 1
                 else:
                     branch_idx += 1
 
-            # Accumulate weight if same skeleton from different paths
             if skeleton in candidates:
                 candidates[skeleton] = max(candidates[skeleton], weight)
             else:
                 candidates[skeleton] = weight
 
-        # Sort by weight descending
         result = sorted(candidates.items(), key=lambda x: -x[1])
         return result

@@ -17,13 +17,12 @@ import time
 from datetime import datetime
 from typing import Dict
 
-from orchestrators._utils import ensure_output_dir
+from orchestrators._utils import vprint, ensure_output_dir
 from orchestrators._config import LATIN_CORPUS_TOKENS_LARGE, FOLIO_LIMIT_DEFAULT
 from orchestrators._foundation import build_morphological_context
 
 from modules.phase11.phonetic_skeletonizer import LatinPhoneticSkeletonizer, VoynichPhoneticSkeletonizer
 from modules.phase11.csp_decoder import CSPPhoneticDecoder
-
 
 def run_phase11_csp_translation(verbose: bool = True, output_dir: str = './output/phase11') -> Dict:
     ensure_output_dir(output_dir)
@@ -35,28 +34,25 @@ def run_phase11_csp_translation(verbose: bool = True, output_dir: str = './outpu
         print('Phonetic Constraint Satisfaction (CSP) Decoder')
         print('=' * 70)
 
-    # 1. Load Corpora & Morphological Parsers
-    if verbose: print('\n[1/4] Loading Extractors & Morphemers...')
+    vprint(verbose, '\n[1/4] Loading Extractors & Morphemers...')
     ctx = build_morphological_context(
         verbose=False, latin_corpus_tokens=LATIN_CORPUS_TOKENS_LARGE
     )
 
-    # 2. Build Consonant Skeletons
-    if verbose: print('\n[2/4] Compiling Phonetic Consonant Skeletons...')
+    vprint(verbose, '\n[2/4] Compiling Phonetic Consonant Skeletons...')
     latin_skeletonizer = LatinPhoneticSkeletonizer(ctx.latin_tokens)
     voynich_skeletonizer = VoynichPhoneticSkeletonizer(ctx.voynich_morphemer)
 
     if verbose:
         print(f"  → Indexed {len(latin_skeletonizer.skeleton_index)} unique Latin consonant skeletons.")
 
-    # 3. CSP Decoding
-    if verbose: print('\n[3/4] Running CSP Phonetic Alignment (Anti-Hallucination)...')
+    vprint(verbose, '\n[3/4] Running CSP Phonetic Alignment (Anti-Hallucination)...')
     decoder = CSPPhoneticDecoder(latin_skeletonizer, voynich_skeletonizer)
 
     by_folio = ctx.extractor.extract_lang_a_by_folio()
     translations = {}
 
-    for folio, tokens in list(by_folio.items())[:FOLIO_LIMIT_DEFAULT]:  # Process 15 folios
+    for folio, tokens in list(by_folio.items())[:FOLIO_LIMIT_DEFAULT]:
         if len(tokens) < 5: continue
         translated_text = decoder.decode_folio(tokens)
         translations[folio] = translated_text

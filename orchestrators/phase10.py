@@ -15,12 +15,11 @@ import time
 from datetime import datetime
 from typing import Dict
 
-from orchestrators._utils import ensure_output_dir
+from orchestrators._utils import vprint, ensure_output_dir
 from orchestrators._config import LATIN_CORPUS_TOKENS_LARGE, FOLIO_LIMIT_DEMO
 from orchestrators._foundation import build_morphological_context
 
 from modules.phase10.latin_dictionary_decoder import LatinDictionaryDecoder, viterbi_trigram_decode
-
 
 def run_phase10_final_translation(verbose: bool = True, output_dir: str = './output/phase10') -> Dict:
     ensure_output_dir(output_dir)
@@ -32,25 +31,22 @@ def run_phase10_final_translation(verbose: bool = True, output_dir: str = './out
         print('Dictionary-Guided Trigram Translation Engine')
         print('=' * 70)
 
-    # 1. Setup Corpora
-    if verbose: print('\n[1/3] Loading Corpora & Morphological Parsers...')
+    vprint(verbose, '\n[1/3] Loading Corpora & Morphological Parsers...')
     ctx = build_morphological_context(
         verbose=False, latin_corpus_tokens=LATIN_CORPUS_TOKENS_LARGE
     )
 
-    # 2. Build Dictionary Decoder
-    if verbose: print('\n[2/3] Compiling Latin Herbal Dictionary & Trigram Model...')
+    vprint(verbose, '\n[2/3] Compiling Latin Herbal Dictionary & Trigram Model...')
     decoder = LatinDictionaryDecoder(ctx.latin_tokens)
 
     if verbose:
         print(f"  → Indexed {len(decoder.vocab)} unique Latin herbal words.")
 
-    # 3. Decode Folios
-    if verbose: print('\n[3/3] Trigram Viterbi Decoding of Folios...')
+    vprint(verbose, '\n[3/3] Trigram Viterbi Decoding of Folios...')
     by_folio = ctx.extractor.extract_lang_a_by_folio()
     translations = {}
 
-    for folio, tokens in list(by_folio.items())[:FOLIO_LIMIT_DEMO]:  # Process first 10 for demonstration
+    for folio, tokens in list(by_folio.items())[:FOLIO_LIMIT_DEMO]:
         if len(tokens) < 5: continue
         translated_text = viterbi_trigram_decode(tokens, ctx.voynich_morphemer, decoder)
         translations[folio] = translated_text

@@ -12,21 +12,12 @@ the content hypothesis — and the low-entropy regions become targets for
 known-plaintext matching.
 """
 
-import sys
-import os
 import numpy as np
 from collections import Counter, defaultdict
 from typing import Dict, List, Tuple, Optional
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 from modules.statistical_analysis import conditional_entropy, first_order_entropy
 from data.voynich_corpus import get_all_tokens, SAMPLE_CORPUS, SECTIONS
-
-
-# ============================================================================
-# ENTROPY GRADIENT
-# ============================================================================
 
 class EntropyGradient:
     """
@@ -146,12 +137,11 @@ class EntropyGradient:
 
         u_score = (q2 + q3) / 2 - (q1 + q4) / 2
 
-        # Also test monotonic patterns
-        rising = q1 < q2 < q3 < q4  # rising = increasing formulaicity at end? No, increasing entropy
-        falling = q1 > q2 > q3 > q4  # more formulaic toward end
+        rising = q1 < q2 < q3 < q4
+        falling = q1 > q2 > q3 > q4
 
-        is_u = q1 < q2 and q4 < q3  # strict U-shape
-        is_inverted_u = q1 > q2 and q4 > q3  # inverted U
+        is_u = q1 < q2 and q4 < q3
+        is_inverted_u = q1 > q2 and q4 > q3
 
         return {
             'u_score': float(u_score),
@@ -237,7 +227,6 @@ class EntropyGradient:
             if len(gradient) < 4:
                 continue
 
-            # Q1 (opening) anchor
             if gradient[0] < np.mean(gradient) - 0.1:
                 anchors.append({
                     'section': section,
@@ -249,7 +238,6 @@ class EntropyGradient:
                                   'for this text type.',
                 })
 
-            # Q4 (closing) anchor
             if gradient[3] < np.mean(gradient) - 0.1:
                 anchors.append({
                     'section': section,
@@ -262,11 +250,6 @@ class EntropyGradient:
                 })
 
         return anchors
-
-
-# ============================================================================
-# MODULE ENTRY POINT
-# ============================================================================
 
 def run(verbose: bool = True) -> Dict:
     """
@@ -283,7 +266,6 @@ def run(verbose: bool = True) -> Dict:
         print("TRACK 9: INTRA-PARAGRAPH ENTROPY GRADIENT")
         print("=" * 70)
 
-    # Overall gradient
     if verbose:
         print("\n  Computing overall entropy gradient...")
     overall = analyzer.corpus_entropy_gradient()
@@ -293,7 +275,6 @@ def run(verbose: bool = True) -> Dict:
         print(f"    U-score: {overall_u['u_score']:.4f}")
         print(f"    Pattern: {overall_u['pattern']}")
 
-    # Per-section gradients
     if verbose:
         print("\n  Per-section entropy gradients:")
     section_gradients = analyzer.compare_sections()
@@ -305,10 +286,8 @@ def run(verbose: bool = True) -> Dict:
             print(f"    {section}: [{', '.join(f'{v:.3f}' for v in g)}]  "
                   f"U={u_score:.3f}  {pattern}")
 
-    # Reference comparison
     reference = analyzer.reference_gradients()
 
-    # Anchor regions
     if verbose:
         print("\n  Identifying anchor regions (low-entropy quartiles)...")
     anchors = analyzer.identify_anchor_regions(section_gradients)
@@ -320,7 +299,6 @@ def run(verbose: bool = True) -> Dict:
         else:
             print("    No clear anchor regions identified.")
 
-    # Count U-curves
     u_curve_sections = [s for s, d in section_gradients.items()
                         if d['u_test']['is_u_curve']]
 

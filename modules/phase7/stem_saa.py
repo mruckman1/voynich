@@ -33,7 +33,6 @@ class StemSAA:
         n_v, n_l = len(v_voc), len(l_voc)
         rng = random.Random(seed)
 
-        # Init simple identity mapping
         current = [i % n_l for i in range(n_v)]
 
         def calc_cost(perm):
@@ -51,7 +50,6 @@ class StemSAA:
             t = T * (T_min / T) ** (k / n_iter)
             i, j = rng.sample(range(n_v), 2)
 
-            # Swap
             current[i], current[j] = current[j], current[i]
             cost = calc_cost(current)
 
@@ -59,7 +57,7 @@ class StemSAA:
                 best_cost = cost
                 best = current[:]
             else:
-                current[i], current[j] = current[j], current[i] # revert
+                current[i], current[j] = current[j], current[i]
 
         mapping = {v_voc[i]: l_voc[best[i]] for i in range(n_v)}
 

@@ -31,7 +31,6 @@ from modules.phase12_5.adv_4_eva_collapse import (
     _collapse_tokens,
 )
 
-
 def _resolution_rate(decoded_text: str) -> float:
     """Compute the fraction of words that are NOT bracketed."""
     words = decoded_text.split()
@@ -40,12 +39,10 @@ def _resolution_rate(decoded_text: str) -> float:
     brackets = sum(1 for w in words if w.startswith('[') or w.startswith('<'))
     return 1.0 - (brackets / len(words))
 
-
 def _count_unique_resolved(decoded_text: str) -> int:
     """Count unique resolved (non-bracketed) word types."""
     words = decoded_text.split()
     return len({w for w in words if not w.startswith('[') and not w.startswith('<')})
-
 
 def _chi_squared_2x2(a: int, b: int, c: int, d: int) -> float:
     """
@@ -65,7 +62,6 @@ def _chi_squared_2x2(a: int, b: int, c: int, d: int) -> float:
     if denominator == 0:
         return 0.0
     return numerator / denominator
-
 
 class CompositionalityProof:
     """
@@ -163,7 +159,6 @@ class CompositionalityProof:
             if len(tokens) < 5:
                 continue
 
-            # Standard pipeline
             std_text = self._decode_standard(tokens, folio)
             std_words = std_text.split()
             std_n = len(std_words)
@@ -171,7 +166,6 @@ class CompositionalityProof:
                                if w.startswith('[') or w.startswith('<'))
             std_resolved = std_n - std_brackets
 
-            # Collapsed pipeline
             col_text = self._decode_collapsed(tokens, folio)
             col_words = col_text.split()
             col_n = len(col_words)
@@ -179,7 +173,6 @@ class CompositionalityProof:
                                if w.startswith('[') or w.startswith('<'))
             col_resolved_n = col_n - col_brackets
 
-            # Word-level agreement
             n_compare = min(std_n, col_n)
             n_match = sum(
                 1 for s, c in zip(std_words[:n_compare], col_words[:n_compare])
@@ -211,26 +204,19 @@ class CompositionalityProof:
                       f'delta={std_rate - col_rate:+.1%} '
                       f'agreement={agreement:.1%}')
 
-        # Overall metrics
         std_overall_rate = std_total_resolved / max(1, std_total_words)
         col_overall_rate = col_total_resolved / max(1, col_total_words)
         resolution_delta = std_overall_rate - col_overall_rate
         resolution_delta_pct = resolution_delta * 100
         agreement_rate = word_agreement_match / max(1, word_agreement_total)
 
-        # Chi-squared test for resolution rate difference
-        #   Resolved  Unresolved
-        # Std  a         b
-        # Col  c         d
         a = std_total_resolved
         b = std_total_words - std_total_resolved
         c = col_total_resolved
         d = col_total_words - col_total_resolved
         chi2 = _chi_squared_2x2(a, b, c, d)
-        # df=1, chi2 > 3.84 → p < 0.05; chi2 > 6.63 → p < 0.01
         significant = chi2 > 6.63
 
-        # Vocabulary diversity delta
         type_delta = std_unique_types - col_unique_types
         type_delta_pct = type_delta / max(1, std_unique_types) * 100
 
@@ -244,7 +230,6 @@ class CompositionalityProof:
             print(f'    Chi-squared: {chi2:.2f} '
                   f'({"p<0.01 SIGNIFICANT" if significant else "NOT significant"})')
 
-        # Word divergence rate: 1 - agreement = fraction of words that changed
         word_divergence_pct = (1.0 - agreement_rate) * 100
 
         conclusion = (
@@ -259,9 +244,6 @@ class CompositionalityProof:
             f'atomic glyphs.'
         )
 
-        # Pass criteria: word-level divergence > 20% proves the multi-char
-        # representation is morphologically meaningful (not cosmetic).
-        # If collapsing ligatures had no effect, agreement would be ~100%.
         divergence_significant = word_divergence_pct > 20.0
 
         return {

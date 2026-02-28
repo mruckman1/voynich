@@ -10,7 +10,6 @@ class ViterbiDecoder:
         self.l_seq = l_parser.stem_sequence
         self.l_vocab = sorted(set(self.l_seq))
 
-        # Transition Probabilities P(Stem_B | Stem_A)
         self.transitions = defaultdict(lambda: defaultdict(float))
         self._build_transitions()
 
@@ -26,7 +25,6 @@ class ViterbiDecoder:
         refined_map = dict(self.base_map)
         corrections = 0
 
-        # Look for suspicious trigrams in Voynich sequence
         for i in range(1, len(self.v_seq) - 1):
             v_prev, v_curr, v_next = self.v_seq[i-1], self.v_seq[i], self.v_seq[i+1]
 
@@ -37,9 +35,7 @@ class ViterbiDecoder:
             if not (l_prev and l_curr and l_next):
                 continue
 
-            # If P(curr | prev) is 0 and P(next | curr) is 0, the SAA likely guessed wrong
             if self.transitions[l_prev][l_curr] < 0.001 and self.transitions[l_curr][l_next] < 0.001:
-                # Search for a better Latin stem that fits the context
                 best_replacement = l_curr
                 best_prob = 0
 

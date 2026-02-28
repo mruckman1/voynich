@@ -11,17 +11,12 @@ to the SAA cost function.
 Phase 5  ·  Voynich Convergence Attack
 """
 
-import sys
-import os
 import numpy as np
 from collections import Counter, defaultdict
 from typing import Dict, List, Tuple, Optional
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-
 from modules.phase4.lang_a_extractor import LanguageAExtractor
 from modules.phase5.latin_corpus_expanded import ExpandedLatinHerbalCorpus
-
 
 class NMFScaffold:
     """
@@ -114,7 +109,6 @@ class NMFScaffold:
 
         W, H, error = self._simple_nmf(matrix, k)
 
-        # Assign words to topics
         assignments = np.argmax(W, axis=1)
         topics = defaultdict(list)
         word_topic = {}
@@ -123,7 +117,6 @@ class NMFScaffold:
             topics[int(topic)].append((vocab[i], float(W[i, topic])))
             word_topic[vocab[i]] = int(topic)
 
-        # Sort words within each topic by weight
         for topic in topics:
             topics[topic].sort(key=lambda x: -x[1])
 
@@ -223,16 +216,14 @@ class NMFScaffold:
         topic1 = word_topic.get(voynich_word1, -1)
         topic2 = word_topic.get(voynich_word2, -1)
 
-        # No penalty if words don't share a topic
         if topic1 < 0 or topic2 < 0 or topic1 != topic2:
             return 0.0
 
-        # They share a topic — check if Latin mappings co-occur
         latin_cooc = self.build_latin_cooccurrence_set()
         if latin1 in latin_cooc and latin2 in latin_cooc[latin1]:
-            return 0.0  # Co-occur → no penalty
+            return 0.0
 
-        return 1.0  # Don't co-occur → penalty
+        return 1.0
 
     def build_topic_coherence_matrix(self, voynich_vocab: List[str]) -> np.ndarray:
         """
@@ -265,7 +256,6 @@ class NMFScaffold:
         voynich_data = self.extract_voynich_topics()
         latin_data = self.extract_latin_topics()
 
-        # Summarize topics
         v_topic_summary = {
             k: [(w, round(s, 3)) for w, s in v[:5]]
             for k, v in voynich_data['topics'].items()

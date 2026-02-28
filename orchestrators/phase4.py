@@ -38,11 +38,6 @@ from modules.phase4.entropy_gradient_page import EntropyGradientAnalysis
 from modules.phase4.multi_language_source import MultiLanguageSourceTest
 from modules.phase3.lang_a_reprofiling import LANG_A_TARGETS
 
-
-# ============================================================================
-# PHASE 4 ORCHESTRATOR
-# ============================================================================
-
 def run_phase4_attack(
     phases: Optional[List[str]] = None,
     verbose: bool = True,
@@ -88,12 +83,10 @@ def run_phase4_attack(
         print(f'Key insight: word-level encoding (deltaH2 = 0)')
         print()
 
-    # Shared instances (avoids redundant computation)
     extractor = None
     latin_corpus = None
     botanical_cribs = None
 
-    # ---- Sub-phase 1: Language A Extraction ----
     if 'extraction' in phases or any(p in phases for p in
             ['model_a1', 'model_a2', 'model_a3', 'botanical', 'saa',
              'gradient', 'multi_lang']):
@@ -109,7 +102,6 @@ def run_phase4_attack(
         save_json(os.path.join(output_dir, 'lang_a_extraction.json'),
                    extraction_results)
 
-    # ---- Sub-phase 2: Latin Herbal Corpus ----
     if 'latin_corpus' in phases or any(p in phases for p in
             ['model_a1', 'saa', 'multi_lang']):
         if verbose:
@@ -124,13 +116,11 @@ def run_phase4_attack(
         save_json(os.path.join(output_dir, 'latin_herbal_corpus.json'),
                    latin_results)
 
-    # Ensure shared instances exist for downstream phases
     if extractor is None:
         extractor = LanguageAExtractor(verbose=False)
     if latin_corpus is None:
         latin_corpus = LatinHerbalCorpus(method='auto', verbose=False)
 
-    # ---- Sub-phase 3: Model A1 — Whole-Word Codebook (HIGHEST) ----
     if 'model_a1' in phases:
         if verbose:
             print('\n' + '=' * 70)
@@ -144,7 +134,6 @@ def run_phase4_attack(
         save_json(os.path.join(output_dir, 'model_a1_codebook_results.json'),
                    a1_results)
 
-    # ---- Sub-phase 4: Model A2 — Nomenclator (HIGH) ----
     if 'model_a2' in phases:
         if verbose:
             print('\n' + '=' * 70)
@@ -158,7 +147,6 @@ def run_phase4_attack(
         save_json(os.path.join(output_dir, 'model_a2_nomenclator_results.json'),
                    a2_results)
 
-    # ---- Sub-phase 5: Model A3 — Semantic Compression (MEDIUM) ----
     if 'model_a3' in phases:
         if verbose:
             print('\n' + '=' * 70)
@@ -172,7 +160,6 @@ def run_phase4_attack(
         save_json(os.path.join(output_dir, 'model_a3_semantic_compression_results.json'),
                    a3_results)
 
-    # ---- Sub-phase 6: Botanical Known-Plaintext Attack ----
     if 'botanical' in phases:
         if verbose:
             print('\n' + '=' * 70)
@@ -187,14 +174,12 @@ def run_phase4_attack(
         save_json(os.path.join(output_dir, 'botanical_known_plaintext_results.json'),
                    botanical_results)
 
-    # ---- Sub-phase 7: SAA — Successor Alphabet Attack ----
     if 'saa' in phases:
         if verbose:
             print('\n' + '=' * 70)
             print('SUB-PHASE 7: SUCCESSOR ALPHABET ATTACK (APPROACH 2)')
             print('=' * 70)
 
-        # Get botanical cribs if not already computed
         if botanical_cribs is None and 'botanical' not in phases:
             botanical = BotanicalKnownPlaintext(extractor)
             botanical_results = botanical.run(verbose=False)
@@ -207,7 +192,6 @@ def run_phase4_attack(
         save_json(os.path.join(output_dir, 'saa_results.json'),
                    saa_results)
 
-    # ---- Sub-phase 8: Entropy Gradient by Page Position ----
     if 'gradient' in phases:
         if verbose:
             print('\n' + '=' * 70)
@@ -221,7 +205,6 @@ def run_phase4_attack(
         save_json(os.path.join(output_dir, 'entropy_gradient_results.json'),
                    gradient_results)
 
-    # ---- Sub-phase 9: Multi-Language Source Testing ----
     if 'multi_lang' in phases:
         if verbose:
             print('\n' + '=' * 70)
@@ -235,7 +218,6 @@ def run_phase4_attack(
         save_json(os.path.join(output_dir, 'multi_language_results.json'),
                    multi_results)
 
-    # ---- Synthesis & Conclusion ----
     elapsed = time.time() - t0
     conclusion = _synthesize_phase4(results)
     results['conclusion'] = conclusion
@@ -254,11 +236,6 @@ def run_phase4_attack(
 
     return results
 
-
-# ============================================================================
-# SYNTHESIS
-# ============================================================================
-
 def _synthesize_phase4(results: Dict) -> Dict:
     """
     Synthesize Phase 4 findings into a conclusion.
@@ -273,48 +250,40 @@ def _synthesize_phase4(results: Dict) -> Dict:
     """
     conclusion = {}
 
-    # 1. Model A1: Codebook
     a1 = results.get('model_a1', {})
     a1_synth = a1.get('synthesis', {})
     conclusion['model_a1_codebook'] = a1_synth.get('conclusion', 'not tested')
     a1_supported = a1_synth.get('codebook_supported', False)
 
-    # 2. Model A2: Nomenclator
     a2 = results.get('model_a2', {})
     a2_synth = a2.get('synthesis', {})
     conclusion['model_a2_nomenclator'] = a2_synth.get('conclusion', 'not tested')
     a2_supported = a2_synth.get('nomenclator_supported', False)
 
-    # 3. Model A3: Semantic Compression
     a3 = results.get('model_a3', {})
     a3_synth = a3.get('synthesis', {})
     conclusion['model_a3_semantic'] = a3_synth.get('conclusion', 'not tested')
     a3_supported = a3_synth.get('semantic_compression_supported', False)
 
-    # 4. Botanical cribs
     bot = results.get('botanical', {})
     bot_synth = bot.get('synthesis', {})
     conclusion['botanical_cribs'] = bot_synth.get('conclusion', 'not tested')
     n_useful_cribs = bot_synth.get('useful_cribs', 0)
 
-    # 5. SAA
     saa = results.get('saa', {})
     saa_synth = saa.get('synthesis', {})
     conclusion['saa_attack'] = saa_synth.get('conclusion', 'not tested')
     saa_plausible = saa_synth.get('plausible_decryption', False)
 
-    # 6. Entropy gradient
     grad = results.get('gradient', {})
     grad_synth = grad.get('synthesis', {})
     conclusion['entropy_gradient'] = grad_synth.get('conclusion', 'not tested')
 
-    # 7. Multi-language
     multi = results.get('multi_lang', {})
     multi_synth = multi.get('synthesis', {})
     conclusion['best_source_language'] = multi_synth.get('best_source_language', 'not tested')
     conclusion['language_ranking'] = multi_synth.get('conclusion', 'not tested')
 
-    # Overall assessment — follows the decision tree from the attack plan
     if a1_supported and saa_plausible:
         conclusion['overall'] = (
             'CONVERGENT DECRYPTION CANDIDATE — Model A1 (whole-word codebook) '

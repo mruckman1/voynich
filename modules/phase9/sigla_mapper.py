@@ -12,13 +12,11 @@ class SiglaMapper:
         Voynich flourishes (-iin, -dy, -m) heavily mirror Latin suspension terminals (-us, -um, -tionem).
         """
         constraints = {
-            # Prefixes
             "qo": ["con", "qu", "com"],
             "ch": ["ca", "ce", "co"],
             "sh": ["si", "se", "sa"],
             "d": ["de", "di"],
 
-            # Suffixes (Tironian terminals)
             "iin": ["us", "um", "is"],
             "dy": ["ae", "ti", "ur"],
             "ey": ["es", "em", "et"],
@@ -26,7 +24,6 @@ class SiglaMapper:
             "r": ["er", "ar", "or"],
             "l": ["al", "el", "il"],
 
-            # Semantic Nuclei matches (from Phase 7 data)
             "a": ["a"], "o": ["o"], "e": ["e"], "y": ["i"]
         }
 

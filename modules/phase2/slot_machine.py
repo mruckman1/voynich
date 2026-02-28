@@ -20,34 +20,23 @@ Critical test: Slot mutual information < 0.3 bits for all slot pairs
 AND H2/TTR/Zipf triple match.
 """
 
-import sys
-import os
 import random
 import math
 from collections import Counter, defaultdict
 from typing import Dict, List, Optional, Tuple
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-
 from modules.phase2.base_model import Phase2GenerativeModel, VOYNICH_TARGETS, TRIPLE_THRESHOLDS
 from modules.naibbe_cipher import PREFIX_GLYPHS, MEDIAL_GLYPHS, SUFFIX_GLYPHS, ANY_GLYPHS
 
-
-# ============================================================================
-# SLOT DEFINITIONS
-# ============================================================================
-
-# Default slot glyph pools, inspired by Voynich positional classes
 DEFAULT_SLOT_POOLS = {
-    'prefix':      PREFIX_GLYPHS,                        # d,s,k,q,t,p,f
-    'connector':   ['o', 'a', 'e', ''],                  # linking vowels ('' = no connector)
-    'root':        MEDIAL_GLYPHS,                         # o,a,i,e,l,c,h,r
-    'vowel_block': ['ai', 'oi', 'ee', 'a', 'o', 'e', 'i', ''],  # vowel sequences
-    'suffix':      SUFFIX_GLYPHS + ['in', 'iin', 'y', 'dy', 'n', 'm', ''],  # terminals
+    'prefix':      PREFIX_GLYPHS,
+    'connector':   ['o', 'a', 'e', ''],
+    'root':        MEDIAL_GLYPHS,
+    'vowel_block': ['ai', 'oi', 'ee', 'a', 'o', 'e', 'i', ''],
+    'suffix':      SUFFIX_GLYPHS + ['in', 'iin', 'y', 'dy', 'n', 'm', ''],
 }
 
-MI_THRESHOLD = 0.3  # Maximum mutual information between slot pairs
-
+MI_THRESHOLD = 0.3
 
 class SlotMachine(Phase2GenerativeModel):
     """
@@ -83,8 +72,8 @@ class SlotMachine(Phase2GenerativeModel):
         self.independence_noise = independence_noise
         self.frequency_skew = frequency_skew
 
-        self.slot_inventories = []  # List of lists of glyph-sequences
-        self.slot_weights = []      # List of frequency weight arrays
+        self.slot_inventories = []
+        self.slot_weights = []
         self._build_slot_inventories()
 
     def _build_slot_inventories(self):
@@ -94,11 +83,9 @@ class SlotMachine(Phase2GenerativeModel):
             size = self.slot_sizes[i] if i < len(self.slot_sizes) else 5
             pool = DEFAULT_SLOT_POOLS.get(name, MEDIAL_GLYPHS + ANY_GLYPHS)
 
-            # Generate slot inventory
             inventory = self._generate_slot_items(pool, size)
             self.slot_inventories.append(inventory)
 
-            # Generate Zipf-like frequency weights for each slot
             ranks = list(range(1, len(inventory) + 1))
             weights = [1.0 / (r ** self.frequency_skew) for r in ranks]
             total = sum(weights)
@@ -110,7 +97,6 @@ class SlotMachine(Phase2GenerativeModel):
         items = set()
         attempts = 0
         while len(items) < size and attempts < size * 10:
-            # Generate 1-3 character sequences from the pool
             length = self.rng.choices([1, 2, 3], weights=[3, 4, 2])[0]
             item = ''.join(self.rng.choice(pool) for _ in range(length)
                           if pool)
@@ -119,7 +105,6 @@ class SlotMachine(Phase2GenerativeModel):
             attempts += 1
 
         result = sorted(items)
-        # Pad with single characters if needed
         while len(result) < size:
             c = self.rng.choice(pool) if pool else 'o'
             if c not in result:
@@ -146,17 +131,13 @@ class SlotMachine(Phase2GenerativeModel):
                 weights = self.slot_weights[slot_idx]
 
                 if plaintext_chars and word_idx < len(plaintext_chars):
-                    # Use plaintext character to bias slot selection
                     char_val = ord(plaintext_chars[word_idx % len(plaintext_chars)]) - ord('a')
-                    # Mix deterministic selection with noise
                     base_idx = (char_val * (slot_idx + 1)) % len(inventory)
                     if self.rng.random() < self.independence_noise:
-                        # Add noise: random selection
                         item = self.rng.choices(inventory, weights=weights, k=1)[0]
                     else:
                         item = inventory[base_idx]
                 else:
-                    # Pure random with Zipf weights
                     item = self.rng.choices(inventory, weights=weights, k=1)[0]
 
                 parts.append(item)
@@ -180,7 +161,6 @@ class SlotMachine(Phase2GenerativeModel):
             {pair: (slot_i, slot_j), mi: float, ...}
         """
         tokens = text.split()
-        # Parse each token into slot assignments
         slot_assignments = []
         for token in tokens:
             assignment = self._parse_word(token)
@@ -190,13 +170,11 @@ class SlotMachine(Phase2GenerativeModel):
         if len(slot_assignments) < 20:
             return {'error': 'Too few parseable tokens', 'pairs': {}}
 
-        # Compute MI for each pair
         n = len(slot_assignments)
         results = {}
 
         for i in range(self.n_slots):
             for j in range(i + 1, self.n_slots):
-                # Count joint and marginal distributions
                 joint = Counter()
                 marginal_i = Counter()
                 marginal_j = Counter()
@@ -207,7 +185,6 @@ class SlotMachine(Phase2GenerativeModel):
                     marginal_i[si] += 1
                     marginal_j[sj] += 1
 
-                # Compute MI = sum P(x,y) * log2(P(x,y) / (P(x)*P(y)))
                 mi = 0.0
                 for (si, sj), count in joint.items():
                     p_joint = count / n
@@ -236,7 +213,6 @@ class SlotMachine(Phase2GenerativeModel):
 
         for slot_idx in range(self.n_slots):
             inventory = self.slot_inventories[slot_idx]
-            # Sort by length (longest first) for greedy matching
             sorted_items = sorted(inventory, key=len, reverse=True)
 
             matched = False
@@ -274,7 +250,7 @@ class SlotMachine(Phase2GenerativeModel):
             ]
             noises = [0.0, 0.05, 0.1, 0.2]
             skews = [1.0, 1.5, 2.0]
-        else:  # fine
+        else:
             configs = [
                 (3, (s1, s2, s3), ('prefix', 'root', 'suffix'))
                 for s1 in [3, 5, 7] for s2 in [5, 8, 12] for s3 in [3, 5, 7]
@@ -303,7 +279,6 @@ class SlotMachine(Phase2GenerativeModel):
         """
         Critical test: slot independence AND triple match.
         """
-        # First check the triple
         entropy = generated_profile.get('entropy', {})
         zipf = generated_profile.get('zipf', {})
 
@@ -316,8 +291,6 @@ class SlotMachine(Phase2GenerativeModel):
         zipf_match = abs(zipf_exp - VOYNICH_TARGETS['zipf_exponent']) < TRIPLE_THRESHOLDS['zipf_exponent']
         triple_match = h2_match and ttr_match and zipf_match
 
-        # Note: MI test requires the generated text, which we don't have
-        # in the profile. The MI test runs separately in the full analysis.
         return {
             'passes': triple_match,
             'description': (

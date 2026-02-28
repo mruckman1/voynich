@@ -9,14 +9,10 @@ Falls back to the SAMPLE_CORPUS via LanguageABSplitter if full IVTFF
 files are not available.
 """
 
-import sys
-import os
 import math
 import numpy as np
 from collections import Counter
 from typing import Dict, List, Tuple, Optional
-
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from modules.statistical_analysis import (
     full_statistical_profile, compute_all_entropy, zipf_analysis,
@@ -24,18 +20,15 @@ from modules.statistical_analysis import (
 )
 from modules.phase3.lang_a_reprofiling import LANG_A_TARGETS
 
-
-# Language A targets — will be validated/updated from full corpus
 LANG_A_FULL_TARGETS = {
-    'H2_char': 1.487,           # Character-level conditional entropy
-    'H2_word': None,            # Word-level conditional entropy (to be measured)
+    'H2_char': 1.487,
+    'H2_word': None,
     'zipf_exponent': 0.931,
     'type_token_ratio': 0.305,
     'vocabulary_size': 57,
-    'total_tokens': 187,        # Sample corpus; full corpus will be larger
+    'total_tokens': 187,
     'mean_word_length': 4.43,
 }
-
 
 class LanguageAExtractor:
     """
@@ -77,11 +70,9 @@ class LanguageAExtractor:
             return self._lang_a_text
 
         if self._source == 'ivtff' and self._corpus is not None:
-            # Filter by language='A' from IVTFF metadata
             self._lang_a_text = self._corpus.get_text(
                 language='A', paragraph_only=True
             )
-            # If that yields nothing, try filtering by herbal section + hand 1
             if not self._lang_a_text.strip():
                 self._lang_a_text = self._corpus.get_text(
                     hand=1, paragraph_only=True
@@ -123,7 +114,6 @@ class LanguageAExtractor:
                 if tokens:
                     self._lang_a_by_folio[folio] = tokens
         else:
-            # Fallback: use SAMPLE_CORPUS folio data
             from data.voynich_corpus import SAMPLE_CORPUS
             for folio, data in SAMPLE_CORPUS.items():
                 if data.get('lang') == 'A':
@@ -151,7 +141,6 @@ class LanguageAExtractor:
 
             self._profile = full_statistical_profile(text, 'language_a_full')
 
-            # Add word-level metrics (new for Phase 4)
             self._profile['word_entropy'] = {
                 'H2_word': word_conditional_entropy(tokens, order=1),
                 'H3_word': word_conditional_entropy(tokens, order=2),
@@ -177,7 +166,6 @@ class LanguageAExtractor:
             w1, w2 = tokens[i], tokens[i + 1]
             counts[word_to_idx[w1]][word_to_idx[w2]] += 1
 
-        # Normalize rows to probabilities
         row_sums = counts.sum(axis=1, keepdims=True)
         row_sums[row_sums == 0] = 1
         matrix = counts / row_sums

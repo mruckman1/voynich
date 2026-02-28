@@ -25,11 +25,9 @@ from modules.phase12.budgeted_csp import BudgetedCSPDecoder, HUMORAL_VOCAB
 from modules.phase12.syntactic_scaffolder import SyntacticScaffolder
 from modules.phase12.ngram_mask_solver import NgramMaskSolver
 
-# Data file paths (relative to project root)
 _DATA_DIR = os.path.join(os.path.dirname(__file__), '..', '..', 'data', 'corpora')
 VULGATE_PATH = os.path.join(_DATA_DIR, 'latin_vulgate_sample.txt')
 LEGAL_PATH = os.path.join(_DATA_DIR, 'corpus_juris_civilis.txt')
-
 
 def _load_and_tile_corpus(filepath: str, target_tokens: int = 30012) -> List[str]:
     """
@@ -45,7 +43,6 @@ def _load_and_tile_corpus(filepath: str, target_tokens: int = 30012) -> List[str
     with open(filepath, 'r', encoding='utf-8') as f:
         raw = f.read()
 
-    # Clean: lowercase, strip punctuation, split to tokens
     raw = raw.lower()
     raw = re.sub(r'[^a-z\s]', '', raw)
     base_tokens = raw.split()
@@ -53,12 +50,10 @@ def _load_and_tile_corpus(filepath: str, target_tokens: int = 30012) -> List[str
     if not base_tokens:
         return []
 
-    # Tile by repeating
     tiled = []
     while len(tiled) < target_tokens:
         tiled.extend(base_tokens)
     return tiled[:target_tokens]
-
 
 def build_transition_matrix_from_tokens(
     tokens: List[str], top_n: int = 1001,
@@ -90,7 +85,6 @@ def build_transition_matrix_from_tokens(
 
     return matrix, vocab
 
-
 def _resolution_rate(decoded_text: str) -> float:
     """Compute the fraction of words that are NOT bracketed."""
     words = decoded_text.split()
@@ -98,7 +92,6 @@ def _resolution_rate(decoded_text: str) -> float:
         return 0.0
     brackets = sum(1 for w in words if w.startswith('[') or w.startswith('<'))
     return 1.0 - (brackets / len(words))
-
 
 class DomainSwapTest:
     """
@@ -146,7 +139,6 @@ class DomainSwapTest:
             if len(tokens) < 5:
                 continue
 
-            # Reset decoder per folio
             self.decoder.emission_counts = {}
             self.decoder._folio_token_count = len(tokens)
 
@@ -199,14 +191,12 @@ class DomainSwapTest:
         Returns:
             Results dict with per-domain rates and pass/fail
         """
-        # Load and tile alternative corpora
         if verbose:
             print('    Loading alternative corpora...')
 
         bible_tokens = _load_and_tile_corpus(VULGATE_PATH)
         legal_tokens = _load_and_tile_corpus(LEGAL_PATH)
 
-        # Build transition matrices
         bible_matrix, bible_vocab = build_transition_matrix_from_tokens(bible_tokens)
         legal_matrix, legal_vocab = build_transition_matrix_from_tokens(legal_tokens)
 
@@ -216,7 +206,6 @@ class DomainSwapTest:
             print(f'    Legal corpus: {len(legal_tokens)} tokens, '
                   f'{legal_matrix.shape[0]}x{legal_matrix.shape[1]} matrix')
 
-        # Run pipeline with each matrix
         herbal_results = self._decode_with_matrix(
             by_folio, self.herbal_matrix, self.herbal_vocab,
             folio_limit, 'Herbal', verbose,

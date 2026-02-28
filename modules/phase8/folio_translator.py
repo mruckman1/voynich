@@ -18,14 +18,11 @@ class FolioTranslator:
 
             for token in tokens:
                 try:
-                    # 1. Parse Voynich Token
                     prefix, v_stem, v_suffix = self.v_morph._strip_affixes(token)
 
-                    # 2. Map Stem to Latin
                     l_stem = self.stem_map.get(v_stem)
 
                     if l_stem:
-                        # 3. Synthesize morphological word
                         final_latin_word = self.synth.synthesize(l_stem, v_suffix)
                         translated_words.append(final_latin_word)
                     else:

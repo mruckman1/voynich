@@ -15,17 +15,12 @@ Algorithm:
 Phase 6  ·  Voynich Convergence Attack
 """
 
-import sys
-import os
 import numpy as np
 from collections import Counter, deque
 from typing import Dict, List, Tuple, Set
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-
 from modules.phase5.tier1_matrix_builder import Tier1MatrixBuilder
 from modules.phase5.tier_splitter import TierSplitter
-
 
 class HomophoneDetector:
     """
@@ -63,12 +58,10 @@ class HomophoneDetector:
         matrix, vocab = self.matrix_builder.build_voynich_matrix()
         n = len(vocab)
 
-        # Normalize rows to unit vectors
         norms = np.linalg.norm(matrix, axis=1, keepdims=True)
-        norms[norms == 0] = 1.0  # avoid division by zero for zero rows
+        norms[norms == 0] = 1.0
         normed = matrix / norms
 
-        # All-pairs cosine similarity
         self._sim_matrix = normed @ normed.T
 
         return self._sim_matrix
@@ -117,10 +110,8 @@ class HomophoneDetector:
         _, vocab = self.matrix_builder.build_voynich_matrix()
         n = len(vocab)
 
-        # Get word frequencies for choosing canonical
         word_freqs = Counter(self.splitter.get_tier1_tokens())
 
-        # Build adjacency list
         adj: Dict[int, Set[int]] = {i: set() for i in range(n)}
         for i in range(n):
             for j in range(i + 1, n):
@@ -128,7 +119,6 @@ class HomophoneDetector:
                     adj[i].add(j)
                     adj[j].add(i)
 
-        # BFS to find connected components
         visited = set()
         components = []
 
@@ -136,7 +126,6 @@ class HomophoneDetector:
             if start in visited:
                 continue
             if not adj[start]:
-                # Singleton — no high-similarity neighbors
                 continue
 
             component = []
@@ -154,11 +143,10 @@ class HomophoneDetector:
             if len(component) >= 2:
                 components.append(component)
 
-        # Build groups: canonical = most frequent member
         groups = {}
         for comp in components:
             words = [(vocab[idx], word_freqs.get(vocab[idx], 0)) for idx in comp]
-            words.sort(key=lambda x: -x[1])  # Sort by frequency desc
+            words.sort(key=lambda x: -x[1])
             canonical = words[0][0]
             variants = [w for w, _ in words]
             groups[canonical] = variants
@@ -185,7 +173,6 @@ class HomophoneDetector:
         sizes = [len(v) for v in groups.values()]
         total_words = sum(sizes)
 
-        # Combined frequency per group
         group_freqs = []
         for canonical, variants in groups.items():
             combined_freq = sum(word_freqs.get(w, 0) for w in variants)
@@ -193,11 +180,10 @@ class HomophoneDetector:
                 'canonical': canonical,
                 'n_variants': len(variants),
                 'combined_frequency': combined_freq,
-                'variants': variants[:5],  # Truncate for JSON
+                'variants': variants[:5],
             })
         group_freqs.sort(key=lambda x: -x['combined_frequency'])
 
-        # Size distribution
         size_dist = Counter(sizes)
 
         return {
@@ -217,7 +203,6 @@ class HomophoneDetector:
         sim = self.compute_cosine_similarity_matrix()
         n = sim.shape[0]
 
-        # Upper triangle (excluding diagonal)
         upper = []
         for i in range(n):
             for j in range(i + 1, n):
@@ -244,7 +229,6 @@ class HomophoneDetector:
         groups = self.cluster_homophones()
         group_stats = self.compute_group_statistics()
 
-        # Interpretation
         n_groups = group_stats['n_groups']
         coverage = group_stats['coverage']
 

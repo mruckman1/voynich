@@ -6,8 +6,6 @@ number without importing all modules eagerly.
 """
 from typing import Callable, Dict, Union
 
-# Lazy registry: maps phase key -> (module_path, function_name)
-# Keys are int for standard phases, str for fractional phases (e.g. '12.5')
 _PHASE_REGISTRY = {
     2:      ('orchestrators.phase2',    'run_phase2_attack'),
     3:      ('orchestrators.phase3',    'run_phase3_attack'),
@@ -24,13 +22,11 @@ _PHASE_REGISTRY = {
     13:     ('orchestrators.phase13',   'run_phase13_synthesis'),
 }
 
-
 def get_phase_runner(phase_num: Union[int, str]) -> Callable:
     """Return the run function for a given phase, importing lazily.
 
     Accepts int (e.g. 12) or str (e.g. '12.5') phase keys.
     """
-    # Try direct lookup first, then string conversion
     if phase_num not in _PHASE_REGISTRY:
         key = str(phase_num)
         if key not in _PHASE_REGISTRY:
@@ -44,7 +40,6 @@ def get_phase_runner(phase_num: Union[int, str]) -> Callable:
     mod = importlib.import_module(module_path)
     return getattr(mod, func_name)
 
-
 def _sort_key(key):
     """Sort phase keys numerically: ints by value, strings by float value."""
     if isinstance(key, (int, float)):
@@ -53,7 +48,6 @@ def _sort_key(key):
         return float(key)
     except (ValueError, TypeError):
         return float('inf')
-
 
 def list_phases() -> Dict[Union[int, str], str]:
     """Return {phase_key: module_path} for all registered phases."""

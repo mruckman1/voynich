@@ -20,14 +20,12 @@ class LatinMorphologyParser:
             w_lower = word.lower()
             p, s, suf = '', w_lower, ''
 
-            # Extract prep-like prefixes
             for pref in LATIN_PREFIXES:
                 if s.startswith(pref) and len(s) > len(pref) + 2:
                     p = pref
                     s = s[len(pref):]
                     break
 
-            # Extract inflectional suffixes
             for suffix in LATIN_SUFFIXES:
                 if s.endswith(suffix) and len(s) > len(suffix) + 2:
                     suf = suffix

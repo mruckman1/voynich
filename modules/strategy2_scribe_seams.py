@@ -29,11 +29,6 @@ from data.voynich_corpus import (
     get_scribe_transition_pairs, tokenize
 )
 
-
-# ============================================================================
-# BOUNDARY TOKEN ANALYSIS
-# ============================================================================
-
 def extract_boundary_tokens(window_size: int = 10) -> List[Dict]:
     """
     Extract tokens at scribe transition boundaries.
@@ -50,7 +45,6 @@ def extract_boundary_tokens(window_size: int = 10) -> List[Dict]:
     boundary_data = []
 
     for f_before, f_after, s_before, s_after in transitions:
-        # Get tokens from each folio
         text_before = SAMPLE_CORPUS[f_before]['text']
         text_after = SAMPLE_CORPUS[f_after]['text']
 
@@ -61,22 +55,18 @@ def extract_boundary_tokens(window_size: int = 10) -> List[Dict]:
         for line in text_after:
             tokens_after.extend(tokenize(line))
 
-        # Extract windows
         tail = tokens_before[-window_size:] if len(tokens_before) >= window_size \
             else tokens_before
         head = tokens_after[:window_size] if len(tokens_after) >= window_size \
             else tokens_after
 
-        # Find repeated tokens
         tail_set = set(tail)
         head_set = set(head)
         shared = tail_set & head_set
 
-        # Find tokens unique to boundary (not common in either scribe's full text)
         s1_all = set(get_all_tokens(scribe=s_before))
         s2_all = set(get_all_tokens(scribe=s_after))
 
-        # Boundary-specific words: appear at boundary but rare overall
         s1_freq = Counter(get_all_tokens(scribe=s_before))
         s2_freq = Counter(get_all_tokens(scribe=s_after))
         boundary_specific = []
@@ -101,11 +91,6 @@ def extract_boundary_tokens(window_size: int = 10) -> List[Dict]:
 
     return boundary_data
 
-
-# ============================================================================
-# ENTROPY ANOMALY DETECTION AT TRANSITIONS
-# ============================================================================
-
 def transition_entropy_analysis(window_size: int = 15) -> List[Dict]:
     """
     Detect entropy anomalies at scribe transition zones.
@@ -123,15 +108,12 @@ def transition_entropy_analysis(window_size: int = 15) -> List[Dict]:
     results = []
 
     for f_before, f_after, s_before, s_after in transitions:
-        # Get text
         text_before = ' '.join(SAMPLE_CORPUS[f_before]['text'])
         text_after = ' '.join(SAMPLE_CORPUS[f_after]['text'])
 
-        # Compute baseline entropy for each scribe (from full section)
         baseline_before = compute_all_entropy(get_scribe_text(s_before))
         baseline_after = compute_all_entropy(get_scribe_text(s_after))
 
-        # Rolling entropy across boundary
         combined = text_before + ' ' + text_after
         tokens = tokenize(combined)
         mid_point = len(tokenize(text_before))
@@ -152,21 +134,19 @@ def transition_entropy_analysis(window_size: int = 15) -> List[Dict]:
                 'scribe': s_before if i < mid_point else s_after,
             })
 
-        # First-word entropy of incoming scribe
         first_words_after = ' '.join(tokenize(text_after)[:5])
         mid_words_after = ' '.join(tokenize(text_after)[10:20])
 
         first_entropy = compute_all_entropy(first_words_after) if len(first_words_after) > 10 else {}
         mid_entropy = compute_all_entropy(mid_words_after) if len(mid_words_after) > 10 else {}
 
-        # Detect cold start: is first-window entropy significantly different from baseline?
         cold_start_detected = False
         h2_deviation = 0.0
         if first_entropy and baseline_after:
             h2_first = first_entropy.get('H2', 0)
             h2_base = baseline_after.get('H2', 0)
             h2_deviation = abs(h2_first - h2_base)
-            cold_start_detected = h2_deviation > 0.3  # threshold
+            cold_start_detected = h2_deviation > 0.3
 
         results.append({
             'transition': f'{f_before} → {f_after}',
@@ -181,11 +161,6 @@ def transition_entropy_analysis(window_size: int = 15) -> List[Dict]:
         })
 
     return results
-
-
-# ============================================================================
-# CROSS-SCRIBE VOCABULARY ANALYSIS
-# ============================================================================
 
 def cross_scribe_vocabulary() -> Dict:
     """
@@ -209,7 +184,6 @@ def cross_scribe_vocabulary() -> Dict:
     if len(scribe_vocabs) < 2:
         return {'error': 'Insufficient scribe data for comparison'}
 
-    # Pairwise overlap analysis
     pairwise = {}
     for s1 in scribe_vocabs:
         for s2 in scribe_vocabs:
@@ -231,13 +205,11 @@ def cross_scribe_vocabulary() -> Dict:
                 's2_vocab_size': len(scribe_vocabs[s2]),
             }
 
-    # Universal vocabulary (words used by ALL scribes)
     if scribe_vocabs:
         universal = set.intersection(*scribe_vocabs.values())
     else:
         universal = set()
 
-    # Hapax legomena per scribe (words occurring exactly once)
     hapax = {}
     for sid, freq in scribe_freqs.items():
         hapax[sid] = [w for w, c in freq.items() if c == 1]
@@ -249,11 +221,6 @@ def cross_scribe_vocabulary() -> Dict:
         'hapax_per_scribe': {s: len(h) for s, h in hapax.items()},
         'vocab_sizes': {s: len(v) for s, v in scribe_vocabs.items()},
     }
-
-
-# ============================================================================
-# FIRST-WORD PATTERN ANALYSIS
-# ============================================================================
 
 def first_word_patterns() -> Dict:
     """
@@ -281,7 +248,6 @@ def first_word_patterns() -> Dict:
         words = first_words_by_scribe[scribe_id]
         word_counts = Counter(words)
 
-        # Entropy of first-word distribution
         total = len(words)
         if total > 0:
             probs = [c / total for c in word_counts.values()]
@@ -298,11 +264,6 @@ def first_word_patterns() -> Dict:
         }
 
     return results
-
-
-# ============================================================================
-# POSITIONAL CLASS DIVERGENCE BETWEEN SCRIBES
-# ============================================================================
 
 def scribe_positional_divergence() -> Dict:
     """
@@ -330,7 +291,6 @@ def scribe_positional_divergence() -> Dict:
             },
         }
 
-    # Compare classifications across scribes
     if len(results) >= 2:
         all_chars = set()
         for data in results.values():
@@ -343,7 +303,6 @@ def scribe_positional_divergence() -> Dict:
                 cls = results[sid]['glyph_classes'].get(char, '?')
                 classes.append((sid, cls))
 
-            # Check if classification differs across scribes
             unique_classes = set(c for _, c in classes if c != '?')
             if len(unique_classes) > 1:
                 divergences.append({
@@ -357,11 +316,6 @@ def scribe_positional_divergence() -> Dict:
 
     return results
 
-
-# ============================================================================
-# COMPREHENSIVE SEAM REPORT
-# ============================================================================
-
 def run(verbose: bool = True) -> Dict:
     """Run all scribe seam analyses and compile results."""
     if verbose:
@@ -371,7 +325,6 @@ def run(verbose: bool = True) -> Dict:
 
     results = {}
 
-    # 1. Boundary token analysis
     if verbose:
         print("\n[1/5] Analyzing boundary tokens...")
     boundary = extract_boundary_tokens(window_size=10)
@@ -383,7 +336,6 @@ def run(verbose: bool = True) -> Dict:
             print(f"    Shared tokens: {b['shared_tokens']}")
             print(f"    Boundary-specific: {[w for w, _ in b['boundary_specific'][:5]]}")
 
-    # 2. Entropy anomaly detection
     if verbose:
         print("\n[2/5] Detecting entropy anomalies at transitions...")
     entropy_anomalies = transition_entropy_analysis(window_size=15)
@@ -394,7 +346,6 @@ def run(verbose: bool = True) -> Dict:
             print(f"  {ea['transition']} ({ea['scribes']}): "
                   f"H2 deviation={ea['H2_deviation']:.4f} {status}")
 
-    # 3. Cross-scribe vocabulary
     if verbose:
         print("\n[3/5] Cross-scribe vocabulary analysis...")
     vocab_analysis = cross_scribe_vocabulary()
@@ -406,7 +357,6 @@ def run(verbose: bool = True) -> Dict:
             print(f"  {pair}: Jaccard={data['jaccard_similarity']:.3f} "
                   f"shared={data['shared_count']}")
 
-    # 4. First-word patterns
     if verbose:
         print("\n[4/5] First-word pattern analysis...")
     first_words = first_word_patterns()
@@ -416,7 +366,6 @@ def run(verbose: bool = True) -> Dict:
             print(f"  Scribe {sid}: first_word_entropy={data['first_word_entropy']:.3f} "
                   f"top={list(data['first_word_counts'].keys())[:5]}")
 
-    # 5. Positional class divergence
     if verbose:
         print("\n[5/5] Positional glyph class divergence...")
     pos_div = scribe_positional_divergence()
@@ -428,7 +377,6 @@ def run(verbose: bool = True) -> Dict:
             print(f"    '{d['glyph']}': {d['classifications']}")
 
     return results
-
 
 if __name__ == '__main__':
     run()

@@ -4,101 +4,70 @@ Every hardcoded value previously scattered across 12 files is now
 defined in one place. Individual phases import what they need.
 """
 
-# ── SAA (Simulated Annealing Attack) ──────────────────────────────
 SAA_ITERATIONS_DEFAULT = 100_000
 SAA_ITERATIONS_QUICK = 1_000
 
-# ── Latin Corpus ──────────────────────────────────────────────────
 LATIN_CORPUS_TOKENS_DEFAULT = 30_000
 LATIN_CORPUS_TOKENS_LARGE = 50_000
 LATIN_CORPUS_TOKENS_QUICK = 10_000
 
-# ── Beam Search ───────────────────────────────────────────────────
-BEAM_WIDTH_DEFAULT = 25       # Phase 9
-BEAM_WIDTH_TRIGRAM = 15       # Phase 10
+BEAM_WIDTH_DEFAULT = 25
+BEAM_WIDTH_TRIGRAM = 15
 
-# ── N-Gram Mask Solver ────────────────────────────────────────────
-MIN_CONFIDENCE_RATIO = 5.0    # Phase 12 — raised from 3.0 for Academic Fortification
+MIN_CONFIDENCE_RATIO = 5.0
 
-# Improvement 3: Length-scaled confidence ratio
-MIN_CONFIDENCE_RATIO_LONG = 3.0   # For skeletons >= LONG_SKELETON_SEGMENTS
+MIN_CONFIDENCE_RATIO_LONG = 3.0
 LONG_SKELETON_SEGMENTS = 5
 ENABLE_LENGTH_SCALED_RATIO = True
 
-# Improvement 2: Bidirectional solving
 ENABLE_BIDIRECTIONAL_SOLVING = True
 MAX_SOLVING_PASSES = 4
 
-# Improvement 1: Contextual function word recovery
 ENABLE_FUNCTION_WORD_RECOVERY = True
-FUNCTION_WORD_TRIGRAM_THRESHOLD = 0.01  # Min P(fw|w_prev) + P(w_next|fw)
+FUNCTION_WORD_TRIGRAM_THRESHOLD = 0.01
 
-# Improvement 4: Dual-context confidence reduction
-# When both neighbors are resolved within max_distance, reduce the
-# confidence ratio threshold by this factor. Two-sided trigram evidence
-# is more discriminative, so the threshold can safely be lowered.
-DUAL_CONTEXT_RATIO_FACTOR = 0.6      # 5.0x × 0.6 = 3.0x for dual-context
-DUAL_CONTEXT_MAX_DISTANCE = 3        # Max positions to nearest resolved neighbor
+DUAL_CONTEXT_RATIO_FACTOR = 0.6
+DUAL_CONTEXT_MAX_DISTANCE = 3
 
-# Improvement 5: Unigram frequency backoff
-# When bigram transition probabilities are all zero for a token's candidates,
-# fall back to corpus unigram frequency as a weaker discriminator.
 ENABLE_UNIGRAM_BACKOFF = True
-UNIGRAM_BACKOFF_RATIO_FACTOR = 1.5   # 5.0x × 1.5 = 7.5x threshold for unigram-only
-UNIGRAM_BACKOFF_MIN_SEGMENTS = 3     # Skip very short skeletons (unicity protection)
+UNIGRAM_BACKOFF_RATIO_FACTOR = 1.5
+UNIGRAM_BACKOFF_MIN_SEGMENTS = 3
 
-# Improvement 6: POS-level backoff scoring
-# When word-level bigrams return zero, fall back to POS transition
-# probabilities (8×8 matrix) as a coarser discriminator.
 ENABLE_POS_BACKOFF = True
-POS_BACKOFF_WEIGHT = 0.1            # Scale POS scores relative to word-level
-POS_BACKOFF_MIN_CONFIDENCE = 5.0    # Match word-level ratio to prevent random text resolution
+POS_BACKOFF_WEIGHT = 0.1
+POS_BACKOFF_MIN_CONFIDENCE = 5.0
 
-# Improvement 7: Character-level n-gram fallback scoring
-# Post-processing pass that scores unresolved tokens by Latin character
-# trigram plausibility when all higher-level scorers returned zero.
 ENABLE_CHAR_NGRAM_FALLBACK = True
-CHAR_NGRAM_ORDER = 3                     # Trigram model
-CHAR_NGRAM_SMOOTHING = 0.01             # Laplace smoothing alpha
-CHAR_NGRAM_MIN_SCORE_GAP = 0.5          # Min avg-log-prob gap (best - second)
-CHAR_NGRAM_MIN_SEGMENTS = 3             # Skeleton segment minimum (unicity gate)
-CHAR_NGRAM_MAX_CONTEXT_DISTANCE = 4     # Max positions to nearest resolved neighbor
-CHAR_NGRAM_REQUIRE_CONTEXT = True       # Require at least one resolved neighbor
+CHAR_NGRAM_ORDER = 3
+CHAR_NGRAM_SMOOTHING = 0.01
+CHAR_NGRAM_MIN_SCORE_GAP = 0.5
+CHAR_NGRAM_MIN_SEGMENTS = 3
+CHAR_NGRAM_MAX_CONTEXT_DISTANCE = 4
+CHAR_NGRAM_REQUIRE_CONTEXT = True
 
-# Improvement 8: Illustration-guided disambiguation
-# Per-folio multiplicative boost for candidates matching botanical
-# illustration identifications. Three tiers: plant names, semantic
-# associates (properties/humoral terms), generic botanical vocabulary.
 ENABLE_ILLUSTRATION_PRIOR = True
-ILLUSTRATION_TIER1_BOOST = 2.0          # Exact plant names + inflections
-ILLUSTRATION_TIER2_BOOST = 1.3          # Properties, humoral quality terms
-ILLUSTRATION_TIER3_BOOST = 1.1          # Generic botanical vocabulary
-ILLUSTRATION_BOOSTED_RATIO_FACTOR = 0.5 # Reduce confidence ratio when boosted
-                                        # 5.0x × 0.5 = 2.5x for boosted candidates
+ILLUSTRATION_TIER1_BOOST = 2.0
+ILLUSTRATION_TIER2_BOOST = 1.3
+ILLUSTRATION_TIER3_BOOST = 1.1
+ILLUSTRATION_BOOSTED_RATIO_FACTOR = 0.5
 
-# ── Cross-Folio Consistency Engine ────────────────────────────────
 ENABLE_CROSS_FOLIO_CONSISTENCY = True
-CROSS_FOLIO_MIN_AGREEMENT = 0.6     # Minimum fraction of folios agreeing on mapping
-CROSS_FOLIO_MIN_OCCURRENCES = 3     # Skeleton must appear resolved in 3+ folios
+CROSS_FOLIO_MIN_AGREEMENT = 0.6
+CROSS_FOLIO_MIN_OCCURRENCES = 3
 
-# ── Graduated CSP Scoring ────────────────────────────────────────
 ENABLE_GRADUATED_CSP = True
-CSP_HIGH_CONFIDENCE_THRESHOLD = 20.0    # Resolve directly (existing behavior)
-CSP_MEDIUM_CONFIDENCE_THRESHOLD = 10.0  # Pass candidates to n-gram solver
+CSP_HIGH_CONFIDENCE_THRESHOLD = 20.0
+CSP_MEDIUM_CONFIDENCE_THRESHOLD = 10.0
 
-# ── Selective Function Word Reintroduction ───────────────────────
 ENABLE_SELECTIVE_FUNCTION_WORDS = True
-FUNCTION_WORD_MAX_DENSITY = 1.5    # Max density relative to corpus frequency
-FUNCTION_WORD_WINDOW_SIZE = 20     # Window for density calculation
+FUNCTION_WORD_MAX_DENSITY = 1.5
+FUNCTION_WORD_WINDOW_SIZE = 20
 
-# ── Folio Processing Limits ───────────────────────────────────────
-FOLIO_LIMIT_DEFAULT = 15      # Phase 11
-FOLIO_LIMIT_DEMO = 10         # Phase 10
+FOLIO_LIMIT_DEFAULT = 15
+FOLIO_LIMIT_DEMO = 10
 
-# Phase 12 full-manuscript mode: None = all folios, int = limit for testing
 PHASE12_FOLIO_LIMIT = None
 
-# ── Voynich Manuscript Sections ──────────────────────────────────
 VOYNICH_SECTIONS = {
     'herbal_a':       {'currier_lang': 'A', 'primary_scribe': 1},
     'herbal_b':       {'currier_lang': 'B', 'primary_scribe': 2},
@@ -109,19 +78,15 @@ VOYNICH_SECTIONS = {
     'recipes':        {'currier_lang': 'B', 'primary_scribe': 5},
 }
 
-# ── Phase 13: Scholarly Synthesis ────────────────────────────────
 HITL_OVERRIDES_FILE = 'hitl_overrides.json'
 HITL_MAX_CANDIDATES = 10
 WHITEPAPER_CHART_DPI = 150
 
-# ── Phase 12.5: Adversarial Defense Suite ────────────────────────
-ADV_UNICITY_TRIALS = 10            # Number of randomization trials
-ADV_RANDOM_BASELINE_THRESHOLD = 0.15  # Max resolution for random controls
-ADV_FOLIO_LIMIT = 15               # Folios per adversarial test
+ADV_UNICITY_TRIALS = 10
+ADV_RANDOM_BASELINE_THRESHOLD = 0.15
+ADV_FOLIO_LIMIT = 15
 
-# ── Output Directories ────────────────────────────────────────────
 OUTPUT_ROOT = './output'
-
 
 def phase_output_dir(phase_num: int) -> str:
     """Return the default output directory for a given phase number."""
@@ -129,12 +94,7 @@ def phase_output_dir(phase_num: int) -> str:
         return OUTPUT_ROOT
     return f'{OUTPUT_ROOT}/phase{phase_num}'
 
-
-# ── Phase 10 Sigla Maps ──────────────────────────────────────────
-# Verbatim from convergence_attack_p10.py lines 29-53
-
 SIGLA_PREFIX_MAP = {
-    # Voynich Prefixes -> Latin Prefixes/Starters
     'qo': ['con', 'com', 'cor', 'qu'],
     'ch': ['ca', 'ce', 'ci', 'co', 'cu'],
     'sh': ['sa', 'se', 'si', 'su', 'ex'],
@@ -142,11 +102,10 @@ SIGLA_PREFIX_MAP = {
     'p':  ['pro', 'per', 'prae', 'par'],
     't':  ['te', 'ta', 'ti', 'tra'],
     'k':  ['ca', 'cu', 'co'],
-    '':   ['a', 'e', 'i', 'o', 'u'],  # Null prefixes usually mean vowel start
+    '':   ['a', 'e', 'i', 'o', 'u'],
 }
 
 SIGLA_SUFFIX_MAP = {
-    # Voynich Suffixes -> Latin Terminations
     'dy': ['ae', 'ti', 'ur', 'di', 'te'],
     'iin': ['us', "um", 'is', 'in', 'unt'],
     'in': ['um', 'im', 'em', 'en'],

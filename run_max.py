@@ -21,7 +21,6 @@ import json
 import time
 from datetime import datetime
 
-# Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from data.ivtff_parser import load_corpus, VoynichCorpus
@@ -54,7 +53,6 @@ from modules.strategy5_zodiac_attack import (
     zodiac_known_plaintext_attack, generate_zodiac_plaintext,
 )
 
-
 def run_max():
     """Run the full convergence attack at maximum settings."""
     start = time.time()
@@ -64,9 +62,6 @@ def run_max():
     print("╚" + "═" * 68 + "╝")
     print(f"  {datetime.now().isoformat()}\n")
 
-    # ──────────────────────────────────────────────────────────────────
-    # PHASE 0: Load the full corpus
-    # ──────────────────────────────────────────────────────────────────
     print("=" * 70)
     print("PHASE 0: LOADING FULL CORPUS")
     print("=" * 70)
@@ -89,16 +84,12 @@ def run_max():
 
     results = {'corpus_summary': summary}
 
-    # ──────────────────────────────────────────────────────────────────
-    # PHASE 1: Full statistical profiles (from real corpus)
-    # ──────────────────────────────────────────────────────────────────
     print("\n" + "=" * 70)
     print("PHASE 1: COMPREHENSIVE STATISTICAL PROFILING")
     print("=" * 70)
 
     profiles = {}
 
-    # Overall
     all_text = corpus.get_text(paragraph_only=True)
     profiles['overall'] = full_statistical_profile(all_text, 'Full-Voynich')
     e = profiles['overall']['entropy']
@@ -107,7 +98,6 @@ def run_max():
     print(f"  Zipf exponent: {z['zipf_exponent']:.4f}  R²={z['r_squared']:.4f}")
     print(f"  Tokens: {z['total_tokens']}  Types: {z['vocabulary_size']}  TTR: {z['type_token_ratio']:.4f}")
 
-    # Per language
     for lang in ['A', 'B']:
         text = corpus.get_text(language=lang)
         if text.strip():
@@ -116,7 +106,6 @@ def run_max():
             print(f"  Language {lang}: H1={e['H1']:.4f}  H2={e['H2']:.4f}  H3={e['H3']:.4f}  "
                   f"({len(text.split())} tokens)")
 
-    # Per scribe hand
     for hand in range(1, 6):
         text = corpus.get_text(hand=hand)
         if text.strip():
@@ -125,7 +114,6 @@ def run_max():
             print(f"  Hand {hand}: H1={e['H1']:.4f}  H2={e['H2']:.4f}  H3={e['H3']:.4f}  "
                   f"({len(text.split())} tokens)")
 
-    # Per section
     for section in ['herbal', 'astronomical', 'biological', 'cosmological',
                     'pharmaceutical', 'recipes', 'zodiac', 'text_only']:
         text = corpus.get_text(section=section)
@@ -137,9 +125,6 @@ def run_max():
 
     results['profiles'] = {k: v['entropy'] for k, v in profiles.items()}
 
-    # ──────────────────────────────────────────────────────────────────
-    # PHASE 2: Strategy 1 — Naibbe parameter search (FINE resolution)
-    # ──────────────────────────────────────────────────────────────────
     print("\n" + "=" * 70)
     print("PHASE 2: NAIBBE PARAMETER SEARCH (MEDIUM resolution)")
     print("=" * 70)
@@ -191,9 +176,6 @@ def run_max():
 
     results['strategy1_top_params'] = param_results[:20]
 
-    # ──────────────────────────────────────────────────────────────────
-    # PHASE 3: Strategy 2 — Scribe seam analysis (from real corpus)
-    # ──────────────────────────────────────────────────────────────────
     print("\n" + "=" * 70)
     print("PHASE 3: SCRIBE SEAM ANALYSIS (full corpus)")
     print("=" * 70)
@@ -212,7 +194,6 @@ def run_max():
         e2 = compute_all_entropy(t2)
         h2_jump = abs(e2['H2'] - e1['H2'])
 
-        # Shared vocabulary at boundary
         tok1 = set(t1.split()[-15:])
         tok2 = set(t2.split()[:15])
         shared = tok1 & tok2
@@ -231,7 +212,6 @@ def run_max():
 
     results['strategy2_seams'] = seam_results
 
-    # Cross-scribe vocabulary (from full corpus)
     print("\n  Cross-scribe vocabulary:")
     hand_vocabs = {}
     for h in range(1, 6):
@@ -249,14 +229,10 @@ def run_max():
             jaccard = len(shared) / len(total) if total else 0
             print(f"    H{h1} vs H{h2}: Jaccard={jaccard:.3f} shared={len(shared)}")
 
-    # ──────────────────────────────────────────────────────────────────
-    # PHASE 4: Strategy 3 — Binding reconstruction (from real corpus)
-    # ──────────────────────────────────────────────────────────────────
     print("\n" + "=" * 70)
     print("PHASE 4: SEQUENTIAL STATE ANALYSIS (full corpus)")
     print("=" * 70)
 
-    # Compute bigram matrices per folio and test sequential correlation
     folio_mats = {}
     ordered_pages = corpus.get_folio_sequence()
 
@@ -271,7 +247,7 @@ def run_max():
     import math
     folio_keys = list(folio_mats.keys())
     distances = []
-    sample_step = max(1, len(folio_keys) // 100)  # sample for speed
+    sample_step = max(1, len(folio_keys) // 100)
 
     for i in range(0, len(folio_keys), sample_step):
         for j in range(i + 1, min(i + 20, len(folio_keys))):
@@ -296,9 +272,6 @@ def run_max():
         print("  Insufficient data for correlation")
         results['strategy3_correlation'] = None
 
-    # ──────────────────────────────────────────────────────────────────
-    # PHASE 5: Strategy 4 — Positional grammar (from real corpus)
-    # ──────────────────────────────────────────────────────────────────
     print("\n" + "=" * 70)
     print("PHASE 5: POSITIONAL GRAMMAR EXTRACTION (full corpus)")
     print("=" * 70)
@@ -306,7 +279,6 @@ def run_max():
     all_tokens = corpus.get_tokens(paragraph_only=True)
     all_text = ' '.join(all_tokens)
 
-    # Glyph positional classes
     glyph_dist = positional_glyph_distribution(all_tokens)
     glyph_classes = {}
     print("\n  Glyph positional classes (full corpus):")
@@ -336,10 +308,8 @@ def run_max():
         print(f"    '{char}': {cls:8s}  init={ratios.get('initial',0)*100:5.1f}%  "
               f"med={ratios.get('medial',0)*100:5.1f}%  fin={ratios.get('final',0)*100:5.1f}%  (n={total})")
 
-    # Core isolation
     full_entropy = compute_all_entropy(all_text)
 
-    # Build simplified glyph class dict for decomposition
     gc_simple = {}
     for char, data in glyph_classes.items():
         gc_simple[char] = data
@@ -365,7 +335,6 @@ def run_max():
         'delta_H2': round(dh2, 4),
     }
 
-    # Positional entropy by position
     pos_ent = word_positional_entropy(all_tokens)
     print(f"\n  Positional entropy (character position within word):")
     for pos, h in sorted(pos_ent.items()):
@@ -374,9 +343,6 @@ def run_max():
 
     results['strategy4']['positional_entropy'] = pos_ent
 
-    # ──────────────────────────────────────────────────────────────────
-    # PHASE 6: Strategy 5 — Zodiac attack (from real corpus)
-    # ──────────────────────────────────────────────────────────────────
     print("\n" + "=" * 70)
     print("PHASE 6: ZODIAC KNOWN-PLAINTEXT ATTACK (full corpus)")
     print("=" * 70)
@@ -399,7 +365,6 @@ def run_max():
             best_plain = ''
             best_cipher = ''
 
-            # Test top parameter sets from Strategy 1
             for pr in param_results[:10]:
                 for plain in plains[:3]:
                     try:
@@ -428,9 +393,6 @@ def run_max():
 
     results['strategy5_zodiac'] = zodiac_results
 
-    # ──────────────────────────────────────────────────────────────────
-    # FINAL SYNTHESIS
-    # ──────────────────────────────────────────────────────────────────
     elapsed = time.time() - start
 
     print("\n" + "═" * 70)
@@ -441,7 +403,6 @@ def run_max():
     print(f"  Corpus: {summary['total_tokens']} tokens, {summary['total_pages']} pages")
     print(f"\n  KEY FINDINGS:")
 
-    # Summarize
     if results.get('strategy3_correlation') and abs(results['strategy3_correlation']) > 0.3:
         print(f"  ★ Sequential state DETECTED (r={results['strategy3_correlation']:.4f})")
     if results['strategy4']['delta_H2'] > 0.05:
@@ -458,13 +419,11 @@ def run_max():
               f"prefix_p={top['params']['prefix_probability']:.2f}, "
               f"suffix_p={top['params']['suffix_probability']:.2f}")
 
-    # Save full results
     os.makedirs('output', exist_ok=True)
     report_path = 'output/max_convergence_report.json'
     with open(report_path, 'w') as f:
         json.dump(results, f, indent=2, default=str)
     print(f"\n  Full report: {report_path}")
-
 
 def run_phased_tracks(verbose: bool = True):
     """
@@ -486,7 +445,6 @@ def run_phased_tracks(verbose: bool = True):
     print("║" + " 10 Tracks × 4 Phases ".center(68) + "║")
     print("╚" + "═" * 68 + "╝")
 
-    # Phase 1: Statistical Foundations
     print("\n" + "▓" * 70)
     print("  PHASE 1: STATISTICAL FOUNDATIONS")
     print("▓" * 70)
@@ -503,7 +461,6 @@ def run_phased_tracks(verbose: bool = True):
         print(f"  [ERROR] Track 4 (Word Length): {e}")
         results['word_length'] = {'error': str(e)}
 
-    # Phase 2: Structural Fingerprinting
     print("\n" + "▓" * 70)
     print("  PHASE 2: STRUCTURAL FINGERPRINTING")
     print("▓" * 70)
@@ -521,7 +478,6 @@ def run_phased_tracks(verbose: bool = True):
             print(f"  [ERROR] {label}: {e}")
             results[key] = {'error': str(e)}
 
-    # Phase 3: Plaintext Anchors
     print("\n" + "▓" * 70)
     print("  PHASE 3: PLAINTEXT ANCHORS")
     print("▓" * 70)
@@ -539,7 +495,6 @@ def run_phased_tracks(verbose: bool = True):
             print(f"  [ERROR] {label}: {e}")
             results[key] = {'error': str(e)}
 
-    # Phase 4: Constraint Integration + Candidate Search
     print("\n" + "▓" * 70)
     print("  PHASE 4: CONSTRAINT INTEGRATION & DECRYPTION")
     print("▓" * 70)
@@ -563,11 +518,9 @@ def run_phased_tracks(verbose: bool = True):
     elapsed = time.time() - start
     print(f"\n  Total runtime: {elapsed:.1f}s")
 
-    # Save
     os.makedirs('output', exist_ok=True)
     report_path = 'output/phased_tracks_report.json'
     try:
-        # Remove non-serializable objects before saving
         save_results = {}
         for k, v in results.items():
             if isinstance(v, dict):
@@ -582,7 +535,6 @@ def run_phased_tracks(verbose: bool = True):
         print(f"  [WARN] Could not save: {e}")
 
     return results
-
 
 if __name__ == '__main__':
     import sys as _sys

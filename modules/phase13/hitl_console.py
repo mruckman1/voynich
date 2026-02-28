@@ -22,10 +22,7 @@ import os
 import sys
 from typing import Dict, List, Optional, Tuple
 
-
-# Regex matching unresolved tokens in various bracket forms
 UNRESOLVED_RE = re.compile(r'\[([^_\]]+)_(UNRESOLVED|VERB_3P|NOUN_\w+|ADJ|UNK)\]')
-
 
 class CandidateProvider:
     """Provides Latin word candidates for UNRESOLVED tokens using
@@ -46,7 +43,6 @@ class CandidateProvider:
             List of (latin_word, skeleton_weight, skeleton_string) tuples,
             sorted by weight descending.
         """
-        # Get fuzzy skeleton candidates
         skeleton_candidates = self.f_skel.get_skeleton_candidates(voynich_token)
         if not skeleton_candidates:
             return []
@@ -54,17 +50,14 @@ class CandidateProvider:
         results = []
         seen = set()
         for skeleton, weight in skeleton_candidates:
-            # Look up Latin words matching this skeleton
             latin_words = self.l_skel.skeleton_index.get(skeleton, [])
             for lword in latin_words:
                 if lword not in seen:
                     seen.add(lword)
                     results.append((lword, weight, skeleton))
 
-        # Sort by weight descending, then alphabetically
         results.sort(key=lambda x: (-x[1], x[0]))
         return results[:max_candidates]
-
 
 class HITLSession:
     """Manages an interactive HITL session for resolving unresolved tokens."""
@@ -97,7 +90,7 @@ class HITLSession:
         parts = []
         for i in range(start, end):
             if i == position:
-                parts.append(f'\033[91m{words[i]}\033[0m')  # Red highlight
+                parts.append(f'\033[91m{words[i]}\033[0m')
             else:
                 parts.append(words[i])
         print(f'  Context: {" ".join(parts)}')
@@ -152,7 +145,6 @@ class HITLSession:
                 pos_tag = match.group(2)
                 tag = f'[{v_token}_{pos_tag}]'
 
-                # Skip if already overridden
                 if folio_id in self.overrides and tag in self.overrides[folio_id]:
                     continue
 
@@ -221,7 +213,6 @@ class HITLSession:
             'interactive': True,
         }
 
-
 def apply_overrides(
     final_translations: Dict[str, str],
     overrides_path: str,
@@ -245,7 +236,6 @@ def apply_overrides(
             text = text.replace(tag, replacement)
         result[folio_id] = text
     return result
-
 
 def run_hitl_console(
     phase12_data: Dict,

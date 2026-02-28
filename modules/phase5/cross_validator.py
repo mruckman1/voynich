@@ -14,14 +14,10 @@ Five validation checks:
 Phase 5  ·  Voynich Convergence Attack
 """
 
-import sys
-import os
 import math
 import numpy as np
 from collections import Counter, defaultdict
 from typing import Dict, List, Tuple, Optional
-
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from modules.phase4.lang_a_extractor import LanguageAExtractor
 from modules.phase5.tier_splitter import TierSplitter
@@ -33,8 +29,6 @@ except ImportError:
     PLANT_IDS = {}
     HUMORAL_QUALITIES = {}
 
-
-# Humoral quality keywords expected in decoded text
 HUMORAL_KEYWORDS = {
     'hot_dry': {
         'expected': {'calida', 'calidus', 'calidum', 'sicca', 'siccus', 'siccum'},
@@ -54,15 +48,14 @@ HUMORAL_KEYWORDS = {
     },
 }
 
-# Herbal entry structural elements (in expected order)
 STRUCTURAL_ELEMENTS = [
-    'plant_name',    # Plant name at the start
-    'quality',       # calida/frigida + sicca/humida
-    'degree',        # primo/secundo/tertio/quarto gradu
-    'virtue',        # habet virtutem + property
-    'indication',    # valet contra + condition
-    'preparation',   # recipe + method
-    'closing',       # et est probatum, etc.
+    'plant_name',
+    'quality',
+    'degree',
+    'virtue',
+    'indication',
+    'preparation',
+    'closing',
 ]
 
 QUALITY_MARKERS = {'calida', 'calidu', 'frigida', 'frigidus', 'calidum', 'frigidum'}
@@ -71,7 +64,6 @@ VIRTUE_MARKERS = {'habet', 'virtutem'}
 INDICATION_MARKERS = {'valet', 'contra'}
 PREPARATION_MARKERS = {'recipe', 'accipe', 'coque', 'contere', 'misce', 'fac'}
 CLOSING_MARKERS = {'probatum', 'sanabitur', 'curabitur', 'verum', 'volente'}
-
 
 class CrossValidator:
     """
@@ -103,10 +95,6 @@ class CrossValidator:
     def _decode_page(self, tokens: List[str]) -> str:
         """Decode a page's tokens to a string."""
         return ' '.join(self._decode_tokens(tokens))
-
-    # =========================================================
-    # Check 1: Humoral Consistency
-    # =========================================================
 
     def check_humoral_consistency(self) -> Dict:
         """
@@ -166,10 +154,6 @@ class CrossValidator:
             ),
         }
 
-    # =========================================================
-    # Check 2: Structural Consistency
-    # =========================================================
-
     def check_structural_consistency(self) -> Dict:
         """
         Check if decoded pages follow the herbal entry formula:
@@ -188,7 +172,6 @@ class CrossValidator:
             decoded_lower = [w.lower() for w in decoded]
             decoded_set = set(decoded_lower)
 
-            # Check for structural elements
             has_quality = bool(decoded_set & QUALITY_MARKERS)
             has_degree = bool(decoded_set & DEGREE_MARKERS)
             has_virtue = bool(decoded_set & VIRTUE_MARKERS)
@@ -233,10 +216,6 @@ class CrossValidator:
                 f'{"PASSES" if structure_rate >= 0.50 else "FAILS"} threshold (≥50%).'
             ),
         }
-
-    # =========================================================
-    # Check 3: Language B Alignment
-    # =========================================================
 
     def check_language_b_alignment(self) -> Dict:
         """
@@ -292,10 +271,6 @@ class CrossValidator:
             ),
         }
 
-    # =========================================================
-    # Check 4: Entropy Gradient Preservation
-    # =========================================================
-
     def check_entropy_gradient_preservation(self) -> Dict:
         """
         Verify that decoded text shows higher lexical diversity at page
@@ -323,18 +298,15 @@ class CrossValidator:
                 'passes': False,
             }
 
-        # Compute word-level entropy for each quartile
         q1_h2 = word_conditional_entropy(q1_decoded, order=1) if len(q1_decoded) > 2 else 0
         q4_h2 = word_conditional_entropy(q4_decoded, order=1) if len(q4_decoded) > 2 else 0
 
-        # Vocabulary diversity
         q1_ttr = len(set(q1_decoded)) / max(1, len(q1_decoded))
         q4_ttr = len(set(q4_decoded)) / max(1, len(q4_decoded))
 
         gradient = q1_h2 - q4_h2
         ttr_gradient = q1_ttr - q4_ttr
 
-        # Gradient should be positive (Q1 more diverse than Q4)
         gradient_preserved = gradient > 0
 
         return {
@@ -355,10 +327,6 @@ class CrossValidator:
             ),
         }
 
-    # =========================================================
-    # Check 5: The "fachys" Test
-    # =========================================================
-
     def check_fachys_test(self) -> Dict:
         """
         "fachys" appears only as the first word of folio f1r.
@@ -369,15 +337,12 @@ class CrossValidator:
         fachys_decoded = self.tier1_mapping.get('fachys',
                          self.tier2_mapping.get('fachys', '[fachys]'))
 
-        # Check if it's a plant name
         from modules.phase5.latin_corpus_expanded import EXPANDED_PLANT_NAMES
         is_plant_name = fachys_decoded.lower() in {p.lower() for p in EXPANDED_PLANT_NAMES}
 
-        # Check if it's an opening formula
         opening_words = {'incipit', 'de', 'liber', 'herba', 'capitulum'}
         is_opening = fachys_decoded.lower() in opening_words
 
-        # Check if it's still unmapped
         is_unmapped = fachys_decoded.startswith('[')
 
         plausible = is_plant_name or is_opening
@@ -396,10 +361,6 @@ class CrossValidator:
                 f'{" — PLAUSIBLE" if plausible else " — inconclusive"}.'
             ),
         }
-
-    # =========================================================
-    # Overall Score
-    # =========================================================
 
     def compute_overall_score(self) -> Dict:
         """
