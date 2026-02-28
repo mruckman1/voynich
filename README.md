@@ -30,6 +30,10 @@ The core insight: rather than attacking the cipher monolithically, multiple inde
 | 13 | Illustration-text correlation: 2/22 folios match | LOW | *achillea* on f90r1, *ruta* on f96v; permutation p=0.094 |
 | 14 | Medical vocabulary significantly above random | HIGH | 77.3% medical; p=0.0225 vs 50/50 general Latin baseline |
 | 14 | Structural coherence not yet detectable | EXPECTED | Entropy, templates, collocations not significant at 50% resolution |
+| R | Resolution robust across all parameter sweeps | HIGH | All 6 parameters show wide safe regions; bootstrap 49.9% ± 0.1% (50/50 safe) |
+| R | Word order carries moderate signal | MODERATE | Reversed text drops 4.2pp; bigram model contributes genuine sequential information |
+| R | 34 cross-folio mappings statistically significant | HIGH | p < 0.01 for 34/414 skeleton→word mappings; 45 words with unique source skeleton |
+| R | Content words resolved, not just function words | MODERATE | 31.8% of resolutions from 3+ segment skeletons; 3-segment skeletons resolve at 80.8% |
 
 ## Architecture
 
@@ -47,7 +51,8 @@ voynich/
 │   ├── phase2..phase12.py             # Individual phase orchestrators
 │   ├── phase12_5.py                   # Adversarial defense suite (5 tests + diagnostics)
 │   ├── phase13.py                     # Illustration-text correlation (decode + botanical validation)
-│   └── phase14.py                     # Semantic coherence analysis (4 metrics + significance)
+│   ├── phase14.py                     # Semantic coherence analysis (4 metrics + significance)
+│   └── robustness.py                  # Tier 1 robustness test orchestrator
 │
 ├── data/
 │   ├── voynich_corpus.py              # EVA transliterations, scribe mappings, zodiac labels
@@ -105,7 +110,8 @@ voynich/
 │   ├── phase12/                      # Fuzzy skeletonizer, syntactic scaffold, n-gram mask solver, char n-gram model
 │   ├── phase12_5/                    # Adversarial tests (unicity, domain swap, polyglot, EVA collapse, ablation)
 │   ├── phase13/                      # Illustration-text correlation (botanical validation)
-│   └── phase14/                      # Semantic coherence analysis (field classification, null distributions)
+│   ├── phase14/                      # Semantic coherence analysis (field classification, null distributions)
+│   └── robustness/                   # Tier 1 robustness validation tests (5 tests)
 │
 └── output/
     ├── phase3/                       # Language B profile, hybrid model results
@@ -120,7 +126,8 @@ voynich/
     ├── phase12/                      # Final contextual reconstruction
     ├── phase12_5/                    # Adversarial defense verdicts
     ├── phase13/                      # Full translations, illustration-text correlation
-    └── phase14/                      # Semantic coherence metrics + significance tests
+    ├── phase14/                      # Semantic coherence metrics + significance tests
+    └── robustness/                   # Robustness validation test results
 ```
 
 ## The Phase Framework
@@ -425,6 +432,61 @@ The medical vocabulary rate is the key finding: the pipeline preferentially reco
 
 **Language A vs B** comparison: A has more focused fields (entropy 0.773 vs 0.830) and higher collocational coherence (41.1% vs 35.7%); B has more APPLICATION terms (15.6% vs 7.2%), suggesting different pharmaceutical emphasis.
 
+### Robustness Validation Tests
+
+Five Tier 1 validation tests that preemptively close peer review attack vectors. Each test outputs to `output/robustness/` with JSON reports and console summaries.
+
+**Test 3a: Skeleton Length Analysis** -- Breaks down resolution rate by consonant skeleton segment count to answer: "Is the pipeline resolving specific, informative words, or just common short words?"
+
+| Segments | Tokens | Resolved | Rate | Avg Candidates | False Discovery Risk |
+|----------|--------|----------|------|---------------|---------------------|
+| 0 | 132 | 14 | 10.6% | 0.0 | 0.0% |
+| 1 | 9,756 | 5,095 | 52.2% | 6.4 | 30.5% |
+| 2 | 18,295 | 8,383 | 45.8% | 3.2 | 0.0% |
+| 3 | 6,076 | 4,909 | 80.8% | 1.5 | 0.0% |
+| 4 | 1,636 | 1,200 | 73.4% | 0.3 | 0.0% |
+| 5+ | 339 | 195 | 57.5% | 0.0 | 0.0% |
+
+3-segment skeletons (specific medical terms like *cassia*, *decoque*, *calida*) resolve at 80.8% -- the highest rate. 31.8% of all resolutions come from 3+ segment content words. False discovery risk is concentrated in 1-segment skeletons (30.5%) where many dictionary words match the same short skeleton.
+
+**Test 1a: Reversed Text** -- Runs the full pipeline on Voynich folios with token order reversed. Same tokens, same skeletons, destroyed word-order structure.
+
+|  | Forward | Reversed | Delta |
+|--|---------|----------|-------|
+| Overall | 54.6% | 50.4% | -4.2pp |
+| Lang A | 53.2% | 51.6% | -1.7pp |
+| Lang B | 55.2% | 49.9% | -5.3pp |
+
+Moderate word-order sensitivity: bigram scoring contributes genuine sequential signal (~4pp), but most resolution comes from order-independent properties (skeleton matching, frequency, cross-folio consistency).
+
+**Test 4c: Consistency Significance** -- For each cross-folio consistent skeleton→word mapping, computes a binomial p-value. Also checks bidirectional consistency (word→skeleton).
+
+- 34/414 forward mappings significant at p < 0.01
+- 46/414 significant at p < 0.05
+- Top mappings (T→*et*, K→*aqua*, K-M→*cum*, N→*in*) have p-values near zero
+- 45/228 words have a unique source skeleton (strong cipher evidence)
+- 3 mappings significant in both forward and bidirectional directions
+
+**Test 5a: Parameter Sensitivity Sweep** -- Sweeps 6 key parameters across their ranges, recording resolution rate at each point.
+
+| Parameter | Safe Region | Resolution Range | Verdict |
+|-----------|------------|-----------------|---------|
+| MIN_CONFIDENCE_RATIO | 7/7 | 49.2%-52.6% | ROBUST |
+| CSP_HIGH_CONFIDENCE_THRESHOLD | 7/7 | 48.0%-56.8% | ROBUST |
+| CROSS_FOLIO_MIN_AGREEMENT | 6/6 | 48.1%-58.9% | ROBUST |
+| CHAR_NGRAM_MIN_SCORE_GAP | 6/6 | 49.8%-50.5% | ROBUST |
+| FUNCTION_WORD_MAX_DENSITY | 6/6 | 49.8%-50.0% | ROBUST |
+| DUAL_CONTEXT_RATIO_FACTOR | 7/7 | 49.4%-51.3% | ROBUST |
+
+All parameters show wide safe regions -- the result is robust across all reasonable parameter choices.
+
+**Test 5b: Bootstrap Confidence Intervals** -- Runs the pipeline 50 times with all parameters simultaneously jittered by ±10%.
+
+- Mean: 49.9%, Std: 0.1%
+- 95% CI: [49.8%, 50.2%]
+- All 50/50 runs remain in the safe operating region (>40% resolution)
+- Verdict: **VERY ROBUST** -- result barely moves with simultaneous ±10% perturbation of all parameters
+
 ## Sample Translation Output (Phase 12, folio f1r)
 
 ```
@@ -532,6 +594,14 @@ uv run cli.py --phase 14 --templates               # Recipe template matching on
 uv run cli.py --phase 14 --significance            # Null distribution + p-values only
 uv run cli.py --phase 14 --langb                   # Language B diagnostic only
 uv run cli.py --phase 14 --folios 15 --trials 200  # Quick test (fewer folios/trials)
+
+# Robustness validation tests
+uv run cli.py --robustness                         # All 5 robustness tests
+uv run cli.py --robustness skeleton                # Skeleton length analysis (Test 3a)
+uv run cli.py --robustness reversed                # Reversed text test (Test 1a)
+uv run cli.py --robustness consistency             # Consistency significance (Test 4c)
+uv run cli.py --robustness sensitivity             # Parameter sensitivity sweep (Test 5a)
+uv run cli.py --robustness bootstrap               # Bootstrap confidence intervals (Test 5b)
 ```
 
 ### Run Individual Strategies

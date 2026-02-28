@@ -21,6 +21,7 @@ _PHASE_REGISTRY = {
     '12.5': ('orchestrators.phase12_5', 'run_phase12_5_adversarial'),
     13:     ('orchestrators.phase13',   'run_phase13_synthesis'),
     14:     ('orchestrators.phase14',   'run_phase14'),
+    'robustness': ('orchestrators.robustness', 'run_robustness_tests'),
 }
 
 def get_phase_runner(phase_num: Union[int, str]) -> Callable:

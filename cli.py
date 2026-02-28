@@ -13,6 +13,14 @@ Usage:
   uv run cli.py --output-dir ./results   # Custom output directory
   uv run cli.py --list                   # List all available phases
 
+Robustness validation tests:
+  uv run cli.py --robustness              # Run all robustness tests
+  uv run cli.py --robustness skeleton     # Skeleton length analysis (Test 3a)
+  uv run cli.py --robustness reversed     # Reversed text test (Test 1a)
+  uv run cli.py --robustness consistency  # Consistency significance (Test 4c)
+  uv run cli.py --robustness sensitivity  # Parameter sensitivity sweep (Test 5a)
+  uv run cli.py --robustness bootstrap    # Bootstrap confidence intervals (Test 5b)
+
 Phase 12.5 sub-phase flags:
   uv run cli.py --phase 12.5 --unicity       # Unicity distance test only
   uv run cli.py --phase 12.5 --domain-swap   # Domain swap test only
@@ -233,6 +241,10 @@ def main():
                         help='Root output directory (default: ./output)')
     parser.add_argument('--list', action='store_true',
                         help='List all available phases')
+    parser.add_argument('--robustness', type=str, nargs='?', const='all',
+                        choices=['all', 'skeleton', 'reversed', 'consistency',
+                                 'sensitivity', 'bootstrap'],
+                        help='Run robustness validation tests')
     parser.add_argument('--quiet', '-q', action='store_true',
                         help='Suppress verbose output')
 
@@ -261,7 +273,15 @@ def main():
 
     phase_results = {}
 
-    if args.all:
+    if args.robustness is not None:
+        from orchestrators.robustness import run_robustness_tests
+        tests = None if args.robustness == 'all' else [args.robustness]
+        phase_results['robustness'] = run_robustness_tests(
+            tests=tests, verbose=verbose,
+            output_dir=os.path.join(report_dir, 'robustness'),
+        )
+
+    elif args.all:
         from convergence_attack import run_convergence_attack
         from orchestrators import get_phase_runner, list_phases
         print('=== Phase 1: Convergence Attack (5 strategies) ===')
