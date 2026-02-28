@@ -98,6 +98,8 @@ VOYNICH_SECTIONS = {
     'recipes':        {'currier_lang': 'B', 'primary_scribe': 5},
 }
 
+ENABLE_SECTION_SOLVERS = True
+SECTION_CORPUS_FRACTION = 0.25
 
 ADV_UNICITY_TRIALS = 10
 ADV_RANDOM_BASELINE_THRESHOLD = 0.15

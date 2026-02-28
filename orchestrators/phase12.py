@@ -44,6 +44,7 @@ from orchestrators._config import (
     ENABLE_SINGLE_CAND_CHAR_RESCUE, SINGLE_CAND_MIN_SEGMENTS, SINGLE_CAND_MIN_CHAR_SCORE,
     ENABLE_RELAXED_CONSISTENCY, CROSS_FOLIO_MIN_OCCURRENCES_RELAXED,
     ENABLE_ITERATIVE_REFINEMENT, ITERATIVE_MAX_PASSES, ITERATIVE_MIN_IMPROVEMENT,
+    ENABLE_SECTION_SOLVERS, SECTION_CORPUS_FRACTION,
 )
 from orchestrators._foundation import build_morphological_context
 
@@ -79,6 +80,17 @@ def _count_word_repetitions(text: str) -> Dict[str, int]:
     from collections import Counter
     return dict(Counter(words).most_common(10))
 
+def _normalize_section(section: str, folio: str) -> str:
+    """Map IVTFF illustration-based section names to canonical section names."""
+    from data.voynich_corpus import _infer_section
+    if section == 'herbal':
+        return _infer_section(folio)
+    if section == 'zodiac':
+        return 'astronomical'
+    if section == 'text_only':
+        return 'recipes'
+    return section
+
 def _get_folio_metadata(folio: str, page=None) -> Dict:
     """Return language, section, and scribe for a folio.
 
@@ -96,6 +108,7 @@ def _get_folio_metadata(folio: str, page=None) -> Dict:
         language = _infer_language(folio)
         scribe = _infer_scribe(folio)
 
+    section = _normalize_section(section, folio)
     return {'language': language, 'section': section, 'scribe': scribe}
 
 def run_phase12_reconstruction(
@@ -188,8 +201,7 @@ def run_phase12_reconstruction(
             )
             char_ngram_model.train(l_tokens)
 
-        ngram_solver = NgramMaskSolver(
-            trans_matrix, trans_vocab, latin_skel, fuzzy_skel,
+        solver_kwargs = dict(
             humoral_vocab=HUMORAL_VOCAB,
             min_confidence_ratio=min_confidence_ratio,
             pos_tagger=pos_tagger,
@@ -226,7 +238,25 @@ def run_phase12_reconstruction(
             single_cand_min_segments=SINGLE_CAND_MIN_SEGMENTS,
             single_cand_min_char_score=SINGLE_CAND_MIN_CHAR_SCORE,
         )
+
+        ngram_solver = NgramMaskSolver(
+            trans_matrix, trans_vocab, latin_skel, fuzzy_skel, **solver_kwargs,
+        )
         ngram_solver.set_corpus_frequencies(l_tokens)
+
+        section_solvers = {'_generic': ngram_solver}
+        if ENABLE_SECTION_SOLVERS:
+            for section_name in VOYNICH_SECTIONS:
+                s_matrix, s_vocab = l_corpus.build_section_transition_matrix(
+                    section_name, section_fraction=SECTION_CORPUS_FRACTION,
+                )
+                s_solver = NgramMaskSolver(
+                    s_matrix, s_vocab, latin_skel, fuzzy_skel, **solver_kwargs,
+                )
+                s_solver.set_corpus_frequencies(
+                    l_corpus.get_section_tokens(section_name, SECTION_CORPUS_FRACTION)
+                )
+                section_solvers[section_name] = s_solver
 
         if verbose:
             print('  → FuzzySkeletonizer: y/o branching enabled')
@@ -252,6 +282,10 @@ def run_phase12_reconstruction(
                 cstats = char_ngram_model.get_stats()
                 print(f'  → CharNgramModel: {cstats["unique_ngrams"]} unique '
                       f'{CHAR_NGRAM_ORDER}-grams, gap threshold {CHAR_NGRAM_MIN_SCORE_GAP}')
+            if ENABLE_SECTION_SOLVERS:
+                n_sect = len(section_solvers) - 1  # exclude _generic
+                print(f'  → Section solvers: {n_sect} section-specific '
+                      f'(fraction={SECTION_CORPUS_FRACTION})')
 
     if 'decode' in run_phases:
         if verbose:
@@ -378,8 +412,10 @@ def run_phase12_reconstruction(
         folio_solve_stats = {}
 
         for folio, scaffolded_text in scaffolded_translations.items():
+            section = folio_metadata.get(folio, {}).get('section', 'unknown')
+            solver = section_solvers.get(section, section_solvers['_generic'])
             medium_cands = folio_medium_candidates.get(folio) if ENABLE_GRADUATED_CSP else None
-            resolved_text, stats = ngram_solver.solve_folio(
+            resolved_text, stats = solver.solve_folio(
                 scaffolded_text, folio_id=folio,
                 medium_candidates=medium_cands,
             )
@@ -542,7 +578,9 @@ def run_phase12_reconstruction(
     if 'solve' in run_phases and ENABLE_POS_BACKOFF:
         total_pos_resolved = 0
         for folio in final_translations:
-            updated_text, n_resolved = ngram_solver.pos_backoff_pass(
+            section = folio_metadata.get(folio, {}).get('section', 'unknown')
+            solver = section_solvers.get(section, section_solvers['_generic'])
+            updated_text, n_resolved = solver.pos_backoff_pass(
                 final_translations[folio], folio_id=folio
             )
             final_translations[folio] = updated_text
@@ -569,7 +607,9 @@ def run_phase12_reconstruction(
     if 'solve' in run_phases and ENABLE_CHAR_NGRAM_FALLBACK:
         total_char_ngram_resolved = 0
         for folio in final_translations:
-            updated_text, n_resolved = ngram_solver.char_ngram_pass(
+            section = folio_metadata.get(folio, {}).get('section', 'unknown')
+            solver = section_solvers.get(section, section_solvers['_generic'])
+            updated_text, n_resolved = solver.char_ngram_pass(
                 final_translations[folio], folio_id=folio
             )
             final_translations[folio] = updated_text
@@ -598,7 +638,9 @@ def run_phase12_reconstruction(
             total_refined = 0
 
             for folio in final_translations:
-                updated_text, n = ngram_solver.refine_pass(
+                section = folio_metadata.get(folio, {}).get('section', 'unknown')
+                solver = section_solvers.get(section, section_solvers['_generic'])
+                updated_text, n = solver.refine_pass(
                     final_translations[folio],
                     by_folio.get(folio, []),
                     folio_id=folio,
@@ -632,7 +674,9 @@ def run_phase12_reconstruction(
 
             if ENABLE_POS_BACKOFF:
                 for folio in final_translations:
-                    t, n = ngram_solver.pos_backoff_pass(
+                    section = folio_metadata.get(folio, {}).get('section', 'unknown')
+                    solver = section_solvers.get(section, section_solvers['_generic'])
+                    t, n = solver.pos_backoff_pass(
                         final_translations[folio], folio_id=folio
                     )
                     final_translations[folio] = t
@@ -640,7 +684,9 @@ def run_phase12_reconstruction(
 
             if ENABLE_CHAR_NGRAM_FALLBACK:
                 for folio in final_translations:
-                    t, n = ngram_solver.char_ngram_pass(
+                    section = folio_metadata.get(folio, {}).get('section', 'unknown')
+                    solver = section_solvers.get(section, section_solvers['_generic'])
+                    t, n = solver.char_ngram_pass(
                         final_translations[folio], folio_id=folio
                     )
                     final_translations[folio] = t

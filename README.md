@@ -22,7 +22,8 @@ The core insight: rather than attacking the cipher monolithically, multiple inde
 | 9 | Syllabic constraints prevent hallucination | MODERATE | 538 syllables, 13 sigla rules, beam width 25 |
 | 10 | Dictionary-guided translation with humoral patterns | MODERATE | 914 vocabulary, 50,027 tokens; *calida et humida in primo gradu* |
 | 11 | CSP eliminates repetition; 36.5% bracketed | MODERATE | 655 skeletons; 481 brackets -> 97 resolved by n-gram -> 25.6% final |
-| 12 | Full-corpus contextual reconstruction | MODERATE | 224 folios, 49.9% Lang A / 49.8% Lang B resolution |
+| 12 | Full-corpus contextual reconstruction | MODERATE | 224 folios, 50.7% Lang A / 53.6% Lang B resolution |
+| 12 | Section-specific decoding confirms topic variation | MODERATE | Cosmological 58.6%, astronomical 54.9%, biological 53.9%, pharmaceutical 53.0% |
 | 12 | Content: Medieval Latin medical recipes | MODERATE | Recurring: *bibe, coque, oleo, aloe, bufo, aqua, hora* |
 | 12.5 | Adversarial defense suite | HIGH | 5 tests: unicity, domain swap, polyglot, EVA collapse, ablation |
 | 13 | Illustration-text correlation: 114 folios decoded | MODERATE | Decode + botanical validation fitness function |
@@ -60,6 +61,7 @@ voynich/
 │   ├── Voynich_Botanicals.csv        # 91 botanical IDs: scientific name → medieval Latin
 │   ├── botanical_name_mapping.py     # Folio→species→medieval Latin lookup bridge
 │   ├── folio_illustration_priors.py  # Per-folio botanical word boost tables (3-tier prior)
+│   ├── section_vocabularies.py      # Section-specific vocab, frequency boosts, templates (7 sections)
 │   ├── corpora/                      # Reference Latin text corpora
 │   │   ├── latin_vulgate_sample.txt  # Vulgate Bible sample (5K tokens)
 │   │   └── corpus_juris_civilis.txt  # Medieval legal Latin
@@ -339,26 +341,36 @@ Eliminated HMM hallucination but suffered from repetition in high-frequency deco
 
 ### Phase 12: Contextual Reconstruction
 
-Full-corpus decoding combining CSP, syntactic scaffolding, n-gram mask solving, cross-folio consistency, POS backoff, character n-gram fallback scoring, illustration-guided disambiguation, and iterative refinement across a multi-pass pipeline:
+Full-corpus decoding combining CSP, syntactic scaffolding, n-gram mask solving, cross-folio consistency, POS backoff, character n-gram fallback scoring, illustration-guided disambiguation, section-specific corpus tuning, and iterative refinement across a multi-pass pipeline:
 
 1. **Load Dependencies** -- Latin corpus (50,027 tokens, 1,695 types), skeleton index (1,087 skeletons), transition matrix (1,001×1,001)
-2. **Build Components** -- FuzzySkeletonizer (y/o branching), BudgetedCSPDecoder (graduated scoring), SyntacticScaffolder (POS tagging), NgramMaskSolver (10 improvements), CharNgramModel (trigram fallback), Illustration Prior (per-folio botanical boosts)
-3. **Budgeted CSP Decoding** -- frequency budgeting + humoral crib injection across all 224 folios
-4. **Syntactic Scaffolding** -- POS-tag remaining brackets via Latin suffix patterns
-5. **Deterministic N-Gram Mask Solving** -- word-level bigram scoring with bidirectional multi-pass, function word recovery, dual-context confidence reduction, unigram frequency backoff, adaptive candidate-count confidence ratios, single-candidate char n-gram rescue, illustration-guided disambiguation
-6. **Cross-Folio Consistency** -- skeleton→word mappings agreed across 3+ folios override local ambiguity, plus a relaxed pass accepting 2+ occurrences with 100% agreement
-7. **POS Backoff Pass** -- when word-level P(candidate|prev) = 0, falls back to POS transition probability (8×8 matrix) as a coarser discriminator. Runs post-consistency to avoid poisoning cross-folio agreement. Illustration boost applied to POS-scored candidates on botanical folios.
-8. **Character N-Gram Fallback** -- for remaining unresolved tokens, scores candidates by Latin character trigram plausibility. Unlike word-level and POS-level scoring, does not require resolved neighbors. Uses average log-probability with score gap thresholding. Score gap threshold relaxed for illustration-boosted candidates.
-9. **Illustration-Guided Disambiguation** -- per-folio multiplicative boost for candidates semantically related to the plant depicted in each folio's illustration. Three tiers: Tier 1 (exact plant names + inflections, 2.0×), Tier 2 (medicinal properties + humoral terms, 1.3×), Tier 3 (generic botanical vocabulary, 1.1×). Boost is multiplicative on transition scores (0 × boost = 0), so the prior alone cannot create resolutions -- it only disambiguates when multiple candidates are competitive. Confidence ratio reduced to 2.5× for boosted winners. Covers 25 testable botanical folios with ~60-94 boosted words each. Built from independent botanical identifications (Tucker & Talbert, Bax, Sherwood) via `build_illustration_prior()`.
-10. **Iterative Refinement** -- after the initial solve + consistency + fallback passes, re-attempts all UNRESOLVED tokens using the newly resolved context as bigram anchors. Runs up to 3 iterations of (refine → consistency → POS backoff → char n-gram), converging when fewer than 10 new tokens are resolved per iteration. Each iteration creates new resolved neighbors that unlock previously unresolvable positions.
+2. **Build Components** -- FuzzySkeletonizer (y/o branching), BudgetedCSPDecoder (graduated scoring), SyntacticScaffolder (POS tagging), NgramMaskSolver (10 improvements), CharNgramModel (trigram fallback), Illustration Prior (per-folio botanical boosts), 7 section-specific solvers
+3. **Section-Specific Corpus Generation** -- each manuscript section (herbal, pharmaceutical, biological, astronomical, cosmological, recipes) gets a tailored corpus: 80% shared base + 20% section-specific addendum with vocabulary, templates, and frequency boosts matched to the section's expected content. Each section gets its own NgramMaskSolver with a section-tuned transition matrix. Cross-folio consistency and adversarial tests remain on the generic corpus.
+4. **Budgeted CSP Decoding** -- frequency budgeting + humoral crib injection across all 224 folios
+5. **Syntactic Scaffolding** -- POS-tag remaining brackets via Latin suffix patterns
+6. **Deterministic N-Gram Mask Solving** -- word-level bigram scoring with bidirectional multi-pass, function word recovery, dual-context confidence reduction, unigram frequency backoff, adaptive candidate-count confidence ratios, single-candidate char n-gram rescue, illustration-guided disambiguation. Each folio is routed to its section-specific solver.
+7. **Cross-Folio Consistency** -- skeleton→word mappings agreed across 3+ folios override local ambiguity, plus a relaxed pass accepting 2+ occurrences with 100% agreement. Runs globally across all sections.
+8. **POS Backoff Pass** -- when word-level P(candidate|prev) = 0, falls back to POS transition probability (8×8 matrix) as a coarser discriminator. Runs post-consistency to avoid poisoning cross-folio agreement. Illustration boost applied to POS-scored candidates on botanical folios.
+9. **Character N-Gram Fallback** -- for remaining unresolved tokens, scores candidates by Latin character trigram plausibility. Unlike word-level and POS-level scoring, does not require resolved neighbors. Uses average log-probability with score gap thresholding. Score gap threshold relaxed for illustration-boosted candidates.
+10. **Illustration-Guided Disambiguation** -- per-folio multiplicative boost for candidates semantically related to the plant depicted in each folio's illustration. Three tiers: Tier 1 (exact plant names + inflections, 2.0×), Tier 2 (medicinal properties + humoral terms, 1.3×), Tier 3 (generic botanical vocabulary, 1.1×). Boost is multiplicative on transition scores (0 × boost = 0), so the prior alone cannot create resolutions -- it only disambiguates when multiple candidates are competitive. Confidence ratio reduced to 2.5× for boosted winners. Covers 25 testable botanical folios with ~60-94 boosted words each. Built from independent botanical identifications (Tucker & Talbert, Bax, Sherwood) via `build_illustration_prior()`.
+11. **Iterative Refinement** -- after the initial solve + consistency + fallback passes, re-attempts all UNRESOLVED tokens using the newly resolved context as bigram anchors. Runs up to 3 iterations of (refine → consistency → POS backoff → char n-gram), converging when fewer than 10 new tokens are resolved per iteration. Each iteration creates new resolved neighbors that unlock previously unresolvable positions.
 
 **Current results (224 folios):**
-- Language A: 49.9% resolution (6,587 / 13,204 words)
-- Language B: 49.8% resolution (11,479 / 23,030 words)
-- Cross-folio consistency: ~1,296 tokens resolved (standard + relaxed)
-- POS backoff: ~295 additional tokens
-- Character n-gram fallback: ~358 additional tokens
-- Iterative refinement: ~3,697 additional tokens across 3 iterations
+- Language A: 50.7% resolution (12,969 words, 6,395 unresolved)
+- Language B: 53.6% resolution (23,265 words, 10,806 unresolved)
+
+**Per-section resolution:**
+
+| Section | Folios | Resolution |
+|---------|--------|-----------|
+| Cosmological | 10 | 58.6% |
+| Astronomical | 20 | 54.9% |
+| Biological | 19 | 53.9% |
+| Pharmaceutical | 30 | 53.0% |
+| Recipes | 31 | 52.3% |
+| Herbal A | 109 | 49.7% |
+
+Non-herbal sections show the largest gains from section-specific corpora, consistent with the hypothesis that these sections discuss different topics (astrological medicine, compound preparations, bathing/humoral theory) that are underserved by the herbal-dominated generic corpus.
 
 ### Phase 12.5: Adversarial Defense Suite
 
@@ -414,20 +426,20 @@ The medical vocabulary rate is the key finding: the pipeline preferentially reco
 ## Sample Translation Output (Phase 12, folio f1r)
 
 ```
-efficax [ykal] [ar] [ataiin] [shol] hora aures in aqua oleo [sory]
-cera vere [kair] die sero si [cthar] ruta [syaiir] quae [or]
+efficax [ykal] [ar] [ataiin] [shol] hora uterus in aqua oleo [sory]
+cera vere [kair] die sero si tere ruta [syaiir] quae [or]
 [ykaiin] [shod] [cthoary] [cthes] [daraiin] [sy] [soiin] [oteey]
 destillat ortu [okaiin] [or] [okan] [sairy] [chear] [cthaiin] bibe
 bufo dorsi et [cy] aloe viva et [sh] sed ab tere [yshey] da quae
-aqua et si [dain] [chor] [kos] [daiin] [shos] [cfhol] da [dain] bis
-da [ydain] bis [ols] [cphey] [ytain] ossa subtilis eas cassia
+aqua et si [dain] cera oleo [daiin] [shos] [cfhol] da [dain] bis
+et [ydain] bis [ols] [cphey] [ytain] ossa subtilis eas cassia
 [otairin] [oteol] genu et quia [daiin] ossa aqua quotidiana cibo
 subtilis [cthey] ossa et est [dain] [oiin] [chol] et et [chdy]
-genu et [cthy] aceto [daiin] sicca aqua per cor ossa [kol] [chol]
+genu et da aceto [daiin] sicca aqua per cor ossa [kol] [chol]
 [chol] [kor] [chal] ossa [chol] et cassia [kchy] est [or] et ossa
-cum aqua et coque bis [dydyd] [cthy] die [yto] [shol] [she] cutis
-viola [darain] [dain] cutis decoquere et [okaiir] quae quae et
-utilis [dlocto] [shok] [chor] quae [dain] [ckhey] [otol] [daiiin]
+cum aqua et coque bis [dydyd] [cthy] die et sal [she] cutis
+viola [darain] [dain] cutis decoquere et [okaiir] aqua aqua et
+utilis [dlocto] [shok] [chor] [chey] [dain] [ckhey] [otol] [daiiin]
 [cpho] [shaiin] hoc [chol] testis ossa habet aqua ruta [ydoin]
 [chol] [dain] [cthal] hedera sero [kaiin] hedera ossa [cthar] aqua
 et coque [shoaiin] [okol] [daiin] bibere alio [daiin] [ctholdar]
@@ -436,7 +448,7 @@ quoque quoque [oky] [daiin] quoque [kokaiin] hac [kdchy] [dal]
 [chol] quia ideo et [dchaiin]
 ```
 
-Bracketed words `[...]` are unresolved Voynich stems (203 words total, 97 unresolved = 52% resolved). The decoded content shows Medieval Latin medical/herbal recipe language: *efficax* (effective), *bibe* (drink), *coque* (cook/boil), *destillat* (distill), *aqua* (water), *ossa* (bones), *cassia*, *ruta* (rue), *hedera* (ivy), *viola* (violet), *cutis* (skin), *subtilis* (fine/subtle), *quotidiana* (daily), *aceto* (vinegar), *genu* (knee), *sero* (late/evening), *viva* (living), *alio* (other).
+Bracketed words `[...]` are unresolved Voynich stems (203 words total, 92 unresolved = 55% resolved). The decoded content shows Medieval Latin medical/herbal recipe language: *efficax* (effective), *bibe* (drink), *coque* (cook/boil), *destillat* (distill), *aqua* (water), *ossa* (bones), *cassia*, *ruta* (rue), *hedera* (ivy), *viola* (violet), *cutis* (skin), *subtilis* (fine/subtle), *quotidiana* (daily), *aceto* (vinegar), *genu* (knee), *sero* (late/evening), *viva* (living), *uterus* (womb), *alio* (other).
 
 ## Usage
 

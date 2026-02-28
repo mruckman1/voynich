@@ -509,6 +509,8 @@ class ImprovedLatinCorpus:
         self.verbose = verbose
         self._corpus_text = None
         self._tokens = None
+        self._section_corpora: Dict[str, str] = {}
+        self._section_tokens: Dict[str, List[str]] = {}
 
     def build_corpus(self) -> str:
         """Build the improved corpus with TTR and H2 validation."""
@@ -615,6 +617,126 @@ class ImprovedLatinCorpus:
         if self._tokens is None:
             self._tokens = [t for t in self.build_corpus().split() if t]
         return self._tokens
+
+    def build_section_corpus(self, section: str,
+                             section_fraction: float = 0.25) -> str:
+        """Build a section-specialized corpus.
+
+        Architecture: base corpus (shared) + section-specific addendum.
+        Uses a separate RNG stream per section to avoid perturbing the
+        base corpus or other sections.
+
+        Args:
+            section: Canonical section name from VOYNICH_SECTIONS.
+            section_fraction: Fraction of base corpus size for addendum.
+
+        Returns:
+            Combined corpus text string.
+        """
+        if section in self._section_corpora:
+            return self._section_corpora[section]
+
+        from data.section_vocabularies import SECTION_PROFILES
+
+        base = self.build_corpus()
+        profile = SECTION_PROFILES.get(section)
+
+        if profile is None or (
+            not profile.get('additional_vocabulary')
+            and not profile.get('template_functions')
+        ):
+            self._section_corpora[section] = base
+            return base
+
+        section_seed = self.seed + abs(hash(section)) % 10000
+        section_rng = random.Random(section_seed)
+
+        from modules.phase11.phonetic_skeletonizer import LATIN_CONSONANT_CLASSES as _LCC
+        def _skel_segs(word):
+            skel, last = [], ''
+            for ch in word.lower():
+                if ch in _LCC:
+                    m = _LCC[ch]
+                    if m != last:
+                        skel.append(m)
+                        last = m
+            return len(skel)
+
+        qualities = ['calida', 'frigida', 'calidus', 'frigidus',
+                     'calidum', 'frigidum']
+        moistures = ['sicca', 'humida', 'siccus', 'humidus',
+                     'siccum', 'humidum']
+        degrees = ['primo', 'secundo', 'tertio', 'quarto']
+
+        _micro_templates = [
+            lambda rng, w: f'{w} est {rng.choice(["utilis", "necessarius", "efficax", "probatus"])}',
+            lambda rng, w: f'recipe {w} {rng.choice(DOSAGE_WORDS)}',
+            lambda rng, w: f'contra {rng.choice(CONDITION_WORDS)} valet {w}',
+            lambda rng, w: f'{w} cum {rng.choice(EXPANDED_SUBSTANCE_WORDS)}',
+            lambda rng, w: f'accipe {w} et {rng.choice(PREPARATION_WORDS)}',
+            lambda rng, w: f'{w} habet virtutem {rng.choice(EXPANDED_PROPERTY_WORDS)}',
+        ]
+
+        section_parts = []
+        section_target = int(self.target_tokens * section_fraction)
+
+        for word in profile['additional_vocabulary']:
+            if _skel_segs(word) < 3:
+                continue
+            tpl = section_rng.choice(_micro_templates)
+            section_parts.append(tpl(section_rng, word))
+
+        current_count = sum(len(p.split()) for p in section_parts)
+        remaining = section_target - current_count
+
+        templates = profile.get('template_functions') or GAP_FILLING_TEMPLATES
+        while remaining > 0:
+            plant = section_rng.choice(EXPANDED_PLANT_NAMES)
+            quality = section_rng.choice(qualities)
+            moisture = section_rng.choice(moistures)
+            degree = section_rng.choice(degrees)
+            template = section_rng.choice(templates)
+            entry = template(section_rng, plant, quality, moisture, degree)
+            section_parts.append(entry)
+            remaining -= len(entry.split())
+
+        combined = base + ' ' + ' '.join(section_parts)
+        self._section_corpora[section] = combined
+        return combined
+
+    def get_section_tokens(self, section: str,
+                           section_fraction: float = 0.25) -> List[str]:
+        """Get tokenized section corpus."""
+        if section not in self._section_tokens:
+            text = self.build_section_corpus(section, section_fraction)
+            self._section_tokens[section] = [t for t in text.split() if t]
+        return self._section_tokens[section]
+
+    def build_section_transition_matrix(
+        self, section: str, top_n: int = 1001,
+        section_fraction: float = 0.25,
+    ) -> Tuple[np.ndarray, List[str]]:
+        """Build section-specific transition matrix.
+
+        Generates the combined corpus, applies frequency boosts by
+        repeating boosted tokens, then builds the matrix.
+        """
+        from data.section_vocabularies import SECTION_PROFILES
+
+        tokens = list(self.get_section_tokens(section, section_fraction))
+
+        profile = SECTION_PROFILES.get(section, {})
+        boosts = profile.get('frequency_boosts', {})
+        if boosts:
+            boosted = []
+            for t in tokens:
+                boosted.append(t)
+                extra = int(boosts.get(t, 1.0)) - 1
+                for _ in range(extra):
+                    boosted.append(t)
+            tokens = boosted
+
+        return word_transition_matrix(tokens, top_n=top_n)
 
     def get_top_n_words(self, n: int = 1001) -> List[Tuple[str, int]]:
         """Return the top N most frequent words with counts."""

@@ -150,8 +150,10 @@ def _infer_section(folio: str) -> str:
         return 'biological'
     elif 85 <= num <= 86:
         return 'cosmological'
-    elif 87 <= num <= 102:
+    elif num == 87:
         return 'herbal_b'
+    elif 88 <= num <= 102:
+        return 'pharmaceutical'
     elif num >= 103:
         return 'recipes'
     return 'unknown'
