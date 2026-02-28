@@ -245,7 +245,8 @@ def main():
                         choices=['all', 'skeleton', 'reversed', 'consistency',
                                  'sensitivity', 'bootstrap',
                                  'bidirectional', 'baselines', 'ablation',
-                                 'grille', 'loo', 'tier1', 'tier2'],
+                                 'grille', 'loo', 'discriminant',
+                                 'tier1', 'tier2'],
                         help='Run robustness validation tests')
     parser.add_argument('--quiet', '-q', action='store_true',
                         help='Suppress verbose output')

@@ -28,6 +28,7 @@ Usage:
   uv run cli.py --robustness ablation     # Test 5c only
   uv run cli.py --robustness grille       # Test 8a only
   uv run cli.py --robustness loo          # Test 2a only
+  uv run cli.py --robustness discriminant # Discriminant analysis
 """
 import json
 import os
@@ -529,7 +530,7 @@ def run_full_pipeline(
 
 
 TIER1_TESTS = ['skeleton', 'reversed', 'consistency', 'sensitivity', 'bootstrap']
-TIER2_TESTS = ['bidirectional', 'baselines', 'ablation', 'grille', 'loo']
+TIER2_TESTS = ['bidirectional', 'baselines', 'ablation', 'grille', 'loo', 'discriminant']
 ALL_TESTS = TIER1_TESTS + TIER2_TESTS
 
 
@@ -683,6 +684,16 @@ def run_robustness_tests(
         test = LeaveOneOutValidation(components, verbose=verbose)
         results['loo'] = test.run()
         _save_result(output_dir, 'leave_one_out.json', results['loo'])
+
+    if 'discriminant' in run_tests:
+        if verbose:
+            print(f'\n{"=" * 70}')
+            print('TEST: Discriminant Analysis')
+            print('=' * 70)
+        from modules.robustness.discriminant_analysis import DiscriminantAnalysis
+        test = DiscriminantAnalysis(components, verbose=verbose)
+        results['discriminant'] = test.run()
+        _save_result(output_dir, 'discriminant_analysis.json', results['discriminant'])
 
     elapsed = time.time() - t0
     results['elapsed_seconds'] = round(elapsed, 2)

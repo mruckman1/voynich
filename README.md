@@ -38,6 +38,7 @@ The core insight: rather than attacking the cipher monolithically, multiple inde
 | R2 | Ablation: iterative refinement largest contributor | HIGH | -10.2pp when removed; base pipeline 29.3% → full 49.9% (+20.6pp total) |
 | R2 | Resolution rate is not discriminative | EXPECTED | All 6 null types resolve at ≥ real (z=-0.95); content quality (medical vocab, function words) also non-discriminative; pipeline discriminates via structural patterns (consistency, illustrations), not resolution % |
 | R2 | Leave-one-out shows matrix dependency | CONCERN | Mean delta -22.8pp when resolved words depleted; measures transition matrix circularity |
+| R2 | Discriminant analysis: no metric fully separates real from null | EXPECTED | 0/16 metrics discriminate across all 3 null types; Phase 13 illustration matches weakly discriminate (2 vs 1 on cross-folio/char-random); Phase 14 medical rate, entropy, templates, collocations all non-discriminative; char-random scores *higher* than real on most metrics |
 
 ## Architecture
 
@@ -115,7 +116,7 @@ voynich/
 │   ├── phase12_5/                    # Adversarial tests (unicity, domain swap, polyglot, EVA collapse, ablation)
 │   ├── phase13/                      # Illustration-text correlation (botanical validation)
 │   ├── phase14/                      # Semantic coherence analysis (field classification, null distributions)
-│   └── robustness/                   # Robustness validation tests (10 tests: Tier 1 + Tier 2)
+│   └── robustness/                   # Robustness validation tests (11 tests: Tier 1 + Tier 2)
 │
 └── output/
     ├── phase3/                       # Language B profile, hybrid model results
@@ -438,7 +439,7 @@ The medical vocabulary rate is the key finding: the pipeline preferentially reco
 
 ### Robustness Validation Tests
 
-Ten validation tests across two tiers that preemptively close peer review attack vectors. Each test outputs to `output/robustness/` with JSON reports and console summaries.
+Eleven validation tests across two tiers that preemptively close peer review attack vectors. Each test outputs to `output/robustness/` with JSON reports and console summaries.
 
 #### Tier 1: Core Validation
 
@@ -602,6 +603,30 @@ The grille produces simple EVA syllables whose consonant skeletons frequently ma
 
 **Important caveat:** The matrix depletion approach zeros ALL rows and columns for every resolved Latin word on the test folio. Since these words include high-frequency function words (*et*, *in*, *cum*, *aqua*) that appear on nearly every folio, depletion cascades far beyond the test folio's own contribution -- it removes the scoring signal for words that were learned from the *entire corpus*, not just the test folio. The -22.8pp mean delta measures the pipeline's dependency on its transition matrix vocabulary, not true leave-one-out circularity in the classical sense. A more targeted test would deplete only the *bigram pairs* unique to the test folio rather than all word entries.
 
+**Discriminant Analysis** -- Runs Phase 13, Phase 14, and consistency tests on three types of null pipeline output (within-folio shuffle, cross-folio shuffle, character-level random) to determine which metrics actually separate real Voynich from noise. For each null type, generates null tokens, runs the full Phase 12 pipeline, and collects all downstream metrics. Compares real vs null using relative effect size thresholds (>20%) with direction checks.
+
+| Metric | Real | W-Shuffle | X-Shuffle | Char-Rnd | Discriminates? |
+|--------|------|-----------|-----------|----------|---------------|
+| Phase 14: Medical Rate | 77.1% | 76.7% | 79.1% | 84.6% | NO |
+| Phase 14: Entropy | 0.800 | 0.802 | 0.812 | 0.761 | NO |
+| Phase 14: Template Coverage | 22.2% | 22.1% | 21.6% | 34.8% | NO |
+| Phase 14: Collocation | 39.0% | 39.7% | 38.8% | 37.6% | NO |
+| Phase 13: Match Count | 2 | 2 | 1 | 1 | WEAK |
+| Phase 13: Match Rate | 8.0% | 8.0% | 4.0% | 4.0% | WEAK |
+| Consistency: Sig p<0.01 | 38 | 36 | 37 | 61 | NO |
+| Consistency: UniqueSource | 42 | 42 | 38 | 67 | NO |
+| Resolution Rate | 49.9% | 50.5% | 52.3% | 60.9% | NO |
+| Content: Med Vocab (narrow) | 9.2% | 8.9% | 8.8% | 17.4% | NO |
+
+**Key findings:**
+
+- 0/16 metrics fully discriminate real from null across all three null types.
+- Phase 13 illustration matches are the only weakly discriminative metric (2 matches on real vs 1 on cross-folio and char-random), but within-folio shuffle also produces 2 matches (expected: shuffling within folios preserves which tokens are on which folio).
+- Character-level random text scores *higher* than real Voynich on medical rate (84.6% vs 77.1%), resolution (60.9% vs 49.9%), and template coverage (34.8% vs 22.2%). The pipeline finds more "signal" in pure noise than in real text.
+- Phase 14's medical vocabulary significance (p=0.013) does not survive this test: null text decoded through the same pipeline produces equivalent medical vocabulary rates, because the pipeline's Latin dictionary and transition matrix inherently favor medical vocabulary regardless of input.
+- The medical vocabulary discrepancy between Phase 14 (77.1%) and the baselines content metric (9.2%) is explained by different word lists: Phase 14 uses a broad 1,624-word lexicon across 11 semantic fields (including connectives like *et*, *in*, *cum*), while the baselines use a narrow 894-form set of domain-specific medical terms. Both metrics are non-discriminative.
+- This is the honest null result: the pipeline's decoding produces no verifiable signal beyond what noise achieves. The contribution is the framework itself -- demonstrating that skeleton-based Latin matching does not distinguish the manuscript from randomized input.
+
 ## Sample Translation Output (Phase 12, folio f1r)
 
 ```
@@ -724,6 +749,7 @@ uv run cli.py --robustness baselines               # Multiple random baselines (
 uv run cli.py --robustness ablation                # Ablation cascade (Test 5c)
 uv run cli.py --robustness grille                  # Cardan grille test (Test 8a)
 uv run cli.py --robustness loo                     # Leave-one-out validation (Test 2a)
+uv run cli.py --robustness discriminant            # Discriminant analysis (real vs null)
 ```
 
 ### Run Individual Strategies
