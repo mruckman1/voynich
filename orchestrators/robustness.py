@@ -29,6 +29,7 @@ Usage:
   uv run cli.py --robustness grille       # Test 8a only
   uv run cli.py --robustness loo          # Test 2a only
   uv run cli.py --robustness discriminant # Discriminant analysis
+  uv run cli.py --robustness selectivity  # Selectivity analysis + gated resolution
 """
 import json
 import os
@@ -530,7 +531,7 @@ def run_full_pipeline(
 
 
 TIER1_TESTS = ['skeleton', 'reversed', 'consistency', 'sensitivity', 'bootstrap']
-TIER2_TESTS = ['bidirectional', 'baselines', 'ablation', 'grille', 'loo', 'discriminant']
+TIER2_TESTS = ['bidirectional', 'baselines', 'ablation', 'grille', 'loo', 'discriminant', 'selectivity', 'selective_matching']
 ALL_TESTS = TIER1_TESTS + TIER2_TESTS
 
 
@@ -694,6 +695,26 @@ def run_robustness_tests(
         test = DiscriminantAnalysis(components, verbose=verbose)
         results['discriminant'] = test.run()
         _save_result(output_dir, 'discriminant_analysis.json', results['discriminant'])
+
+    if 'selectivity' in run_tests:
+        if verbose:
+            print(f'\n{"=" * 70}')
+            print('TEST: Selectivity Analysis')
+            print('=' * 70)
+        from modules.robustness.selectivity_analysis import SelectivityAnalysis
+        test = SelectivityAnalysis(components, verbose=verbose)
+        results['selectivity'] = test.run()
+        _save_result(output_dir, 'selectivity_analysis.json', results['selectivity'])
+
+    if 'selective_matching' in run_tests:
+        if verbose:
+            print(f'\n{"=" * 70}')
+            print('TEST: Selective Matching Test')
+            print('=' * 70)
+        from modules.robustness.selective_matching_test import SelectiveMatchingTest
+        test = SelectiveMatchingTest(components, verbose=verbose)
+        results['selective_matching'] = test.run()
+        _save_result(output_dir, 'selective_matching_test.json', results['selective_matching'])
 
     elapsed = time.time() - t0
     results['elapsed_seconds'] = round(elapsed, 2)

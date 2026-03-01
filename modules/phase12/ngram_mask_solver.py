@@ -34,6 +34,7 @@ from modules.phase12.syntactic_scaffolder import LatinPOSTagger
 import Levenshtein
 
 from data.botanical_identifications import PLANT_IDS
+import orchestrators._config as _cfg
 from orchestrators._config import TAGGED_BRACKET_RE
 
 LATIN_POS_ENDINGS: Dict[str, List[str]] = {
@@ -467,6 +468,14 @@ class NgramMaskSolver:
                     'ratio': 'fw_contextual',
                 })
                 continue
+
+            min_segs = _cfg.MIN_SKELETON_SEGMENTS_FOR_RESOLUTION
+            if min_segs > 0:
+                seg_count = self._get_skeleton_segment_count(voynich_token)
+                if seg_count < min_segs:
+                    if mark_unresolved:
+                        result[i] = f'[{voynich_token}_UNRESOLVED]'
+                    continue
 
             candidates = self._get_candidates_for_token(voynich_token)
 

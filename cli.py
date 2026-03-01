@@ -246,6 +246,7 @@ def main():
                                  'sensitivity', 'bootstrap',
                                  'bidirectional', 'baselines', 'ablation',
                                  'grille', 'loo', 'discriminant',
+                                 'selectivity', 'selective_matching',
                                  'tier1', 'tier2'],
                         help='Run robustness validation tests')
     parser.add_argument('--quiet', '-q', action='store_true',

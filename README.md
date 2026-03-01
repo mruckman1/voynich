@@ -39,6 +39,7 @@ The core insight: rather than attacking the cipher monolithically, multiple inde
 | R2 | Resolution rate is not discriminative | EXPECTED | All 6 null types resolve at ≥ real (z=-0.95); content quality (medical vocab, function words) also non-discriminative; pipeline discriminates via structural patterns (consistency, illustrations), not resolution % |
 | R2 | Leave-one-out shows matrix dependency | CONCERN | Mean delta -22.8pp when resolved words depleted; measures transition matrix circularity |
 | R2 | Discriminant analysis: no metric fully separates real from null | EXPECTED | 0/16 metrics discriminate across all 3 null types; Phase 13 illustration matches weakly discriminate (2 vs 1 on cross-folio/char-random); Phase 14 medical rate, entropy, templates, collocations all non-discriminative; char-random scores *higher* than real on most metrics |
+| R2 | Vowel-aware skeletons create moderate selectivity | MODERATE | Combined selectivity 1.46x (real 8.0% vs null 5.4% match rate); vowel positions carry structural information that consonant-only skeletons discard |
 
 ## Architecture
 
@@ -116,7 +117,7 @@ voynich/
 │   ├── phase12_5/                    # Adversarial tests (unicity, domain swap, polyglot, EVA collapse, ablation)
 │   ├── phase13/                      # Illustration-text correlation (botanical validation)
 │   ├── phase14/                      # Semantic coherence analysis (field classification, null distributions)
-│   └── robustness/                   # Robustness validation tests (11 tests: Tier 1 + Tier 2)
+│   └── robustness/                   # Robustness validation tests (12 tests: Tier 1 + Tier 2)
 │
 └── output/
     ├── phase3/                       # Language B profile, hybrid model results
@@ -439,7 +440,7 @@ The medical vocabulary rate is the key finding: the pipeline preferentially reco
 
 ### Robustness Validation Tests
 
-Eleven validation tests across two tiers that preemptively close peer review attack vectors. Each test outputs to `output/robustness/` with JSON reports and console summaries.
+Twelve validation tests across two tiers that preemptively close peer review attack vectors. Each test outputs to `output/robustness/` with JSON reports and console summaries.
 
 #### Tier 1: Core Validation
 
@@ -627,6 +628,17 @@ The grille produces simple EVA syllables whose consonant skeletons frequently ma
 - The medical vocabulary discrepancy between Phase 14 (77.1%) and the baselines content metric (9.2%) is explained by different word lists: Phase 14 uses a broad 1,624-word lexicon across 11 semantic fields (including connectives like *et*, *in*, *cum*), while the baselines use a narrow 894-form set of domain-specific medical terms. Both metrics are non-discriminative.
 - This is the honest null result: the pipeline's decoding produces no verifiable signal beyond what noise achieves. The contribution is the framework itself -- demonstrating that skeleton-based Latin matching does not distinguish the manuscript from randomized input.
 
+**Selective Matching Test** -- Tests whether enriching skeleton representations with vowel position information and/or length constraints creates selectivity at the matching step. The discriminant analysis showed that consonant-only skeletons are non-discriminative because stripping vowels discards ~65% of token information. This test measures whether preserving vowel positions as 'V' markers (e.g., `"qokeedy" → "K-V-K-V-V-T-V"` instead of `"K-K-T"`) and/or filtering by token/candidate length ratio (`0.5 ≤ len(voynich)/len(latin) ≤ 2.0`) creates a gap between real Voynich and random character tokens.
+
+| Condition | Real Match | Null Match | Selectivity |
+|-----------|-----------|-----------|-------------|
+| Baseline (consonant-only) | 68.1% | 62.2% | 1.10x |
+| Vowel-aware | 8.1% | 5.8% | 1.41x |
+| Length-constrained | 67.5% | 60.7% | 1.11x |
+| **Combined** | **8.0%** | **5.4%** | **1.46x** |
+
+Verdict: **MODERATE** -- combined selectivity of 1.46x means real Voynich tokens have vowel-consonant patterns that align with Latin words 46% more often than random character strings. Vowel positions carry structural information that consonant-only skeletons discard entirely. Length constraints add marginal additional selectivity. The vowel-aware skeleton index has 1,542 entries vs 1,087 for consonant-only, indicating that vowel structure creates finer-grained partitions of the Latin dictionary.
+
 ## Sample Translation Output (Phase 12, folio f1r)
 
 ```
@@ -736,9 +748,9 @@ uv run cli.py --phase 14 --langb                   # Language B diagnostic only
 uv run cli.py --phase 14 --folios 15 --trials 200  # Quick test (fewer folios/trials)
 
 # Robustness validation tests
-uv run cli.py --robustness                         # All 10 robustness tests (Tier 1 + Tier 2)
+uv run cli.py --robustness                         # All 12 robustness tests (Tier 1 + Tier 2)
 uv run cli.py --robustness tier1                   # Tier 1 only (5 tests)
-uv run cli.py --robustness tier2                   # Tier 2 only (5 tests)
+uv run cli.py --robustness tier2                   # Tier 2 only (7 tests)
 uv run cli.py --robustness skeleton                # Skeleton length analysis (Test 3a)
 uv run cli.py --robustness reversed                # Reversed text test (Test 1a)
 uv run cli.py --robustness consistency             # Consistency significance (Test 4c)
@@ -750,6 +762,7 @@ uv run cli.py --robustness ablation                # Ablation cascade (Test 5c)
 uv run cli.py --robustness grille                  # Cardan grille test (Test 8a)
 uv run cli.py --robustness loo                     # Leave-one-out validation (Test 2a)
 uv run cli.py --robustness discriminant            # Discriminant analysis (real vs null)
+uv run cli.py --robustness selective_matching      # Selective matching test (vowel + length)
 ```
 
 ### Run Individual Strategies
