@@ -1,7 +1,11 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
 [project]
 name = "voynich"
 version = "0.1.0"
-description = "Add your description here"
+description = "Voynich Manuscript Convergence Attack — 14-phase decipherment pipeline"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
@@ -13,3 +17,9 @@ dependencies = [
     "python-Levenshtein>=0.26.1",
     "beautifulsoup4>=4.14.3",
 ]
+
+[project.scripts]
+voynich = "voynich.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/voynich"]

@@ -45,95 +45,52 @@ The core insight: rather than attacking the cipher monolithically, multiple inde
 
 ```
 voynich/
-├── cli.py                             # Unified CLI entry point (recommended)
-├── convergence_attack.py              # Phase 1: 5-strategy orchestrator
-├── run_max.py                         # Full-corpus analysis (requires IVTFF data)
-│
-├── orchestrators/                     # Phase execution layer
-│   ├── __init__.py                    # Lazy phase registry
-│   ├── _config.py                     # Centralized constants (SAA iters, corpus size, etc.)
-│   ├── _foundation.py                 # Shared initialization pipeline (phases 7-13)
-│   ├── _utils.py                      # File I/O and output directory helpers
-│   ├── phase2..phase12.py             # Individual phase orchestrators
-│   ├── phase12_5.py                   # Adversarial defense suite (5 tests + diagnostics)
-│   ├── phase13.py                     # Illustration-text correlation (decode + botanical validation)
-│   ├── phase14.py                     # Semantic coherence analysis (4 metrics + significance)
-│   └── robustness.py                  # Robustness test orchestrator (Tier 1 + Tier 2)
-│
-├── data/
-│   ├── voynich_corpus.py              # EVA transliterations, scribe mappings, zodiac labels
-│   ├── ivtff_parser.py                # IVTFF full-corpus parser (Zandbergen format)
-│   ├── botanical_identifications.py   # Plant species IDs for herbal section
-│   ├── semantic_fields.py            # Semantic field lexicon (12 fields, stem index, LRU cache)
-│   ├── expanded_medical_vocabulary.py # 225 lemmas, 909 inflected forms (6 categories)
-│   ├── glyph_alphabets.py            # EVA glyph properties, positional classes, ligatures
-│   ├── latin_syllables.py            # Medieval Latin syllabification rules
-│   ├── medieval_text_templates.py    # Latin herbal recipe templates
-│   ├── Voynich_Botanicals.csv        # 91 botanical IDs: scientific name → medieval Latin
-│   ├── botanical_name_mapping.py     # Folio→species→medieval Latin lookup bridge
-│   ├── folio_illustration_priors.py  # Per-folio botanical word boost tables (3-tier prior)
-│   ├── section_vocabularies.py      # Section-specific vocab, frequency boosts, templates (7 sections)
-│   ├── corpora/                      # Reference Latin text corpora
-│   │   ├── latin_vulgate_sample.txt  # Vulgate Bible sample (5K tokens)
-│   │   └── corpus_juris_civilis.txt  # Medieval legal Latin
-│   └── dictionaries/                 # Language dictionaries for adversarial tests
-│       ├── phase5_latin_dict.json    # Latin dictionary (Phase 5)
-│       ├── romance_italian_dict.json # Italian dictionary (polyglot test)
-│       └── romance_occitan_dict.json # Occitan dictionary (polyglot test)
-│
-├── modules/
-│   ├── statistical_analysis.py        # H1/H2/H3 entropy, Zipf, bigram matrices
-│   ├── naibbe_cipher.py              # Multi-table combinatorial cipher engine
-│   ├── null_framework.py             # Null distribution testing
-│   ├── constraint_model.py           # Multi-constraint satisfaction
-│   ├── candidate_search.py           # Constrained cipher candidate search
+├── pyproject.toml                     # Hatchling build, voynich CLI entry point
+├── src/voynich/
+│   ├── __init__.py                    # Package version
+│   ├── __main__.py                    # python -m voynich support
+│   ├── cli.py                         # Flat command dispatch (voynich phase12, voynich all, etc.)
 │   │
-│   ├── strategy1_parameter_search.py  # Cipher parameter grid search
-│   ├── strategy2_scribe_seams.py      # Scribe transition leakage analysis
-│   ├── strategy3_binding_reconstruction.py  # Binding order + sequential state
-│   ├── strategy4_positional_grammar.py      # Glyph grammar extraction
-│   ├── strategy5_zodiac_attack.py           # Known-plaintext zodiac attack
+│   ├── core/                          # Shared infrastructure
+│   │   ├── _paths.py                  # Project root, data_dir(), results_dir()
+│   │   ├── config.py                  # All pipeline constants and feature flags
+│   │   ├── foundation.py              # Shared initialization pipeline (phases 7-14)
+│   │   ├── utils.py                   # JSON I/O, output helpers, combined report builder
+│   │   ├── stats.py                   # H1/H2/H3 entropy, Zipf, bigram matrices
+│   │   ├── voynich_corpus.py          # EVA transliterations, scribe mappings, zodiac labels
+│   │   ├── ivtff_parser.py            # IVTFF full-corpus parser (Zandbergen format)
+│   │   ├── botanical_identifications.py  # Plant species IDs for herbal section
+│   │   ├── semantic_fields.py         # Semantic field lexicon (12 fields, stem index)
+│   │   ├── expanded_medical_vocabulary.py  # 225 lemmas, 909 inflected forms (6 categories)
+│   │   ├── section_vocabularies.py    # Section-specific vocab, boosts, templates (7 sections)
+│   │   └── ...                        # glyph_alphabets, latin_syllables, medieval_text_templates, etc.
 │   │
-│   ├── word_length.py                # Word boundary semantics
-│   ├── positional_shape.py           # Positional glyph classes
-│   ├── fsa_extraction.py             # Finite state automaton classification
-│   ├── nmf_analysis.py               # NMF topic factorization
-│   ├── error_model.py                # Scribe error patterns
-│   ├── qo_analysis.py                # Functional analysis of qo- prefix
-│   ├── label_analysis.py             # Zodiac label plaintext anchors
-│   ├── paragraph_analysis.py         # Plaintext:ciphertext length ratios
-│   ├── entropy_gradient.py           # U-curve entropy progression
+│   ├── phases/                        # Phase orchestrators (one per phase)
+│   │   ├── __init__.py                # Lazy phase registry
+│   │   ├── phase1.py                  # 5-strategy convergence attack
+│   │   ├── phase2.py .. phase14.py    # Individual phase orchestrators
+│   │   ├── phase12_5.py               # Adversarial defense suite (5 tests + diagnostics)
+│   │   └── robustness.py              # Robustness test orchestrator (12 tests)
 │   │
-│   ├── phase2/                       # 6 generative models, discrimination sweep
-│   ├── phase3/                       # Language B profiling, onset decomposition, hybrid model
-│   ├── phase4/                       # Language A extraction, nomenclator models, SAA
-│   ├── phase5/                       # Tier splitting, NMF scaffold, constrained SAA
-│   ├── phase6/                       # Improved corpus, homophone detection, morpheme analysis
-│   ├── phase7/                       # Voynich morphology, stem SAA, affix alignment
-│   ├── phase8/                       # Viterbi decoder, morphological synthesizer
-│   ├── phase9/                       # Latin syllabifier, sigla mapper, beam search
-│   ├── phase11/                      # Phonetic skeletonizer, CSP decoder
-│   ├── phase12/                      # Fuzzy skeletonizer, syntactic scaffold, n-gram mask solver, char n-gram model
-│   ├── phase12_5/                    # Adversarial tests (unicity, domain swap, polyglot, EVA collapse, ablation)
-│   ├── phase13/                      # Illustration-text correlation (botanical validation)
-│   ├── phase14/                      # Semantic coherence analysis (field classification, null distributions)
-│   └── robustness/                   # Robustness validation tests (12 tests: Tier 1 + Tier 2)
+│   └── modules/                       # Algorithm implementations
+│       ├── strategy1_*.py .. strategy5_*.py  # Phase 1 attack strategies
+│       ├── naibbe_cipher.py           # Multi-table combinatorial cipher engine
+│       ├── phase2/ .. phase14/        # Per-phase algorithm modules
+│       ├── phase12_5/                 # Adversarial test implementations
+│       └── robustness/                # Robustness test implementations
 │
-└── output/
-    ├── phase3/                       # Language B profile, hybrid model results
-    ├── phase4/                       # Language A extraction, multi-language testing
-    ├── phase5/                       # Tier split, NMF scaffold, cross-validation
-    ├── phase6/                       # Three recovery path results
-    ├── phase7/                       # Morphological stem mapping
-    ├── phase8/                       # HMM Viterbi translations
-    ├── phase9/                       # Syllabic beam search results
-    ├── phase10/                      # Dictionary-guided trigram translations
-    ├── phase11/                      # CSP phonetic translations
-    ├── phase12/                      # Final contextual reconstruction
-    ├── phase12_5/                    # Adversarial defense verdicts
-    ├── phase13/                      # Full translations, illustration-text correlation
-    ├── phase14/                      # Semantic coherence metrics + significance tests
-    └── robustness/                   # Robustness validation test results
+├── data/                              # Raw data files (no Python code)
+│   ├── corpus/                        # IVTFF transliteration files
+│   ├── corpora/                       # Reference Latin text corpora (Vulgate, Corpus Juris)
+│   ├── dictionaries/                  # Language dictionaries (Latin, Italian, Occitan)
+│   ├── json/                          # Pre-built JSON reference data
+│   └── Voynich_Botanicals.csv         # 91 botanical IDs
+│
+└── results/                           # All output: one JSON per phase
+    ├── combined_report.json
+    ├── phase2/ .. phase14/
+    ├── phase12_5/
+    └── robustness/
 ```
 
 ## The Phase Framework
@@ -440,7 +397,7 @@ The medical vocabulary rate is the key finding: the pipeline preferentially reco
 
 ### Robustness Validation Tests
 
-Twelve validation tests across two tiers that preemptively close peer review attack vectors. Each test outputs to `output/robustness/` with JSON reports and console summaries.
+Twelve validation tests across two tiers that preemptively close peer review attack vectors. Each test outputs to `results/robustness/` with JSON reports and console summaries.
 
 #### Tier 1: Core Validation
 
@@ -676,117 +633,80 @@ Bracketed words `[...]` are unresolved Voynich stems (203 words total, 92 unreso
 ### Install
 
 ```bash
+git clone https://github.com/mruckman/voynich.git
+cd voynich
 uv sync
 ```
 
+This installs the `voynich` CLI command. All commands below use `uv run voynich` (or just `voynich` if the virtualenv is activated).
+
 ### Run Phases
 
-The unified CLI (`cli.py`) is the recommended way to run all phases:
+The `voynich` CLI is the entry point for all phases:
 
 ```bash
-# Phase 1: Core 5-strategy convergence attack (default)
-uv run cli.py
+# Run a specific phase
+voynich phase1                         # Phase 1: 5-strategy convergence attack
+voynich phase2                         # Phase 2: Super-character model elimination
+voynich phase12                        # Phase 12: Full contextual reconstruction
 
-# Run a specific phase (2-13, or 12.5)
-uv run cli.py --phase 2
-uv run cli.py --phase 7
+# Run all phases sequentially (1-14, including 12.5 + robustness)
+voynich all
 
-# Run all phases sequentially (1-13, including 12.5)
-uv run cli.py --all
+# List all available commands
+voynich list
 
-# Run phases 1-4 only
-uv run cli.py --phased
+# Adversarial defense suite
+voynich adversarial                    # All 5 adversarial tests
+voynich adversarial --unicity          # Unicity distance test only
+voynich adversarial --domain-swap      # Domain swap test only
+voynich adversarial --ablation         # Ablation study only
 
-# List all available phases
-uv run cli.py --list
-
-# Suppress verbose output
-uv run cli.py --phase 5 --quiet
-
-# Quick mode: reduced SAA iterations and corpus size for faster testing
-uv run cli.py --phase 5 --quick
-
-# Custom output directory (default: ./output)
-uv run cli.py --all --output-dir ./results
+# Robustness validation tests
+voynich robustness                     # All 12 robustness tests (Tier 1 + Tier 2)
+voynich robustness bootstrap           # Bootstrap confidence intervals only
+voynich robustness baselines           # Multiple random baselines only
 ```
 
-A `combined_report.json` is written to the output directory after every run, containing the full results from all phases that were executed. Each phase entry includes a description of what the phase does and its complete output data (conclusions, translations, statistics, mappings, etc.).
+A `combined_report.json` is written to `./results/` after every run, containing the full results from all phases that were executed.
 
 Sub-phase flags can target specific steps within a phase:
 
 ```bash
 # Phase 2: run only the discrimination sweep
-uv run cli.py --phase 2 --discrimination
-
-# Phase 3: run only the hybrid model step
-uv run cli.py --phase 3 --hybrid
+voynich phase2 --discrimination
 
 # Phase 6: run recovery paths A and C
-uv run cli.py --phase 6 --path-a --path-c
+voynich phase6 --path-a --path-c
 
-# Phase 12.5: adversarial defense suite
-uv run cli.py --phase 12.5                        # All 5 core adversarial tests
-uv run cli.py --phase 12.5 --unicity              # Unicity distance test only
-uv run cli.py --phase 12.5 --domain-swap          # Domain swap test only
-uv run cli.py --phase 12.5 --polyglot             # Polyglot dictionary test only
-uv run cli.py --phase 12.5 --eva-collapse         # EVA collapse test only
-uv run cli.py --phase 12.5 --ablation             # Ablation study only
-uv run cli.py --phase 12.5 --compositionality     # Compositionality proof (opt-in)
-uv run cli.py --phase 12.5 --dictionary-diagnostic  # Dictionary coverage audit
+# Phase 5: quick mode (reduced SAA iterations)
+voynich phase5 --quick
 
 # Phase 13: illustration-text correlation
-uv run cli.py --phase 13                           # Decode + correlation (default)
-uv run cli.py --phase 13 --correlation             # Correlation only (uses cached decode)
-uv run cli.py --phase 13 --folios 20               # Limit decode to 20 folios
+voynich phase13 --correlation          # Correlation only (uses cached decode)
+voynich phase13 --folios 20            # Limit decode to 20 folios
 
 # Phase 14: semantic coherence analysis
-uv run cli.py --phase 14                           # All metrics + significance (default)
-uv run cli.py --phase 14 --vocabulary              # Medical vocabulary rate only
-uv run cli.py --phase 14 --templates               # Recipe template matching only
-uv run cli.py --phase 14 --significance            # Null distribution + p-values only
-uv run cli.py --phase 14 --langb                   # Language B diagnostic only
-uv run cli.py --phase 14 --folios 15 --trials 200  # Quick test (fewer folios/trials)
+voynich phase14 --significance         # Null distribution + p-values only
+voynich phase14 --folios 15 --trials 200  # Quick test (fewer folios/trials)
 
-# Robustness validation tests
-uv run cli.py --robustness                         # All 12 robustness tests (Tier 1 + Tier 2)
-uv run cli.py --robustness tier1                   # Tier 1 only (5 tests)
-uv run cli.py --robustness tier2                   # Tier 2 only (7 tests)
-uv run cli.py --robustness skeleton                # Skeleton length analysis (Test 3a)
-uv run cli.py --robustness reversed                # Reversed text test (Test 1a)
-uv run cli.py --robustness consistency             # Consistency significance (Test 4c)
-uv run cli.py --robustness sensitivity             # Parameter sensitivity sweep (Test 5a)
-uv run cli.py --robustness bootstrap               # Bootstrap confidence intervals (Test 5b)
-uv run cli.py --robustness bidirectional           # Bidirectional consistency (Test 4b)
-uv run cli.py --robustness baselines               # Multiple random baselines (Test 1a-ext)
-uv run cli.py --robustness ablation                # Ablation cascade (Test 5c)
-uv run cli.py --robustness grille                  # Cardan grille test (Test 8a)
-uv run cli.py --robustness loo                     # Leave-one-out validation (Test 2a)
-uv run cli.py --robustness discriminant            # Discriminant analysis (real vs null)
-uv run cli.py --robustness selective_matching      # Selective matching test (vowel + length)
-```
-
-### Run Individual Strategies
-
-```bash
-uv run -m modules.strategy1_parameter_search
-uv run -m modules.strategy2_scribe_seams
-uv run -m modules.strategy4_positional_grammar
+# Custom output directory (default: ./results)
+voynich phase12 --output-dir ./my_results
 ```
 
 ### Full Corpus Analysis
 
-Download the IVTFF transliteration and run the full-corpus analyzer:
+Download the IVTFF transliteration for full-corpus phases:
 
 ```bash
 mkdir -p data/corpus
 curl https://www.voynich.nu/data/ZL_ivtff_2b.txt -o data/corpus/ZL_ivtff_2b.txt
-uv run run_max.py
 ```
 
 ### Use the Naibbe Cipher Standalone
 
 ```python
-from modules.naibbe_cipher import demo; demo()
+from voynich.modules.naibbe_cipher import demo; demo()
 ```
 
 ## Dependencies

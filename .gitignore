@@ -6,11 +6,19 @@ __pycache__/
 # C extensions
 *.so
 
+# macOS
+.DS_Store
+
+# Claude Code
+.claude/
 # Distribution / packaging
 .Python
 build/
 output/
+output_readme2/
+results/
 archive/
+2nd_run_results/
 develop-eggs/
 dist/
 downloads/
