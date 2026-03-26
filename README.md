@@ -1,8 +1,16 @@
 # Voynich Manuscript Convergence Attack Toolkit
 
+> **Paper:** [The Voice But Not the Song: A Shorthand Hypothesis and the Statistical Fingerprint of the Voynich Manuscript](The_Voice_But_Not_the_Song.pdf) (Ruckman, 2026)
+>
+> **Companion repo (Approach 2 — Syllabary Analysis):** [voynich_2](https://github.com/mruckman1/voynich_2)
+>
+> **Detailed methodology & results narrative:** [METHODOLOGY.md](METHODOLOGY.md)
+
 A multi-strategy cryptanalytic framework for the Voynich Manuscript (Beinecke MS 408) implementing a multi-phase convergence attack that progressively narrows the solution space through cascading constraint satisfaction.
 
 The core insight: rather than attacking the cipher monolithically, multiple independent cryptanalytic strategies constrain each other, exponentially reducing viable hypotheses at each phase.
+
+This repository implements **Approach 1** from the paper: each EVA character is treated as roughly one letter, consonant skeletons are matched against a Latin medical dictionary, and structural patterns (cross-folio consistency, bidirectional mapping constraints) provide the evidential signal. The companion repository [voynich_2](https://github.com/mruckman1/voynich_2) implements **Approach 2**: each EVA character is treated as a CV syllable, with signal isolation separating genuine decoded words from dictionary collisions. Both pipelines produce consistent structural conclusions: Romance source language, medieval medical content, genuine morphological structure, and two distinct subsystems (Language A/B).
 
 ## Key Results
 
@@ -585,6 +593,8 @@ The grille produces simple EVA syllables whose consonant skeletons frequently ma
 - The medical vocabulary discrepancy between Phase 14 (77.1%) and the baselines content metric (9.2%) is explained by different word lists: Phase 14 uses a broad 1,624-word lexicon across 11 semantic fields (including connectives like *et*, *in*, *cum*), while the baselines use a narrow 894-form set of domain-specific medical terms. Both metrics are non-discriminative.
 - This is the honest null result: the pipeline's decoding produces no verifiable signal beyond what noise achieves. The contribution is the framework itself -- demonstrating that skeleton-based Latin matching does not distinguish the manuscript from randomized input.
 
+**Cross-pipeline consistency:** Two words (*de* and *bene*) are produced independently by both Approach 1 (this repo) and Approach 2 ([voynich_2](https://github.com/mruckman1/voynich_2)), with five character-level assignments agreeing. Both pipelines target Latin, so consistency on common function words carries limited evidential weight, but it confirms that the two independent approaches converge on the same structural conclusions.
+
 **Selective Matching Test** -- Tests whether enriching skeleton representations with vowel position information and/or length constraints creates selectivity at the matching step. The discriminant analysis showed that consonant-only skeletons are non-discriminative because stripping vowels discards ~65% of token information. This test measures whether preserving vowel positions as 'V' markers (e.g., `"qokeedy" → "K-V-K-V-V-T-V"` instead of `"K-K-T"`) and/or filtering by token/candidate length ratio (`0.5 ≤ len(voynich)/len(latin) ≤ 2.0`) creates a gap between real Voynich and random character tokens.
 
 | Condition | Real Match | Null Match | Selectivity |
@@ -633,7 +643,7 @@ Bracketed words `[...]` are unresolved Voynich stems (203 words total, 92 unreso
 ### Install
 
 ```bash
-git clone https://github.com/mruckman/voynich.git
+git clone https://github.com/mruckman1/voynich.git
 cd voynich
 uv sync
 ```
@@ -726,3 +736,18 @@ from voynich.modules.naibbe_cipher import demo; demo()
 - **Currier (1976)**: Language A/B split hypothesis
 - **Zandbergen**: EVA transliteration standard and IVTFF format
 - **Takahashi**: Full EVA transliteration corpus (voynich.nu)
+
+## Citation
+
+If you use this code or data, please cite:
+
+```bibtex
+@article{ruckman2026voice,
+  title={The Voice But Not the Song: A Shorthand Hypothesis and the Statistical Fingerprint of the Voynich Manuscript},
+  author={Ruckman, Matthew},
+  year={2026},
+  month={March}
+}
+```
+
+See [CITATION.cff](CITATION.cff) for the machine-readable citation file.
