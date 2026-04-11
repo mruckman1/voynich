@@ -1,0 +1,208 @@
+{
+  "LATIN_SUFFIXES": [
+    "ibus",
+    "orum",
+    "arum",
+    "ae",
+    "am",
+    "um",
+    "em",
+    "is",
+    "us",
+    "os",
+    "es",
+    "as",
+    "i",
+    "o",
+    "a",
+    "e"
+  ],
+  "LATIN_ENDINGS": [
+    "a",
+    "ae",
+    "am",
+    "arum",
+    "as",
+    "e",
+    "em",
+    "es",
+    "i",
+    "is",
+    "ibus",
+    "o",
+    "orum",
+    "os",
+    "um",
+    "us"
+  ],
+  "PROPERTY_LATIN_WORDS": {
+    "vulnerary": [
+      "vulnus",
+      "vulnera",
+      "vulneribus"
+    ],
+    "anti-inflammatory": [
+      "inflammatio",
+      "inflammationis"
+    ],
+    "purgative": [
+      "purgat",
+      "purgatio"
+    ],
+    "emmenagogue": [
+      "menstrua",
+      "menstruis",
+      "matricis"
+    ],
+    "vermifuge": [
+      "vermes",
+      "vermibus"
+    ],
+    "sedative": [
+      "soporem",
+      "somnium"
+    ],
+    "expectorant": [
+      "pectoris",
+      "tussim"
+    ],
+    "laxative": [
+      "ventris",
+      "laxat"
+    ],
+    "carminative": [
+      "ventris",
+      "flatulentiam"
+    ],
+    "digestive": [
+      "stomachi",
+      "digestionem"
+    ],
+    "diuretic": [
+      "renum",
+      "urinam"
+    ],
+    "astringent": [
+      "constringit",
+      "adstringit"
+    ],
+    "anti-septic": [
+      "putredinem"
+    ],
+    "stimulant": [
+      "excitat",
+      "confortativam"
+    ],
+    "analgesic": [
+      "dolorem",
+      "dolor"
+    ],
+    "soporific": [
+      "soporem",
+      "dormire",
+      "somnium"
+    ],
+    "anti-tussive": [
+      "tussim",
+      "pectoris"
+    ],
+    "anti-venom": [
+      "venenum",
+      "veneni",
+      "antidotum",
+      "theriaca"
+    ],
+    "cholagogue": [
+      "bilem",
+      "hepatis"
+    ],
+    "emollient": [
+      "emollit",
+      "mollificat"
+    ],
+    "styptic": [
+      "sanguinem",
+      "constringit"
+    ],
+    "sudorific": [
+      "sudorem",
+      "sudoris"
+    ],
+    "cordial": [
+      "cor",
+      "cordis"
+    ],
+    "anti-pyretic": [
+      "febrem",
+      "febris"
+    ],
+    "galactagogue": [
+      "lac",
+      "lactis"
+    ],
+    "demulcent": [
+      "emollientem"
+    ],
+    "anaphrodisiac": [
+      "libidinem"
+    ],
+    "anti-spasmodic": [
+      "spasmos",
+      "convulsiones"
+    ],
+    "anti-depressant": [
+      "melancholiam"
+    ],
+    "eye wash": [
+      "oculorum",
+      "oculos",
+      "collyrium"
+    ],
+    "eye treatment": [
+      "oculorum",
+      "oculos",
+      "collyrium"
+    ],
+    "wart removal": [
+      "verrucas",
+      "verrucis"
+    ],
+    "counter-irritant": [
+      "rubefacientem"
+    ],
+    "poison": [
+      "venenum",
+      "toxicum"
+    ]
+  },
+  "HUMORAL_QUALITY_WORDS": {
+    "hot": [
+      "calidus",
+      "calida",
+      "calidum",
+      "calidi",
+      "calidae"
+    ],
+    "cold": [
+      "frigidus",
+      "frigida",
+      "frigidum",
+      "frigidi",
+      "frigidae"
+    ],
+    "dry": [
+      "siccus",
+      "sicca",
+      "siccum",
+      "sicci",
+      "siccae"
+    ],
+    "wet": [
+      "humidus",
+      "humida",
+      "humidum",
+      "humidi",
+      "humidae"
+    ]
+  }
+}
