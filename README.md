@@ -1,6 +1,6 @@
 # Voynich Manuscript Convergence Attack Toolkit
 
-> **Paper:** [The Voice But Not the Song: A Shorthand Hypothesis and the Statistical Fingerprint of the Voynich Manuscript](The_Voice_But_Not_the_Song.pdf) (Ruckman, 2026)
+> **Paper:** [The Voice But Not the Song: A Shorthand Hypothesis and the Statistical Fingerprint of the Voynich Manuscript](https://mattruckman.com/papers/voice-but-not-the-song.pdf) (Ruckman, 2026)
 >
 > **Companion repo (Approach 2 — Syllabary Analysis):** [voynich_2](https://github.com/mruckman1/voynich_2)
 >
